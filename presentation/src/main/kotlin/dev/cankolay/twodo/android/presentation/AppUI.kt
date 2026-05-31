@@ -1,11 +1,16 @@
 package dev.cankolay.twodo.android.presentation
 
-import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.cankolay.twodo.android.domain.model.api.user.User
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppMainLayout
 import dev.cankolay.twodo.android.presentation.composition.ProvideNavBackStack
 import dev.cankolay.twodo.android.presentation.composition.ProvideSnackbarHostState
@@ -18,7 +23,7 @@ import dev.cankolay.twodo.android.presentation.viewmodel.application.SettingsVie
 
 @Composable
 fun AppUI(
-    intent: Intent,
+    uri: Uri?,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     userViewModel: UserViewModel = hiltViewModel(),
@@ -32,56 +37,130 @@ fun AppUI(
     val authState = authUiState.authState
     val user = userUiState.user
 
-    val uri = intent.data
-    LaunchedEffect(key1 = uri) {
-        uri?.let { uri ->
-            authViewModel.authenticate(uri = uri)
-            onAuthIntentConsumed()
-        }
-    }
+    HandleAuthUri(
+        authUri = uri,
+        authViewModel = authViewModel,
+        onAuthIntentConsumed = onAuthIntentConsumed
+    )
 
-    LaunchedEffect(
-        authState?.token,
-        authUiState.isAuthenticating,
-        user?.id,
-        user?.profileCompleted,
-        userUiState.error
-    ) {
-        val token = authState?.token
-        when {
-            token == null -> Unit
-            token.isEmpty() -> userViewModel.clearUser()
-            !authUiState.isAuthenticating && user == null && !userUiState.isLoading && !userUiState.isInitialized ->
-                userViewModel.fetchUser()
-        }
-    }
+    SyncUserState(
+        token = authState?.token,
+        isAuthenticating = authUiState.isAuthenticating,
+        userId = user?.id,
+        isUserLoading = userUiState.isLoading,
+        isUserInitialized = userUiState.isInitialized,
+        userViewModel = userViewModel
+    )
 
-    if (settingsState != null && authState != null) {
-        val startRoute =
-            when {
-                authState.token.isEmpty() -> Route.Welcome
-                authUiState.isAuthenticating -> null
-                userUiState.errorCode == "error-profile-required" -> Route.ProfileSetup
-                user == null && userUiState.error == null -> null
-                user == null && userUiState.error != null -> Route.StartupError
-                user?.profileCompleted == false -> Route.ProfileSetup
-                user?.couple != null -> Route.Notes
-                else -> Route.CoupleSetup
-            }
+    if (settingsState == null || authState == null) return
 
-        AppTheme(settingsState = settingsState) {
+    val startRoute = resolveStartRoute(
+        token = authState.token,
+        isAuthenticating = authUiState.isAuthenticating,
+        user = user,
+        userError = userUiState.error,
+        userErrorCode = userUiState.errorCode
+    )
+
+    AppTheme(settingsState = settingsState) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxSize()
+        ) {
             startRoute?.let { route ->
-                ProvideNavBackStack(startRoute = route) {
-                    ProvideSnackbarHostState {
-                        AppMainLayout {
-                            AppNavigation(
-                                authViewModel = authViewModel,
-                                userViewModel = userViewModel
-                            )
-                        }
-                    }
-                }
+                AppRoot(
+                    startRoute = route,
+                    authViewModel = authViewModel,
+                    userViewModel = userViewModel
+                )
             }
         }
     }
 }
+
+@Composable
+private fun HandleAuthUri(
+    authUri: Uri?,
+    authViewModel: AuthViewModel,
+    onAuthIntentConsumed: () -> Unit
+) {
+    LaunchedEffect(authUri) {
+        authUri ?: return@LaunchedEffect
+
+        authViewModel.authenticate(uri = authUri)
+        onAuthIntentConsumed()
+    }
+}
+
+@Composable
+private fun SyncUserState(
+    token: String?,
+    isAuthenticating: Boolean,
+    userId: String?,
+    isUserLoading: Boolean,
+    isUserInitialized: Boolean,
+    userViewModel: UserViewModel
+) {
+    LaunchedEffect(
+        token,
+        isAuthenticating,
+        userId,
+        isUserLoading,
+        isUserInitialized
+    ) {
+        when {
+            token == null -> Unit
+            token.isEmpty() -> userViewModel.clearUser()
+
+            !isAuthenticating &&
+                    userId == null &&
+                    !isUserLoading &&
+                    !isUserInitialized -> {
+                userViewModel.fetchUser()
+            }
+        }
+    }
+}
+
+private fun resolveStartRoute(
+    token: String,
+    isAuthenticating: Boolean,
+    user: User?,
+    userError: String?,
+    userErrorCode: String?
+): Route? {
+    return when {
+        token.isEmpty() -> Route.Welcome
+        isAuthenticating -> null
+
+        userErrorCode == ERROR_PROFILE_REQUIRED -> Route.ProfileSetup
+
+        user == null && userError == null -> null
+        user == null && userError != null -> Route.StartupError
+
+        user?.profileCompleted == false -> Route.ProfileSetup
+        user?.couple != null -> Route.Notes
+
+        else -> Route.CoupleSetup
+    }
+}
+
+@Composable
+private fun AppRoot(
+    startRoute: Route,
+    authViewModel: AuthViewModel,
+    userViewModel: UserViewModel
+) {
+    ProvideNavBackStack(startRoute = startRoute) {
+        ProvideSnackbarHostState {
+            AppMainLayout {
+                AppNavigation(
+                    authViewModel = authViewModel,
+                    userViewModel = userViewModel
+                )
+            }
+        }
+    }
+}
+
+private const val ERROR_PROFILE_REQUIRED = "error-profile-required"

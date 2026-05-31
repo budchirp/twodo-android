@@ -1,8 +1,8 @@
 package dev.cankolay.twodo.android
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.view.View
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -11,8 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import dagger.hilt.android.AndroidEntryPoint
 import dev.cankolay.twodo.android.presentation.AppUI
 import dev.cankolay.twodo.android.presentation.viewmodel.application.AuthViewModel
@@ -20,42 +18,31 @@ import dev.cankolay.twodo.android.presentation.viewmodel.application.SettingsVie
 
 @AndroidEntryPoint
 class AppActivity : AppCompatActivity() {
+
     private val settingsViewModel by viewModels<SettingsViewModel>()
     private val authViewModel by viewModels<AuthViewModel>()
-    private var appIntent by mutableStateOf<Intent?>(null)
+
+    private var uri by mutableStateOf<Uri?>(value = null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        appIntent = intent
-
-        val splashScreen = installSplashScreen()
-        splashScreen.setKeepOnScreenCondition {
+        installSplashScreen().setKeepOnScreenCondition {
             settingsViewModel.uiState.value.settingsState == null ||
-                authViewModel.uiState.value.authState == null
+                    authViewModel.uiState.value.authState == null
         }
+
+        super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
 
-        ViewCompat.setOnApplyWindowInsetsListener(
-            window.decorView,
-        ) { view: View, insets: WindowInsetsCompat ->
-            view.setPadding(0, 0, 0, 0)
-            insets
-        }
+        uri = intent.data
 
         setContent {
-            appIntent?.let { intent ->
-                AppUI(
-                    intent = intent,
-                    settingsViewModel = settingsViewModel,
-                    authViewModel = authViewModel,
-                    onAuthIntentConsumed = {
-                        val cleanIntent = Intent(this@AppActivity.intent).apply { data = null }
-                        setIntent(cleanIntent)
-                        appIntent = cleanIntent
-                    }
-                )
-            }
+            AppUI(
+                uri = uri,
+                settingsViewModel = settingsViewModel,
+                authViewModel = authViewModel,
+                onAuthIntentConsumed = ::consumeAuthIntent
+            )
         }
     }
 
@@ -63,6 +50,14 @@ class AppActivity : AppCompatActivity() {
         super.onNewIntent(intent)
 
         setIntent(intent)
-        appIntent = intent
+        uri = intent.data
+    }
+
+    private fun consumeAuthIntent() {
+        uri = null
+
+        intent = Intent(intent).apply {
+            data = null
+        }
     }
 }

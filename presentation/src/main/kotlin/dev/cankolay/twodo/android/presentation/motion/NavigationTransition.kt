@@ -34,9 +34,14 @@ fun navigationTransition(type: TransitionType = TransitionType.SLIDE): Map<Strin
         } + NavDisplay.popTransitionSpec {
             slideIn(initialOffsetX = { -(it * initialOffset).toInt() }) togetherWith slideOut(
                 targetOffsetX = { (it * initialOffset).toInt() })
+        } + NavDisplay.predictivePopTransitionSpec {
+            slideIn(initialOffsetX = { -(it * initialOffset).toInt() }) togetherWith slideOut(
+                targetOffsetX = { (it * initialOffset).toInt() })
         }
 
         TransitionType.FADE -> NavDisplay.transitionSpec {
+            fadeIn togetherWith fadeOut
+        } + NavDisplay.popTransitionSpec {
             fadeIn togetherWith fadeOut
         } + NavDisplay.popTransitionSpec {
             fadeIn togetherWith fadeOut
