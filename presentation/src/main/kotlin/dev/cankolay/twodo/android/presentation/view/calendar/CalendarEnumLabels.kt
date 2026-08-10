@@ -15,7 +15,9 @@ internal fun CalendarEntryType.label() = stringResource(
     id = when (this) {
         CalendarEntryType.NOTE -> R.string.calendar_type_note
         CalendarEntryType.PERIOD -> R.string.calendar_type_period
+        CalendarEntryType.PERIOD_PREDICTION -> R.string.expected_period
         CalendarEntryType.SEXUAL_ACTIVITY -> R.string.calendar_type_sexual_activity
+        CalendarEntryType.OVULATION -> R.string.calendar_type_ovulation
     }
 )
 

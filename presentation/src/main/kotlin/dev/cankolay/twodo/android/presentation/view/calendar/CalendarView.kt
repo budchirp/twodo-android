@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
 import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
@@ -273,12 +274,18 @@ private fun CalendarMonthGrid(
                                 .aspectRatio(ratio = 1f)
                         )
                     } else {
+                        val dateEntries = entriesByDate[date].orEmpty()
+                        val hasOvulation =
+                            dateEntries.any { it.type == CalendarEntryType.OVULATION }
+                        val hasPeriodPrediction =
+                            dateEntries.any { it.type == CalendarEntryType.PERIOD_PREDICTION }
                         CalendarDayCell(
                             modifier = Modifier.weight(weight = 1f),
                             date = date,
                             selected = date == selectedDate,
-                            entryCount = entriesByDate[date].orEmpty().size,
-                            isPredictedPeriod = date in predictedPeriodDates,
+                            entryCount = dateEntries.size,
+                            isPredictedPeriod = date in predictedPeriodDates || hasPeriodPrediction,
+                            hasOvulation = hasOvulation,
                             onClick = { onDateClick(date) }
                         )
                     }
@@ -303,10 +310,12 @@ private fun CalendarDayCell(
     selected: Boolean,
     entryCount: Int,
     isPredictedPeriod: Boolean,
+    hasOvulation: Boolean = false,
     onClick: () -> Unit
 ) {
     val containerColor = when {
         selected -> MaterialTheme.colorScheme.primaryContainer
+        hasOvulation -> MaterialTheme.colorScheme.secondaryContainer
         isPredictedPeriod -> MaterialTheme.colorScheme.tertiaryContainer
         entryCount > 0 -> MaterialTheme.colorScheme.surfaceContainerHighest
         else -> MaterialTheme.colorScheme.surfaceContainerLow
@@ -331,7 +340,7 @@ private fun CalendarDayCell(
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
             )
 
-            if (entryCount > 0 || isPredictedPeriod) {
+            if (entryCount > 0 || isPredictedPeriod || hasOvulation) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -342,6 +351,14 @@ private fun CalendarDayCell(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
+                    }
+
+                    if (hasOvulation) {
+                        Surface(
+                            modifier = Modifier.size(size = 6.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondary
+                        ) {}
                     }
 
                     if (isPredictedPeriod) {

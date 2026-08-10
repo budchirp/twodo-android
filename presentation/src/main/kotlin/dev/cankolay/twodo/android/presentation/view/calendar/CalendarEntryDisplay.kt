@@ -1,6 +1,7 @@
 package dev.cankolay.twodo.android.presentation.view.calendar
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
@@ -32,17 +33,25 @@ internal fun CalendarEntry.description(): String {
             sexualActivity?.protectionMethod?.label(),
             notes
         ).joinToString(separator = " · ")
+
+        CalendarEntryType.OVULATION -> notes.orEmpty()
+        CalendarEntryType.PERIOD_PREDICTION -> notes.orEmpty()
     }
 
     return details.ifBlank { stringResource(id = R.string.no_notes) }
 }
 
 internal fun CalendarEntry.canManage(isFemale: Boolean) =
-    type != CalendarEntryType.PERIOD || isFemale
+    createdBy != null &&
+            type != CalendarEntryType.OVULATION &&
+            type != CalendarEntryType.PERIOD_PREDICTION &&
+            (type != CalendarEntryType.PERIOD || isFemale)
 
 @Composable
 internal fun CalendarEntryType.icon(): ImageVector = when (this) {
     CalendarEntryType.NOTE -> Icons.Default.Edit
     CalendarEntryType.PERIOD -> Icons.Default.CalendarMonth
+    CalendarEntryType.PERIOD_PREDICTION -> Icons.Default.CalendarMonth
     CalendarEntryType.SEXUAL_ACTIVITY -> Icons.Default.Favorite
+    CalendarEntryType.OVULATION -> Icons.Default.AutoAwesome
 }

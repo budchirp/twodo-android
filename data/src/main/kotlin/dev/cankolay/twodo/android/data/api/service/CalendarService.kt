@@ -29,13 +29,13 @@ constructor(private val client: KtorClient) {
         }
     }
 
-    suspend fun getRange(startDate: LocalDate, endDate: LocalDate) =
+    suspend fun getRange(startDate: LocalDate? = null, endDate: LocalDate? = null) =
         request<List<CalendarEntryDto>> {
             client().get {
                 url {
                     path(ApiConstants.Endpoints.CALENDAR)
-                    parameters.append(name = "startDate", value = startDate.toString())
-                    parameters.append(name = "endDate", value = endDate.toString())
+                    startDate?.let { parameters.append(name = "startDate", value = it.toString()) }
+                    endDate?.let { parameters.append(name = "endDate", value = it.toString()) }
                 }
             }
         }

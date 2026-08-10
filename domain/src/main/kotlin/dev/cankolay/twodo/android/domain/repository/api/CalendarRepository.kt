@@ -9,7 +9,11 @@ import java.time.LocalDate
 
 interface CalendarRepository {
     suspend fun create(input: CalendarEntryInput): ApiResult<CalendarEntry>
-    suspend fun getRange(startDate: LocalDate, endDate: LocalDate): ApiResult<List<CalendarEntry>>
+    suspend fun getRange(
+        startDate: LocalDate? = null,
+        endDate: LocalDate? = null
+    ): ApiResult<List<CalendarEntry>>
+
     suspend fun get(id: String): ApiResult<CalendarEntry>
     suspend fun update(id: String, input: CalendarEntryInput): ApiResult<CalendarEntry>
     suspend fun delete(id: String): ApiResult<Nothing?>

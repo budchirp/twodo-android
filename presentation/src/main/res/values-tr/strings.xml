@@ -135,6 +135,7 @@
     <string name="calendar_type_note">Not</string>
     <string name="calendar_type_period">Regl</string>
     <string name="calendar_type_sexual_activity">Cinsel aktivite</string>
+    <string name="calendar_type_ovulation">Yumurtlama</string>
 
     <string name="period_tracker">Regl takibi</string>
     <string name="period_tracker_desc">Tahmini regl, yumurtlama ve döngü önerileri</string>

@@ -164,6 +164,7 @@
     <string name="calendar_type_note">Note</string>
     <string name="calendar_type_period">Period</string>
     <string name="calendar_type_sexual_activity">Sexual activity</string>
+    <string name="calendar_type_ovulation">Ovulation</string>
 
     <string name="period_tracker">Period tracker</string>
     <string name="period_tracker_desc">Expected period, ovulation, and cycle tips</string>

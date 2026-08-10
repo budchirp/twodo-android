@@ -32,7 +32,7 @@ constructor(
         }
     }
 
-    override suspend fun getRange(startDate: LocalDate, endDate: LocalDate) = withCouple {
+    override suspend fun getRange(startDate: LocalDate?, endDate: LocalDate?) = withCouple {
         when (val result = calendarService.getRange(startDate = startDate, endDate = endDate)) {
             is ApiResult.Success -> ApiResult.Success(
                 message = result.message,

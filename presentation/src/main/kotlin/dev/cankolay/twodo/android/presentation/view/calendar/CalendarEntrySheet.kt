@@ -117,7 +117,7 @@ internal fun CalendarEntrySheet(
         }
 
         when (form.type) {
-            CalendarEntryType.NOTE -> Unit
+            CalendarEntryType.NOTE, CalendarEntryType.OVULATION, CalendarEntryType.PERIOD_PREDICTION -> Unit
             CalendarEntryType.PERIOD -> periodFields(
                 periodEvent = form.periodEvent,
                 onPeriodEventChange = onPeriodEventChange,
@@ -146,7 +146,9 @@ private fun EntryTypeSelector(
     onSelected: (CalendarEntryType) -> Unit
 ) {
     val types = CalendarEntryType.entries.filter { type ->
-        type != CalendarEntryType.PERIOD || isFemale
+        type != CalendarEntryType.OVULATION &&
+                type != CalendarEntryType.PERIOD_PREDICTION &&
+                (type != CalendarEntryType.PERIOD || isFemale)
     }
 
     CardStackList(

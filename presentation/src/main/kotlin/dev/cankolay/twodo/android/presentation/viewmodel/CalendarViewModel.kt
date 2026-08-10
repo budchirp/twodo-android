@@ -481,6 +481,8 @@ class CalendarViewModel @Inject constructor(
                 input.period != null -> validationError(message = "Sexual activity entries cannot include period details.")
                 else -> null
             }
+
+            CalendarEntryType.OVULATION, CalendarEntryType.PERIOD_PREDICTION -> null
         }?.also { error ->
             _uiState.update { it.copy(error = error.message, errorCode = error.code) }
         }
