@@ -46,10 +46,6 @@ sealed interface Route : NavKey {
     data object Calendar : Route
 
     @Serializable
-    data object PeriodTracker : Route
-
-
-    @Serializable
     data object Settings : Route
 
     @Serializable
@@ -88,13 +84,6 @@ fun NavKey.getDetails(): RouteDetail {
             icon = RouteDetailIcon(
                 default = Icons.Filled.CalendarMonth,
                 outlined = Icons.Outlined.CalendarMonth,
-            )
-        ),
-        Route.PeriodTracker to RouteDetail(
-            title = stringResource(id = R.string.period_tracker),
-            description = stringResource(id = R.string.period_tracker_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Default.Info,
             )
         ),
         Route.Settings to RouteDetail(

@@ -21,8 +21,6 @@ object ApiConstants {
         const val NOTES = "notes"
 
         const val CALENDAR = "calendar"
-        const val PERIOD_TRACKER_SUMMARY = "$CALENDAR/period-tracker/summary"
-        const val PERIOD_TRACKER_PREDICTION = "$CALENDAR/period-tracker/prediction"
     }
 }
 

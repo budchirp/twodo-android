@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
@@ -74,7 +73,6 @@ fun CalendarView(
 
     LaunchedEffect(key1 = Unit) {
         calendarViewModel.fetchCalendar()
-        calendarViewModel.fetchPeriodTracker()
     }
 
     LaunchedEffect(key1 = uiState.error) {
@@ -93,10 +91,6 @@ fun CalendarView(
 
     AppLayout(route = Route.Calendar, topBar = { context ->
         AppTopAppBar(context = context, trailingContent = {
-            IconButton(onClick = { navBackStack.add(element = Route.PeriodTracker) }) {
-                Icon(icon = Icons.Default.Info)
-            }
-
             IconButton(onClick = { calendarViewModel.openCreateEntryForm() }) {
                 Icon(icon = Icons.Default.Add)
             }
@@ -106,7 +100,6 @@ fun CalendarView(
             isLoading = uiState.isLoading,
             onRefresh = {
                 calendarViewModel.fetchCalendar()
-                calendarViewModel.fetchPeriodTracker()
             }
         ) {
             item {
@@ -114,7 +107,6 @@ fun CalendarView(
                     visibleMonth = uiState.visibleMonth,
                     selectedDate = uiState.selectedDate,
                     entries = entries.orEmpty(),
-                    predictedPeriodDates = uiState.predictedPeriodDates,
                     onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
                     onNextMonth = { calendarViewModel.moveMonth(months = 1) },
                     onDateClick = { calendarViewModel.selectDate(date = it) }
@@ -186,7 +178,6 @@ private fun MonthCalendarCard(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entries: List<CalendarEntry>,
-    predictedPeriodDates: Set<LocalDate>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDateClick: (LocalDate) -> Unit
@@ -226,7 +217,6 @@ private fun MonthCalendarCard(
             visibleMonth = visibleMonth,
             selectedDate = selectedDate,
             entriesByDate = entriesByDate,
-            predictedPeriodDates = predictedPeriodDates,
             onDateClick = onDateClick
         )
     }
@@ -254,7 +244,6 @@ private fun CalendarMonthGrid(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entriesByDate: Map<LocalDate, List<CalendarEntry>>,
-    predictedPeriodDates: Set<LocalDate>,
     onDateClick: (LocalDate) -> Unit
 ) {
     val firstDay = visibleMonth.atDay(1)
@@ -284,7 +273,7 @@ private fun CalendarMonthGrid(
                             date = date,
                             selected = date == selectedDate,
                             entryCount = dateEntries.size,
-                            isPredictedPeriod = date in predictedPeriodDates || hasPeriodPrediction,
+                            isPredictedPeriod = hasPeriodPrediction,
                             hasOvulation = hasOvulation,
                             onClick = { onDateClick(date) }
                         )

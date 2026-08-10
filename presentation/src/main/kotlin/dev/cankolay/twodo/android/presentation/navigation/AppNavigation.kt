@@ -11,7 +11,6 @@ import dev.cankolay.twodo.android.presentation.motion.navigationTransition
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.view.StartupErrorView
 import dev.cankolay.twodo.android.presentation.view.calendar.CalendarView
-import dev.cankolay.twodo.android.presentation.view.calendar.PeriodTrackerView
 import dev.cankolay.twodo.android.presentation.view.note.NoteView
 import dev.cankolay.twodo.android.presentation.view.note.NotesView
 import dev.cankolay.twodo.android.presentation.view.onboarding.CoupleSetupView
@@ -80,10 +79,6 @@ fun AppNavigation(
 
             entry<Route.Calendar>(metadata = navigationTransition(type = TransitionType.FADE)) {
                 CalendarView(userViewModel = userViewModel)
-            }
-
-            entry<Route.PeriodTracker>(metadata = navigationTransition()) {
-                PeriodTrackerView()
             }
 
             entry<Route.Settings>(metadata = navigationTransition(type = TransitionType.FADE)) {

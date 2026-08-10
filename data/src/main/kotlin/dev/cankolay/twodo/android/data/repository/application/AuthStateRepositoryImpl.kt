@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import dev.cankolay.twodo.android.data.cache.SessionCache
 import dev.cankolay.twodo.android.data.di.AuthDataStore
 import dev.cankolay.twodo.android.domain.model.application.AuthState
 import dev.cankolay.twodo.android.domain.repository.application.AuthStateRepository
@@ -17,13 +18,17 @@ class AuthStateRepositoryImpl
 @Inject
 constructor(
     @AuthDataStore
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val sessionCache: SessionCache
 ) : AuthStateRepository {
     private object PreferenceKeys {
         val TOKEN = stringPreferencesKey(name = "token")
     }
 
     override suspend fun update(state: AuthState) {
+        if (state.token.isEmpty()) {
+            sessionCache.clear()
+        }
         dataStore.edit { preferences ->
             preferences[PreferenceKeys.TOKEN] = state.token
         }

@@ -137,7 +137,9 @@ class NoteViewModel @Inject constructor(
 
     fun fetchNotes() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            if (_uiState.value.notes == null) {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+            }
 
             when (val result = getNotesUseCase()) {
                 is ApiResult.Error -> _uiState.update {
@@ -162,7 +164,18 @@ class NoteViewModel @Inject constructor(
     fun fetchNote(id: String) {
         saveNoteDraftJob?.cancel()
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            val existingNote = _uiState.value.notes?.find { it.id == id }
+            if (existingNote != null && _uiState.value.note?.id != id) {
+                _uiState.update {
+                    it.copy(
+                        note = existingNote,
+                        noteDraft = existingNote,
+                        error = null
+                    )
+                }
+            } else if (_uiState.value.note?.id != id) {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+            }
 
             when (val result = getNoteUseCase(id = id)) {
                 is ApiResult.Error -> _uiState.update {

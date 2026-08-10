@@ -2,14 +2,9 @@ package dev.cankolay.twodo.android.presentation.view.calendar
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarDateRange
 import dev.cankolay.twodo.android.presentation.R
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
-@Composable
-internal fun formatDateRange(range: CalendarDateRange) =
-    "${formatDate(range.startDate)} - ${formatDate(range.endDate)}"
 
 @Composable
 internal fun formatDate(date: LocalDate): String =

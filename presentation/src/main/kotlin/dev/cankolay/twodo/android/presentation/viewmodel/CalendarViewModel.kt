@@ -12,16 +12,12 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.EjaculationLocation
 import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodDetails
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
-import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodPrediction
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
-import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodTrackerSummary
 import dev.cankolay.twodo.android.domain.model.api.calendar.ProtectionMethod
 import dev.cankolay.twodo.android.domain.model.api.calendar.SexualActivityDetails
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.CreateCalendarEntryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.DeleteCalendarEntryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarEntriesUseCase
-import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetPeriodTrackerPredictionUseCase
-import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetPeriodTrackerSummaryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.UpdateCalendarEntryUseCase
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.form.FormField
@@ -72,19 +68,14 @@ data class CalendarEntryFormState(
 
 data class CalendarUiState(
     val entries: List<CalendarEntry>? = null,
-    val periodTrackerSummary: PeriodTrackerSummary? = null,
-    val periodPrediction: PeriodPrediction? = null,
-    val predictedPeriodDates: Set<LocalDate> = emptySet(),
     val visibleMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate = LocalDate.now(),
     val entryForm: CalendarEntryFormState? = null,
     val deletingEntry: CalendarEntry? = null,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
-    val isPeriodTrackerLoading: Boolean = false,
     val error: String? = null,
-    val errorCode: String? = null,
-    val periodTrackerError: String? = null
+    val errorCode: String? = null
 )
 
 @HiltViewModel
@@ -92,9 +83,7 @@ class CalendarViewModel @Inject constructor(
     private val createCalendarEntryUseCase: CreateCalendarEntryUseCase,
     private val getCalendarEntriesUseCase: GetCalendarEntriesUseCase,
     private val updateCalendarEntryUseCase: UpdateCalendarEntryUseCase,
-    private val deleteCalendarEntryUseCase: DeleteCalendarEntryUseCase,
-    private val getPeriodTrackerSummaryUseCase: GetPeriodTrackerSummaryUseCase,
-    private val getPeriodTrackerPredictionUseCase: GetPeriodTrackerPredictionUseCase
+    private val deleteCalendarEntryUseCase: DeleteCalendarEntryUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState = _uiState.asStateFlow()
@@ -102,12 +91,6 @@ class CalendarViewModel @Inject constructor(
     fun fetchCalendar() {
         viewModelScope.launch {
             refreshCalendar()
-        }
-    }
-
-    fun fetchPeriodTracker() {
-        viewModelScope.launch {
-            refreshPeriodTracker()
         }
     }
 
@@ -248,7 +231,6 @@ class CalendarViewModel @Inject constructor(
                     }
                     refreshCalendar()
                 }
-                refreshPeriodTracker(updateLoading = false)
             }
 
             else -> Unit
@@ -301,7 +283,6 @@ class CalendarViewModel @Inject constructor(
                     }
                     refreshCalendar()
                 }
-                refreshPeriodTracker(updateLoading = false)
             }
 
             else -> Unit
@@ -338,7 +319,6 @@ class CalendarViewModel @Inject constructor(
                         errorCode = null
                     )
                 }
-                refreshPeriodTracker(updateLoading = false)
             }
 
             else -> Unit
@@ -350,7 +330,9 @@ class CalendarViewModel @Inject constructor(
 
     private suspend fun refreshCalendar() {
         val state = _uiState.value
-        _uiState.update { it.copy(isLoading = true, error = null, errorCode = null) }
+        if (state.entries == null) {
+            _uiState.update { it.copy(isLoading = true, error = null, errorCode = null) }
+        }
 
         when (val result = getCalendarEntriesUseCase(
             startDate = state.visibleMonth.atDay(1),
@@ -376,52 +358,6 @@ class CalendarViewModel @Inject constructor(
         }
 
         _uiState.update { it.copy(isLoading = false) }
-    }
-
-    private suspend fun refreshPeriodTracker(updateLoading: Boolean = true) {
-        if (updateLoading) {
-            _uiState.update { it.copy(isPeriodTrackerLoading = true, periodTrackerError = null) }
-        }
-
-        when (val result = getPeriodTrackerSummaryUseCase()) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(periodTrackerError = result.message, errorCode = result.code)
-            }
-
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(periodTrackerError = result.exception.messageOrDefault())
-            }
-
-            is ApiResult.Success -> _uiState.update {
-                it.copy(periodTrackerSummary = result.data, periodTrackerError = null)
-            }
-
-            else -> Unit
-        }
-
-        when (val result = getPeriodTrackerPredictionUseCase()) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(periodTrackerError = result.message, errorCode = result.code)
-            }
-
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(periodTrackerError = result.exception.messageOrDefault())
-            }
-
-            is ApiResult.Success -> _uiState.update {
-                it.copy(
-                    periodPrediction = result.data,
-                    predictedPeriodDates = result.data.futurePeriodDates(),
-                    periodTrackerError = null
-                )
-            }
-
-            else -> Unit
-        }
-
-        if (updateLoading) {
-            _uiState.update { it.copy(isPeriodTrackerLoading = false) }
-        }
     }
 
     private fun updateEntryForm(update: (CalendarEntryFormState) -> CalendarEntryFormState) {
@@ -497,15 +433,3 @@ class CalendarViewModel @Inject constructor(
 
 private fun Throwable.messageOrDefault() =
     localizedMessage ?: message ?: "Unexpected error"
-
-private fun PeriodPrediction.futurePeriodDates(today: LocalDate = LocalDate.now()): Set<LocalDate> {
-    val periodStartDate =
-        nextPeriodWindow?.startDate ?: expectedPeriodStartDate ?: return emptySet()
-    val periodEndDate = nextPeriodWindow?.endDate ?: expectedPeriodEndDate ?: periodStartDate
-    val startDate = maxOf(periodStartDate, today)
-    if (startDate.isAfter(periodEndDate)) return emptySet()
-
-    return generateSequence(seed = startDate) { date ->
-        date.plusDays(1).takeIf { nextDate -> !nextDate.isAfter(periodEndDate) }
-    }.toSet()
-}

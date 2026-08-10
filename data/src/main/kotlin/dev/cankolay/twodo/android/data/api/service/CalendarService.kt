@@ -4,8 +4,6 @@ import dev.cankolay.twodo.android.data.api.client.KtorClient
 import dev.cankolay.twodo.android.data.api.client.request
 import dev.cankolay.twodo.android.data.api.model.request.calendar.CalendarEntryRequestDto
 import dev.cankolay.twodo.android.data.api.model.response.calendar.CalendarEntryDto
-import dev.cankolay.twodo.android.data.api.model.response.calendar.PeriodPredictionDto
-import dev.cankolay.twodo.android.data.api.model.response.calendar.PeriodTrackerSummaryDto
 import dev.cankolay.twodo.android.domain.model.api.ApiConstants
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -62,22 +60,6 @@ constructor(private val client: KtorClient) {
         client().delete {
             url {
                 path(ApiConstants.Endpoints.CALENDAR, id)
-            }
-        }
-    }
-
-    suspend fun getPeriodTrackerSummary() = request<PeriodTrackerSummaryDto> {
-        client().get {
-            url {
-                path(ApiConstants.Endpoints.PERIOD_TRACKER_SUMMARY)
-            }
-        }
-    }
-
-    suspend fun getPeriodTrackerPrediction() = request<PeriodPredictionDto> {
-        client().get {
-            url {
-                path(ApiConstants.Endpoints.PERIOD_TRACKER_PREDICTION)
             }
         }
     }
