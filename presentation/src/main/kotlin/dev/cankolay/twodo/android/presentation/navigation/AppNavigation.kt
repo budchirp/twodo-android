@@ -46,7 +46,7 @@ fun AppNavigation(
         ),
         entryProvider = entryProvider {
             entry<Route.Welcome>(metadata = navigationTransition()) {
-                WelcomeView()
+                WelcomeView(authViewModel = authViewModel)
             }
 
             entry<Route.StartupError>(metadata = navigationTransition()) {

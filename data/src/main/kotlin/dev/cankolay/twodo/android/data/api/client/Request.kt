@@ -32,99 +32,60 @@ internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Er
     }
 }
 
-suspend inline fun <reified T : @Serializable Any> request(
-    block: suspend () -> HttpResponse
-): ApiResult<T> {
+@PublishedApi
+internal suspend inline fun <R> executeRequest(
+    block: suspend () -> HttpResponse,
+    parseSuccess: suspend (HttpResponse) -> ApiResult<R>
+): ApiResult<R> {
     return try {
         val response = block()
-
         val statusCode = response.status.value
         if (statusCode in 200..299) {
-            val body = response.body<SuccessResponse<T>>()
-            if (body.error) ApiResult.Error(
-                message = body.message,
-                reason = ErrorReason.CLIENT,
-                code = body.code
-            ) else ApiResult.Success(
-                message = body.message,
-                data = body.data,
-                code = body.code
-            )
+            parseSuccess(response)
         } else {
             response.errorResult(reason = reasonForStatus(statusCode))
         }
     } catch (e: RedirectResponseException) {
-        return e.response.errorResult(reason = ErrorReason.SERVER)
+        e.response.errorResult(reason = ErrorReason.SERVER)
     } catch (e: ClientRequestException) {
-        return e.response.errorResult(reason = ErrorReason.CLIENT)
+        e.response.errorResult(reason = ErrorReason.CLIENT)
     } catch (e: ServerResponseException) {
-        return e.response.errorResult(reason = ErrorReason.SERVER)
+        e.response.errorResult(reason = ErrorReason.SERVER)
     } catch (e: Exception) {
-        return ApiResult.Fatal(exception = e)
+        ApiResult.Fatal(exception = e)
+    }
+}
+
+suspend inline fun <reified T : @Serializable Any> request(
+    noinline block: suspend () -> HttpResponse
+): ApiResult<T> = executeRequest(block) { response ->
+    val body = response.body<SuccessResponse<T>>()
+    if (body.error) {
+        ApiResult.Error(message = body.message, reason = ErrorReason.CLIENT, code = body.code)
+    } else {
+        ApiResult.Success(message = body.message, data = body.data, code = body.code)
     }
 }
 
 suspend inline fun <reified T : @Serializable Any> requestNullable(
-    block: suspend () -> HttpResponse
-): ApiResult<T?> {
-    return try {
-        val response = block()
-
-        val statusCode = response.status.value
-        if (statusCode in 200..299) {
-            val body = response.body<SuccessResponse<T?>>()
-            if (body.error) ApiResult.Error(
-                message = body.message,
-                reason = ErrorReason.CLIENT,
-                code = body.code
-            ) else ApiResult.Success(
-                message = body.message,
-                data = body.data,
-                code = body.code
-            )
-        } else {
-            response.errorResult(reason = reasonForStatus(statusCode))
-        }
-    } catch (e: RedirectResponseException) {
-        return e.response.errorResult(reason = ErrorReason.SERVER)
-    } catch (e: ClientRequestException) {
-        return e.response.errorResult(reason = ErrorReason.CLIENT)
-    } catch (e: ServerResponseException) {
-        return e.response.errorResult(reason = ErrorReason.SERVER)
-    } catch (e: Exception) {
-        return ApiResult.Fatal(exception = e)
+    noinline block: suspend () -> HttpResponse
+): ApiResult<T?> = executeRequest(block) { response ->
+    val body = response.body<SuccessResponse<T?>>()
+    if (body.error) {
+        ApiResult.Error(message = body.message, reason = ErrorReason.CLIENT, code = body.code)
+    } else {
+        ApiResult.Success(message = body.message, data = body.data, code = body.code)
     }
 }
 
 suspend fun request(
     noReturn: Boolean,
     block: suspend () -> HttpResponse
-): ApiResult<Nothing?> {
-    return try {
-        val response = block()
-
-        val statusCode = response.status.value
-        if (statusCode in 200..299) {
-            val body = response.body<EmptySuccessResponse>()
-            if (body.error) ApiResult.Error(
-                message = body.message,
-                reason = ErrorReason.CLIENT,
-                code = body.code
-            ) else ApiResult.Success(
-                message = body.message,
-                data = null,
-                code = body.code
-            )
-        } else {
-            response.errorResult(reason = reasonForStatus(statusCode))
-        }
-    } catch (e: RedirectResponseException) {
-        return e.response.errorResult(reason = ErrorReason.SERVER)
-    } catch (e: ClientRequestException) {
-        return e.response.errorResult(reason = ErrorReason.CLIENT)
-    } catch (e: ServerResponseException) {
-        return e.response.errorResult(reason = ErrorReason.SERVER)
-    } catch (e: Exception) {
-        return ApiResult.Fatal(exception = e)
+): ApiResult<Nothing?> = executeRequest(block) { response ->
+    val body = response.body<EmptySuccessResponse>()
+    if (body.error) {
+        ApiResult.Error(message = body.message, reason = ErrorReason.CLIENT, code = body.code)
+    } else {
+        ApiResult.Success(message = body.message, data = null, code = body.code)
     }
 }

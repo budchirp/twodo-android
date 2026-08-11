@@ -3,6 +3,7 @@ package dev.cankolay.twodo.android.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryInput
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
@@ -14,6 +15,9 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodInput
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
 import dev.cankolay.twodo.android.domain.model.api.calendar.ProtectionMethod
 import dev.cankolay.twodo.android.domain.model.api.calendar.SexualActivityInput
+import dev.cankolay.twodo.android.domain.model.api.getOrNull
+import dev.cankolay.twodo.android.domain.model.api.onError
+import dev.cankolay.twodo.android.domain.model.api.onSuccess
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.CreateCalendarEntryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.DeleteCalendarEntryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarEntriesUseCase
@@ -23,11 +27,7 @@ import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.form.FormField
 import dev.cankolay.twodo.android.presentation.form.parseLocalDate
 import dev.cankolay.twodo.android.presentation.form.update
-import dev.cankolay.twodo.android.presentation.state.UiStatus
-import dev.cankolay.twodo.android.presentation.state.errorMessage
-import dev.cankolay.twodo.android.presentation.state.isLoading
-import dev.cankolay.twodo.android.presentation.state.onError
-import dev.cankolay.twodo.android.presentation.state.onSuccess
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -79,17 +79,19 @@ sealed interface CalendarSheet {
 }
 
 data class CalendarUiState(
-    val entries: List<CalendarEntry>? = null,
+    val entriesResult: ApiResult<List<CalendarEntry>> = ApiResult.Loading,
+    val cachedEntries: List<CalendarEntry>? = null,
     val predictionSummary: CalendarPredictionSummary? = null,
     val visibleMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate = LocalDate.now(),
     val activeSheet: CalendarSheet = CalendarSheet.None,
-    val status: UiStatus = UiStatus.Idle
+    val actionResult: ApiResult<*>? = null
 ) {
+    val entries: List<CalendarEntry>? get() = cachedEntries ?: entriesResult.getOrNull()
     val selectedEntries: List<CalendarEntry>
         get() = entries.orEmpty().filter { it.date == selectedDate }
-    val isLoading: Boolean get() = status.isLoading
-    val error: String? get() = status.errorMessage
+    val isLoading: Boolean get() = entriesResult.isLoading || actionResult?.isLoading == true
+    val error: String? get() = actionResult?.errorMessage ?: entriesResult.errorMessage
 }
 
 @HiltViewModel
@@ -102,6 +104,7 @@ class CalendarViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState = _uiState.asStateFlow()
+    private var fetchCalendarJob: Job? = null
 
     fun openPredictionSheet() {
         _uiState.update { it.copy(activeSheet = CalendarSheet.PredictionSummary) }
@@ -209,23 +212,20 @@ class CalendarViewModel @Inject constructor(
     }
 
     fun fetchCalendar() {
-        viewModelScope.launch {
+        if (fetchCalendarJob?.isActive == true) return
+
+        fetchCalendarJob = viewModelScope.launch {
             if (_uiState.value.entries == null) {
-                _uiState.update { it.copy(status = UiStatus.Loading) }
+                _uiState.update { it.copy(entriesResult = ApiResult.Loading) }
             }
 
-            getCalendarEntriesUseCase()
-                .onSuccess { entries ->
-                    _uiState.update { state ->
-                        state.copy(
-                            entries = entries,
-                            status = UiStatus.Idle
-                        )
-                    }
-                }
-                .onError { msg, code ->
-                    _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
-                }
+            val result = getCalendarEntriesUseCase()
+            _uiState.update { state ->
+                state.copy(
+                    entriesResult = result,
+                    cachedEntries = result.getOrNull() ?: state.cachedEntries
+                )
+            }
 
             fetchPredictionSummarySilently()
         }
@@ -233,13 +233,12 @@ class CalendarViewModel @Inject constructor(
 
     fun fetchPredictionSummary() {
         viewModelScope.launch {
-            getCalendarPredictionSummaryUseCase()
-                .onSuccess { summary ->
-                    _uiState.update { it.copy(predictionSummary = summary) }
-                }
-                .onError { msg, code ->
-                    _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
-                }
+            val result = getCalendarPredictionSummaryUseCase()
+            result.onSuccess { summary ->
+                _uiState.update { it.copy(predictionSummary = summary) }
+            }.onError { _, _ ->
+                _uiState.update { it.copy(actionResult = result) }
+            }
         }
     }
 
@@ -273,9 +272,10 @@ class CalendarViewModel @Inject constructor(
             }
 
             result.onSuccess {
+                _uiState.update { state -> state.copy(actionResult = null) }
                 fetchCalendar()
-            }.onError { msg, code ->
-                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
+            }.onError { _, _ ->
+                _uiState.update { state -> state.copy(actionResult = result) }
                 fetchCalendar()
             }
         }
@@ -287,18 +287,18 @@ class CalendarViewModel @Inject constructor(
         dismissDeleteEntry()
 
         _uiState.update { state ->
-            state.copy(entries = state.entries?.filterNot { it.id == entry.id })
+            state.copy(cachedEntries = state.entries?.filterNot { it.id == entry.id })
         }
 
         viewModelScope.launch {
-            deleteCalendarEntryUseCase(id = entry.id)
-                .onSuccess {
-                    fetchCalendar()
-                }
-                .onError { msg, code ->
-                    _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
-                    fetchCalendar()
-                }
+            val result = deleteCalendarEntryUseCase(id = entry.id)
+            result.onSuccess {
+                _uiState.update { state -> state.copy(actionResult = null) }
+                fetchCalendar()
+            }.onError { _, _ ->
+                _uiState.update { state -> state.copy(actionResult = result) }
+                fetchCalendar()
+            }
         }
     }
 

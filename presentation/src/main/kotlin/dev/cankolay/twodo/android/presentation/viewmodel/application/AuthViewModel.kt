@@ -4,11 +4,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.cankolay.twodo.android.domain.model.api.ApiResult
+import dev.cankolay.twodo.android.domain.model.api.onError
 import dev.cankolay.twodo.android.domain.model.application.AuthState
 import dev.cankolay.twodo.android.domain.usecase.api.user.InitializeUserUseCase
 import dev.cankolay.twodo.android.domain.usecase.application.auth.GetAuthStateUseCase
 import dev.cankolay.twodo.android.domain.usecase.application.auth.UpdateAuthStateUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.environment.GetEnvironmentConfigUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,16 +20,19 @@ import javax.inject.Inject
 data class AuthUiState(
     val authState: AuthState? = null,
     val isAuthenticating: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val authUrl: String = ""
 )
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     getAuthStateUseCase: GetAuthStateUseCase,
     private val updateAuthStateUseCase: UpdateAuthStateUseCase,
-    private val initializeUserUseCase: InitializeUserUseCase
+    private val initializeUserUseCase: InitializeUserUseCase,
+    getEnvironmentConfigUseCase: GetEnvironmentConfigUseCase
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(AuthUiState())
+    private val _uiState =
+        MutableStateFlow(AuthUiState(authUrl = getEnvironmentConfigUseCase().authUrl))
     val uiState = _uiState.asStateFlow()
     private var authenticationJob: Job? = null
     private var handledToken: String? = null
@@ -72,29 +76,12 @@ class AuthViewModel @Inject constructor(
 
         return try {
             updateAuthStateUseCase(state = AuthState(token = token))
-            when (val result = initializeUserUseCase()) {
-                is ApiResult.Success -> {
-                    handledToken = token
-                    true
-                }
-
-                is ApiResult.Error -> {
-                    handledToken = token
-                    _uiState.update { it.copy(error = result.message) }
-                    true
-                }
-
-                is ApiResult.Fatal -> {
-                    handledToken = token
-                    _uiState.update { it.copy(error = result.exception.messageOrDefault()) }
-                    true
-                }
-
-                else -> {
-                    handledToken = token
-                    true
-                }
+            val result = initializeUserUseCase()
+            handledToken = token
+            result.onError { message, _ ->
+                _uiState.update { it.copy(error = message) }
             }
+            true
         } finally {
             _uiState.update { it.copy(isAuthenticating = false) }
         }
@@ -108,6 +95,3 @@ class AuthViewModel @Inject constructor(
         }
     }
 }
-
-private fun Throwable.messageOrDefault() =
-    localizedMessage ?: message ?: "Unexpected error"

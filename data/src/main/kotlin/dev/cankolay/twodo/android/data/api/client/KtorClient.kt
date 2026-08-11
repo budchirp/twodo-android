@@ -3,7 +3,7 @@ package dev.cankolay.twodo.android.data.api.client
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.cankolay.twodo.android.domain.model.api.ApiConstants
+import dev.cankolay.twodo.android.domain.repository.application.EnvironmentConfigRepository
 import dev.cankolay.twodo.android.domain.usecase.application.auth.GetAuthStateUseCase
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -17,7 +17,6 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.ContentType
-import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.first
@@ -28,18 +27,15 @@ class KtorClient
 @Inject
 constructor(
     @ApplicationContext private val context: Context,
-    private val getAuthStateUseCase: GetAuthStateUseCase
+    private val getAuthStateUseCase: GetAuthStateUseCase,
+    private val environmentConfigRepository: EnvironmentConfigRepository
 ) {
     suspend operator fun invoke(): HttpClient {
         val authState = getAuthStateUseCase().first()
 
         val client = HttpClient(engineFactory = OkHttp) {
             defaultRequest {
-                url {
-                    protocol = URLProtocol.HTTP
-                    host = ApiConstants.API_URL
-                    port = ApiConstants.API_PORT
-                }
+                url(urlString = environmentConfigRepository.get().apiUrl)
 
                 if (authState.token.isNotBlank()) {
                     headers.append(name = "Authorization", value = "Bearer ${authState.token}")

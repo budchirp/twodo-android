@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
-import dev.cankolay.twodo.android.domain.model.api.ErrorReason
+import dev.cankolay.twodo.android.domain.model.api.getOrNull
+import dev.cankolay.twodo.android.domain.model.api.onError
+import dev.cankolay.twodo.android.domain.model.api.onSuccess
 import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.domain.model.api.user.User
+import dev.cankolay.twodo.android.domain.model.api.validationError
 import dev.cankolay.twodo.android.domain.usecase.api.couple.LeaveCoupleUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.user.GetUserUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.user.UpdateProfileUseCase
@@ -15,12 +18,6 @@ import dev.cankolay.twodo.android.presentation.form.FormField
 import dev.cankolay.twodo.android.presentation.form.update
 import dev.cankolay.twodo.android.presentation.form.validatePresent
 import dev.cankolay.twodo.android.presentation.form.validateRequired
-import dev.cankolay.twodo.android.presentation.state.UiStatus
-import dev.cankolay.twodo.android.presentation.state.errorCode
-import dev.cankolay.twodo.android.presentation.state.errorMessage
-import dev.cankolay.twodo.android.presentation.state.isLoading
-import dev.cankolay.twodo.android.presentation.state.onError
-import dev.cankolay.twodo.android.presentation.state.onSuccess
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,16 +38,16 @@ sealed interface UserSheet {
 }
 
 data class UserUiState(
-    val user: User? = null,
+    val userResult: ApiResult<User> = ApiResult.Loading,
     val profileForm: ProfileFormState = ProfileFormState(),
     val activeSheet: UserSheet = UserSheet.None,
-    val status: UiStatus = UiStatus.Idle,
-    val isFatalError: Boolean = false,
-    val isInitialized: Boolean = false
+    val actionResult: ApiResult<*>? = null
 ) {
-    val isLoading: Boolean get() = status.isLoading
-    val error: String? get() = status.errorMessage
-    val errorCode: String? get() = status.errorCode
+    val user: User? get() = userResult.getOrNull()
+    val isLoading: Boolean get() = userResult.isLoading || actionResult?.isLoading == true
+    val isInitialized: Boolean get() = userResult !is ApiResult.Loading
+    val error: String? get() = actionResult?.errorMessage ?: userResult.errorMessage
+    val errorCode: String? get() = actionResult?.errorCode ?: userResult.errorCode
     val isLeaveCoupleSheetVisible: Boolean get() = activeSheet is UserSheet.LeaveCouple
 }
 
@@ -110,76 +107,57 @@ class UserViewModel @Inject constructor(
         if (fetchUserJob?.isActive == true) return
 
         fetchUserJob = viewModelScope.launch {
-            _uiState.update { it.copy(status = UiStatus.Loading) }
+            _uiState.update { it.copy(userResult = ApiResult.Loading) }
 
-            getUserUseCase()
-                .onSuccess { userData ->
-                    _uiState.update {
-                        it.copy(
-                            user = userData,
-                            profileForm = userData.toProfileFormState(),
-                            status = UiStatus.Idle,
-                            isFatalError = false,
-                            isInitialized = true
-                        )
-                    }
-                }
-                .onError { msg, code ->
-                    _uiState.update {
-                        it.copy(
-                            user = null,
-                            status = UiStatus.Error(msg, code),
-                            isFatalError = false,
-                            isInitialized = true
-                        )
-                    }
-                }
+            val result = getUserUseCase()
+            _uiState.update { state ->
+                state.copy(
+                    userResult = result,
+                    profileForm = result.getOrNull()?.toProfileFormState() ?: state.profileForm
+                )
+            }
         }
     }
 
     suspend fun leaveCouple(): ApiResult<Nothing?> {
-        _uiState.update { it.copy(status = UiStatus.Loading) }
+        _uiState.update { it.copy(actionResult = ApiResult.Loading) }
 
         val result = leaveCoupleUseCase()
-            .onSuccess {
-                _uiState.update { state ->
-                    state.copy(
-                        user = state.user?.copy(couple = null),
-                        activeSheet = UserSheet.None,
-                        status = UiStatus.Idle
-                    )
-                }
+        result.onSuccess {
+            _uiState.update { state ->
+                val currentUser = state.user
+                state.copy(
+                    userResult = if (currentUser != null) ApiResult.Success(
+                        message = "Updated",
+                        data = currentUser.copy(couple = null)
+                    ) else state.userResult,
+                    activeSheet = UserSheet.None,
+                    actionResult = null
+                )
             }
-            .onError { msg, code ->
-                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
-            }
+        }.onError { _, _ ->
+            _uiState.update { it.copy(actionResult = result) }
+        }
 
         return result
     }
 
     suspend fun updateProfile(name: String, gender: Gender): ApiResult<User> {
-        _uiState.update { it.copy(status = UiStatus.Loading) }
+        _uiState.update { it.copy(actionResult = ApiResult.Loading) }
 
         val result = updateProfileUseCase(name = name, gender = gender)
-            .onSuccess { updatedUser ->
-                val refreshedUser = when (val refreshed = getUserUseCase()) {
-                    is ApiResult.Success -> refreshed.data
-                    else -> updatedUser
-                }
-
-                _uiState.update {
-                    it.copy(
-                        user = refreshedUser,
-                        profileForm = refreshedUser.toProfileFormState(),
-                        status = UiStatus.Idle,
-                        isFatalError = false,
-                        isInitialized = true
-                    )
-                }
+        result.onSuccess { updatedUser ->
+            val refreshed = (getUserUseCase().getOrNull() ?: updatedUser)
+            _uiState.update { state ->
+                state.copy(
+                    userResult = ApiResult.Success(message = "Updated", data = refreshed),
+                    profileForm = refreshed.toProfileFormState(),
+                    actionResult = null
+                )
             }
-            .onError { msg, code ->
-                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
-            }
+        }.onError { _, _ ->
+            _uiState.update { it.copy(actionResult = result) }
+        }
 
         return result
     }
@@ -188,12 +166,6 @@ class UserViewModel @Inject constructor(
         fetchUserJob?.cancel()
         _uiState.value = UserUiState()
     }
-
-    private fun validationError(message: String) = ApiResult.Error(
-        message = message,
-        reason = ErrorReason.CLIENT,
-        code = "validation_error"
-    )
 }
 
 private fun User.toProfileFormState() = ProfileFormState(

@@ -1,5 +1,5 @@
 <div align="center">
-    <h1>TwoDo</h1>
+    <h1>twodo-android</h1>
     <h2>A shared to-do list for couples</h2>
 </div>
 
@@ -8,7 +8,3 @@
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/budchirp/twodo?style=for-the-badge&colorA=0b1221&colorB=BDB0E4" />
   <img alt="Issues" src="https://img.shields.io/github/issues/budchirp/twodo?style=for-the-badge&colorA=0b1221&colorB=FBC19D" />
 </div>
-
-# TODO
-
-- [ ] Check session on start-up
