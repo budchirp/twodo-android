@@ -4,7 +4,7 @@ minSdk = "28"
 
 android-plugin = "9.2.1"
 kotlin = "2.4.10"
-ksp = "2.3.4"
+ksp = "2.3.11"
 
 kotlinx-serialization-json = "1.11.0"
 
