@@ -4,6 +4,7 @@ import dev.cankolay.twodo.android.data.api.client.KtorClient
 import dev.cankolay.twodo.android.data.api.client.request
 import dev.cankolay.twodo.android.data.api.model.request.calendar.CalendarEntryRequestDto
 import dev.cankolay.twodo.android.data.api.model.response.calendar.CalendarEntryDto
+import dev.cankolay.twodo.android.data.api.model.response.calendar.CalendarPredictionSummaryDto
 import dev.cankolay.twodo.android.domain.model.api.ApiConstants
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -60,6 +61,14 @@ constructor(private val client: KtorClient) {
         client().delete {
             url {
                 path(ApiConstants.Endpoints.CALENDAR, id)
+            }
+        }
+    }
+
+    suspend fun getPredictionSummary() = request<CalendarPredictionSummaryDto> {
+        client().get {
+            url {
+                path(ApiConstants.Endpoints.CALENDAR_PREDICTIONS_SUMMARY)
             }
         }
     }

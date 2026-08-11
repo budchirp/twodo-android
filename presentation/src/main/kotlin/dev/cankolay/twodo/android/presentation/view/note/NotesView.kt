@@ -34,36 +34,27 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBa
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.CreateNoteFormState
+import dev.cankolay.twodo.android.presentation.viewmodel.NoteSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.NoteViewModel
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NotesView(
     noteViewModel: NoteViewModel = hiltViewModel(),
-    userViewModel: UserViewModel = hiltViewModel()
 ) {
     val navBackStack = LocalNavBackStack.current
 
     val state by noteViewModel.uiState.collectAsStateWithLifecycle()
     val notes = state.notes
     LaunchedEffect(key1 = Unit) {
-        noteViewModel.fetchNotes()
+        if (state.notes == null) {
+            noteViewModel.fetchNotes()
+        }
     }
 
     val isLoading = state.isLoading
     val error = state.error
-
-    LaunchedEffect(key1 = state.errorCode) {
-        if (state.errorCode == "error-profile-required") {
-            userViewModel.fetchUser()
-            navBackStack.add(element = Route.ProfileSetup)
-            while (navBackStack.size > 1) {
-                navBackStack.removeAt(0)
-            }
-        }
-    }
 
     AppLayout(route = Route.Notes, topBar = { context ->
         AppTopAppBar(context = context, trailingContent = {
@@ -126,9 +117,9 @@ fun NotesView(
             }
         }
 
-        state.createNoteForm?.let { form ->
+        (state.activeSheet as? NoteSheet.CreateNote)?.let { sheet ->
             CreateNoteSheet(
-                form = form,
+                form = sheet.form,
                 isLoading = isLoading,
                 onDismiss = { noteViewModel.dismissCreateNoteSheet() },
                 onTitleChange = { noteViewModel.updateCreateNoteTitle(title = it) },

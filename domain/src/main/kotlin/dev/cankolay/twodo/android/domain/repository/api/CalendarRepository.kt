@@ -3,6 +3,7 @@ package dev.cankolay.twodo.android.domain.repository.api
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryInput
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarPredictionSummary
 import java.time.LocalDate
 
 interface CalendarRepository {
@@ -15,4 +16,5 @@ interface CalendarRepository {
     suspend fun get(id: String): ApiResult<CalendarEntry>
     suspend fun update(id: String, input: CalendarEntryInput): ApiResult<CalendarEntry>
     suspend fun delete(id: String): ApiResult<Nothing?>
+    suspend fun getPredictionSummary(): ApiResult<CalendarPredictionSummary>
 }

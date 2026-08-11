@@ -37,6 +37,7 @@ fun AppTopAppBar(
     type: AppTopAppBarType = AppTopAppBarType.Large,
     context: AppLayoutContext,
     title: (@Composable () -> Unit)? = null,
+    onBackClick: (() -> Unit)? = null,
     leadingContent: @Composable () -> Unit = {},
     trailingContent: @Composable () -> Unit = {},
 ) {
@@ -64,7 +65,9 @@ fun AppTopAppBar(
             FilledIconButton(
                 colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 onClick = {
-                    if (navBackStack.size > 1) {
+                    if (onBackClick != null) {
+                        onBackClick()
+                    } else if (navBackStack.size > 1) {
                         navBackStack.removeLastOrNull()
                     }
                 }) {

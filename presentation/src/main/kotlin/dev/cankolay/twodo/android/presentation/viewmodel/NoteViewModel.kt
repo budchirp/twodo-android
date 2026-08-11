@@ -15,6 +15,12 @@ import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.form.FormField
 import dev.cankolay.twodo.android.presentation.form.update
 import dev.cankolay.twodo.android.presentation.form.validateRequired
+import dev.cankolay.twodo.android.presentation.state.UiStatus
+import dev.cankolay.twodo.android.presentation.state.errorCode
+import dev.cankolay.twodo.android.presentation.state.errorMessage
+import dev.cankolay.twodo.android.presentation.state.isLoading
+import dev.cankolay.twodo.android.presentation.state.onError
+import dev.cankolay.twodo.android.presentation.state.onSuccess
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,18 +36,27 @@ data class CreateNoteFormState(
     val canSubmit = title.value.isNotBlank()
 }
 
+sealed interface NoteSheet {
+    data object None : NoteSheet
+    data class CreateNote(val form: CreateNoteFormState) : NoteSheet
+    data object NoteActions : NoteSheet
+    data class DeleteConfirmation(val noteId: String) : NoteSheet
+}
+
 data class NoteUiState(
     val notes: List<Note>? = null,
     val note: Note? = null,
     val noteDraft: Note? = null,
-    val createNoteForm: CreateNoteFormState? = null,
-    val isNoteActionsSheetVisible: Boolean = false,
-    val isDeleteNoteSheetVisible: Boolean = false,
-    val isLoading: Boolean = false,
-    val isSaving: Boolean = false,
-    val error: String? = null,
-    val errorCode: String? = null
-)
+    val activeSheet: NoteSheet = NoteSheet.None,
+    val status: UiStatus = UiStatus.Idle
+) {
+    val isLoading: Boolean get() = status.isLoading
+    val error: String? get() = status.errorMessage
+    val errorCode: String? get() = status.errorCode
+    val createNoteForm: CreateNoteFormState? get() = (activeSheet as? NoteSheet.CreateNote)?.form
+    val isNoteActionsSheetVisible: Boolean get() = activeSheet is NoteSheet.NoteActions
+    val isDeleteNoteSheetVisible: Boolean get() = activeSheet is NoteSheet.DeleteConfirmation
+}
 
 @HiltViewModel
 class NoteViewModel @Inject constructor(
@@ -51,36 +66,36 @@ class NoteViewModel @Inject constructor(
     private val updateNoteUseCase: UpdateNoteUseCase,
     private val deleteNoteUseCase: DeleteNoteUseCase
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(NoteUiState())
+    private val _uiState = MutableStateFlow(value = NoteUiState())
     val uiState = _uiState.asStateFlow()
+
     private var saveNoteDraftJob: Job? = null
 
     fun openCreateNoteSheet() {
-        _uiState.update { it.copy(createNoteForm = CreateNoteFormState()) }
+        _uiState.update { it.copy(activeSheet = NoteSheet.CreateNote(form = CreateNoteFormState())) }
     }
 
     fun dismissCreateNoteSheet() {
-        _uiState.update { it.copy(createNoteForm = null) }
+        _uiState.update { it.copy(activeSheet = NoteSheet.None) }
     }
 
     fun updateCreateNoteTitle(title: String) {
         _uiState.update { state ->
-            state.createNoteForm?.let { form ->
-                state.copy(createNoteForm = form.copy(title = form.title.update(value = title)))
-            } ?: state
+            val form = (state.activeSheet as? NoteSheet.CreateNote)?.form ?: return@update state
+            state.copy(activeSheet = NoteSheet.CreateNote(form.copy(title = form.title.update(value = title))))
         }
     }
 
     suspend fun submitCreateNote(): ApiResult<Note> {
-        val form =
-            _uiState.value.createNoteForm ?: return validationError(message = "Title is required.")
+        val form = (_uiState.value.activeSheet as? NoteSheet.CreateNote)?.form
+            ?: return validationError(message = "Title is required.")
         val title = form.title.validateRequired(error = R.string.title_required)
         if (title.error != null) {
-            _uiState.update { it.copy(createNoteForm = form.copy(title = title)) }
+            _uiState.update { it.copy(activeSheet = NoteSheet.CreateNote(form.copy(title = title))) }
             return validationError(message = "Title is required.")
         }
 
-        _uiState.update { it.copy(createNoteForm = form.copy(title = title)) }
+        _uiState.update { it.copy(activeSheet = NoteSheet.CreateNote(form.copy(title = title))) }
         return createNote(title = title.value.trim())
     }
 
@@ -88,12 +103,17 @@ class NoteViewModel @Inject constructor(
         val draft = _uiState.value.noteDraft ?: return
         if (draft.title == title) return
 
-        _uiState.update {
-            it.copy(
-                noteDraft = draft.copy(
-                    title = title,
-                    updatedAt = OffsetDateTime.now().toString()
-                )
+        val updatedDraft = draft.copy(
+            title = title,
+            updatedAt = OffsetDateTime.now().toString()
+        )
+        _uiState.update { state ->
+            state.copy(
+                noteDraft = updatedDraft,
+                note = updatedDraft,
+                notes = state.notes?.map { item ->
+                    if (item.id == updatedDraft.id) updatedDraft else item
+                }
             )
         }
         scheduleNoteDraftSave()
@@ -103,203 +123,197 @@ class NoteViewModel @Inject constructor(
         val draft = _uiState.value.noteDraft ?: return
         if (draft.content == content) return
 
-        _uiState.update {
-            it.copy(
-                noteDraft = draft.copy(
-                    content = content,
-                    updatedAt = OffsetDateTime.now().toString()
-                )
+        val updatedDraft = draft.copy(
+            content = content,
+            updatedAt = OffsetDateTime.now().toString()
+        )
+        _uiState.update { state ->
+            state.copy(
+                noteDraft = updatedDraft,
+                note = updatedDraft,
+                notes = state.notes?.map { item ->
+                    if (item.id == updatedDraft.id) updatedDraft else item
+                }
             )
         }
         scheduleNoteDraftSave()
     }
 
     fun openNoteActionsSheet() {
-        _uiState.update { it.copy(isNoteActionsSheetVisible = true) }
+        _uiState.update { it.copy(activeSheet = NoteSheet.NoteActions) }
     }
 
     fun dismissNoteActionsSheet() {
-        _uiState.update { it.copy(isNoteActionsSheetVisible = false) }
+        _uiState.update { it.copy(activeSheet = NoteSheet.None) }
     }
 
     fun requestDeleteNote() {
-        _uiState.update {
-            it.copy(
-                isNoteActionsSheetVisible = false,
-                isDeleteNoteSheetVisible = true
-            )
-        }
+        val noteId = _uiState.value.note?.id ?: return
+        _uiState.update { it.copy(activeSheet = NoteSheet.DeleteConfirmation(noteId = noteId)) }
     }
 
     fun dismissDeleteNoteSheet() {
-        _uiState.update { it.copy(isDeleteNoteSheetVisible = false) }
+        _uiState.update { it.copy(activeSheet = NoteSheet.None) }
     }
 
     fun fetchNotes() {
         viewModelScope.launch {
             if (_uiState.value.notes == null) {
-                _uiState.update { it.copy(isLoading = true, error = null) }
+                _uiState.update { it.copy(status = UiStatus.Loading) }
             }
 
-            when (val result = getNotesUseCase()) {
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(error = result.message, errorCode = result.code)
+            getNotesUseCase()
+                .onSuccess { list ->
+                    _uiState.update { state ->
+                        state.copy(
+                            notes = list,
+                            status = UiStatus.Idle
+                        )
+                    }
                 }
-
-                is ApiResult.Fatal -> _uiState.update {
-                    it.copy(error = result.exception.messageOrDefault(), errorCode = null)
+                .onError { msg, code ->
+                    _uiState.update { it.copy(status = UiStatus.Error(message = msg, code)) }
                 }
-
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(notes = result.data, error = null, errorCode = null)
-                }
-
-                else -> Unit
-            }
-
-            _uiState.update { it.copy(isLoading = false) }
         }
     }
 
     fun fetchNote(id: String) {
-        saveNoteDraftJob?.cancel()
+        val currentNote = _uiState.value.note
+        if (currentNote?.id != id) {
+            _uiState.update { it.copy(status = UiStatus.Loading, note = null, noteDraft = null) }
+        }
+
         viewModelScope.launch {
-            val existingNote = _uiState.value.notes?.find { it.id == id }
-            if (existingNote != null && _uiState.value.note?.id != id) {
-                _uiState.update {
-                    it.copy(
-                        note = existingNote,
-                        noteDraft = existingNote,
-                        error = null
-                    )
+            getNoteUseCase(id = id)
+                .onSuccess { noteData ->
+                    _uiState.update { state ->
+                        state.copy(
+                            note = noteData,
+                            noteDraft = noteData,
+                            notes = state.notes?.map { if (it.id == noteData.id) noteData else it }
+                                ?: listOf(noteData),
+                            status = UiStatus.Idle
+                        )
+                    }
                 }
-            } else if (_uiState.value.note?.id != id) {
-                _uiState.update { it.copy(isLoading = true, error = null) }
-            }
-
-            when (val result = getNoteUseCase(id = id)) {
-                is ApiResult.Error -> _uiState.update {
-                    it.copy(error = result.message, errorCode = result.code)
+                .onError { msg, code ->
+                    _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
                 }
-
-                is ApiResult.Fatal -> _uiState.update {
-                    it.copy(error = result.exception.messageOrDefault(), errorCode = null)
-                }
-
-                is ApiResult.Success -> _uiState.update {
-                    it.copy(
-                        note = result.data,
-                        noteDraft = result.data,
-                        error = null,
-                        errorCode = null
-                    )
-                }
-
-                else -> Unit
-            }
-
-            _uiState.update { it.copy(isLoading = false) }
         }
     }
 
     suspend fun createNote(title: String): ApiResult<Note> {
-        _uiState.update { it.copy(isLoading = true, error = null) }
+        _uiState.update { it.copy(status = UiStatus.Loading) }
 
         val result = createNoteUseCase(title = title.trim())
-        when (result) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(error = result.message, errorCode = result.code)
+            .onSuccess { newNote ->
+                _uiState.update { state ->
+                    state.copy(
+                        notes = (state.notes.orEmpty() + newNote),
+                        note = newNote,
+                        noteDraft = newNote,
+                        activeSheet = NoteSheet.None,
+                        status = UiStatus.Idle
+                    )
+                }
+            }
+            .onError { msg, code ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
             }
 
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault(), errorCode = null)
-            }
-
-            is ApiResult.Success -> _uiState.update { state ->
-                state.copy(
-                    notes = state.notes.orEmpty() + result.data,
-                    note = result.data,
-                    noteDraft = result.data,
-                    error = null,
-                    errorCode = null
-                )
-            }
-
-            else -> Unit
-        }
-
-        _uiState.update { it.copy(isLoading = false) }
         return result
     }
 
     suspend fun updateNote(id: String, note: Note): ApiResult<Note> {
-        _uiState.update { it.copy(isSaving = true, error = null) }
-
         val result = updateNoteUseCase(id = id, note = note)
-        when (result) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(error = result.message, errorCode = result.code)
+            .onSuccess { updatedNote ->
+                _uiState.update { state ->
+                    state.copy(
+                        notes = state.notes?.map { item ->
+                            if (item.id == id) updatedNote else item
+                        },
+                        note = updatedNote,
+                        noteDraft = updatedNote
+                    )
+                }
+            }
+            .onError { msg, code ->
+                _uiState.update { it.copy(status = UiStatus.Error(message = msg, code)) }
             }
 
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault(), errorCode = null)
-            }
+        return result
+    }
 
-            is ApiResult.Success -> _uiState.update { state ->
-                state.copy(
-                    notes = state.notes?.map { item ->
-                        if (item.id == id) result.data else item
-                    },
-                    note = result.data,
-                    error = null,
-                    errorCode = null
-                )
-            }
+    fun confirmDeleteNote(id: String) {
+        dismissDeleteNoteSheet()
 
-            else -> Unit
+        _uiState.update { state ->
+            state.copy(
+                notes = state.notes?.filterNot { it.id == id },
+                note = if (state.note?.id == id) null else state.note,
+                noteDraft = if (state.noteDraft?.id == id) null else state.noteDraft
+            )
         }
 
-        _uiState.update { it.copy(isSaving = false) }
-        return result
+        viewModelScope.launch {
+            deleteNoteUseCase(id = id)
+                .onError { msg, code ->
+                    _uiState.update { it.copy(status = UiStatus.Error(message = msg, code)) }
+                    fetchNotes()
+                }
+        }
     }
 
     suspend fun deleteNote(id: String): ApiResult<Nothing?> {
         saveNoteDraftJob?.cancel()
-        _uiState.update { it.copy(isLoading = true, error = null) }
+        _uiState.update { it.copy(status = UiStatus.Loading) }
 
         val result = deleteNoteUseCase(id = id)
-        when (result) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(error = result.message, errorCode = result.code)
+            .onSuccess {
+                _uiState.update { state ->
+                    state.copy(
+                        notes = state.notes?.filterNot { it.id == id },
+                        note = null,
+                        noteDraft = null,
+                        activeSheet = NoteSheet.None,
+                        status = UiStatus.Idle
+                    )
+                }
+            }
+            .onError { msg, code ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
             }
 
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault(), errorCode = null)
-            }
+        return result
+    }
 
-            is ApiResult.Success -> _uiState.update { state ->
+    fun flushDraftSave(content: String? = null) {
+        saveNoteDraftJob?.cancel()
+        var draft = _uiState.value.noteDraft ?: return
+        if (content != null && draft.content != content) {
+            draft = draft.copy(
+                content = content,
+                updatedAt = OffsetDateTime.now().toString()
+            )
+            _uiState.update { state ->
                 state.copy(
-                    notes = state.notes?.filterNot { it.id == id },
-                    note = null,
-                    noteDraft = null,
-                    isNoteActionsSheetVisible = false,
-                    isDeleteNoteSheetVisible = false,
-                    error = null,
-                    errorCode = null
+                    noteDraft = draft,
+                    note = draft,
+                    notes = state.notes?.map { item ->
+                        if (item.id == draft.id) draft else item
+                    }
                 )
             }
-
-            else -> Unit
         }
-
-        _uiState.update { it.copy(isLoading = false) }
-        return result
+        viewModelScope.launch {
+            updateNote(id = draft.id, note = draft)
+        }
     }
 
     private fun scheduleNoteDraftSave() {
         saveNoteDraftJob?.cancel()
         saveNoteDraftJob = viewModelScope.launch {
-            delay(timeMillis = 500)
+            delay(timeMillis = 100)
             val draft = _uiState.value.noteDraft ?: return@launch
             updateNote(id = draft.id, note = draft)
         }
@@ -311,6 +325,3 @@ class NoteViewModel @Inject constructor(
         code = "validation_error"
     )
 }
-
-private fun Throwable.messageOrDefault() =
-    localizedMessage ?: message ?: "Unexpected error"

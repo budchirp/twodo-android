@@ -23,10 +23,6 @@ data class PeriodRequestDto(
 data class SexualActivityRequestDto(
     val sexOccurred: Boolean,
     val protectionMethod: String,
-    val contraceptionUsed: Boolean,
-    val condomUsed: Boolean,
-    val withdrawal: Boolean,
-    val emergencyContraception: Boolean,
     val ejaculationLocation: String
 )
 
@@ -45,10 +41,6 @@ fun CalendarEntryInput.toDto() = CalendarEntryRequestDto(
         SexualActivityRequestDto(
             sexOccurred = sexualActivity.sexOccurred,
             protectionMethod = sexualActivity.protectionMethod.value,
-            contraceptionUsed = sexualActivity.protectionMethod.value != "none",
-            condomUsed = sexualActivity.protectionMethod.value == "condom",
-            withdrawal = sexualActivity.protectionMethod.value == "withdrawal",
-            emergencyContraception = sexualActivity.protectionMethod.value == "emergency_contraception",
             ejaculationLocation = sexualActivity.ejaculationLocation.value
         )
     }

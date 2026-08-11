@@ -214,4 +214,13 @@
     <string name="ejaculation_anal">Anal</string>
     <string name="ejaculation_oral">Oral</string>
     <string name="ejaculation_other_body">Vücudun başka yeri</string>
+
+    <string name="pregnancy_test_recommended">Evde gebelik testi önerilir</string>
+    <string name="period_late_days">Regl %1$d gün gecikti</string>
+    <string name="fertile_window_title">Doğurganlık ve Gebe Kalma Aralığı</string>
+    <string name="days_uncertainty">gün belirsizlik</string>
+    <string name="estimated_ovulation">Tahmini Yumurtlama</string>
+    <string name="fertile_window">Doğurganlık Penceresi</string>
+    <string name="conception_risk">Gebe Kalma Riski</string>
+    <string name="default_medical_disclaimer">Tahminler geçmiş kayıtlarınıza dayalı yaklaşık değerlerdir; tıbbi tavsiye veya doğum kontrolü yerine kullanılmamalıdır.</string>
 </resources>

@@ -14,6 +14,11 @@ import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.form.FormField
 import dev.cankolay.twodo.android.presentation.form.update
 import dev.cankolay.twodo.android.presentation.form.validateRequired
+import dev.cankolay.twodo.android.presentation.state.UiStatus
+import dev.cankolay.twodo.android.presentation.state.errorMessage
+import dev.cankolay.twodo.android.presentation.state.isLoading
+import dev.cankolay.twodo.android.presentation.state.onError
+import dev.cankolay.twodo.android.presentation.state.onSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -26,12 +31,20 @@ data class InvitePartnerFormState(
     val canSubmit = username.value.isNotBlank()
 }
 
+sealed interface InviteSheet {
+    data object None : InviteSheet
+    data class InvitePartner(val form: InvitePartnerFormState) : InviteSheet
+}
+
 data class InviteUiState(
     val invites: List<Invite>? = null,
-    val inviteForm: InvitePartnerFormState? = null,
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
+    val activeSheet: InviteSheet = InviteSheet.None,
+    val status: UiStatus = UiStatus.Idle
+) {
+    val isLoading: Boolean get() = status.isLoading
+    val error: String? get() = status.errorMessage
+    val inviteForm: InvitePartnerFormState? get() = (activeSheet as? InviteSheet.InvitePartner)?.form
+}
 
 @HiltViewModel
 class InviteViewModel @Inject constructor(
@@ -43,31 +56,44 @@ class InviteViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
 
     fun openInvitePartnerSheet() {
-        _uiState.update { it.copy(inviteForm = InvitePartnerFormState(), error = null) }
+        _uiState.update {
+            it.copy(
+                activeSheet = InviteSheet.InvitePartner(InvitePartnerFormState()),
+                status = UiStatus.Idle
+            )
+        }
     }
 
     fun dismissInvitePartnerSheet() {
-        _uiState.update { it.copy(inviteForm = null) }
+        _uiState.update { it.copy(activeSheet = InviteSheet.None) }
     }
 
     fun updateInviteUsername(username: String) {
         _uiState.update { state ->
-            state.inviteForm?.let { form ->
-                state.copy(inviteForm = form.copy(username = form.username.update(username.trim())))
-            } ?: state
+            val form =
+                (state.activeSheet as? InviteSheet.InvitePartner)?.form ?: return@update state
+            state.copy(
+                activeSheet = InviteSheet.InvitePartner(
+                    form.copy(
+                        username = form.username.update(
+                            username.trim()
+                        )
+                    )
+                )
+            )
         }
     }
 
     suspend fun submitInvite(): ApiResult<Nothing?> {
-        val form = _uiState.value.inviteForm
+        val form = (_uiState.value.activeSheet as? InviteSheet.InvitePartner)?.form
             ?: return validationError(message = "Username is required.")
         val username = form.username.validateRequired(error = R.string.username_required)
         if (username.error != null) {
-            _uiState.update { it.copy(inviteForm = form.copy(username = username)) }
+            _uiState.update { it.copy(activeSheet = InviteSheet.InvitePartner(form.copy(username = username))) }
             return validationError(message = "Username is required.")
         }
 
-        _uiState.update { it.copy(inviteForm = form.copy(username = username)) }
+        _uiState.update { it.copy(activeSheet = InviteSheet.InvitePartner(form.copy(username = username))) }
         return createInvite(username = username.value.trim())
     }
 
@@ -82,61 +108,52 @@ class InviteViewModel @Inject constructor(
     suspend fun createInvite(username: String): ApiResult<Nothing?> {
         if (_uiState.value.isLoading) return ApiResult.Loading
 
-        _uiState.update { it.copy(isLoading = true, error = null) }
+        _uiState.update { it.copy(status = UiStatus.Loading) }
 
         val result = createInviteUseCase(username = username.trim())
-        when (result) {
-            is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault())
+            .onSuccess {
+                refreshInvites(updateLoading = false)
+            }
+            .onError { msg, _ ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg)) }
             }
 
-            is ApiResult.Success -> refreshInvites(updateLoading = false)
-            else -> Unit
-        }
-
-        _uiState.update { it.copy(isLoading = false) }
+        _uiState.update { it.copy(status = UiStatus.Idle) }
         return result
     }
 
     suspend fun handleInvite(id: String, action: InviteAction): ApiResult<Nothing?> {
         if (_uiState.value.isLoading) return ApiResult.Loading
 
-        _uiState.update { it.copy(isLoading = true, error = null) }
+        _uiState.update { it.copy(status = UiStatus.Loading) }
 
         val result = handleInviteUseCase(id = id, action = action)
-        when (result) {
-            is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault())
+            .onSuccess {
+                refreshInvites(updateLoading = false)
+            }
+            .onError { msg, _ ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg)) }
             }
 
-            is ApiResult.Success -> refreshInvites(updateLoading = false)
-            else -> Unit
-        }
-
-        _uiState.update { it.copy(isLoading = false) }
+        _uiState.update { it.copy(status = UiStatus.Idle) }
         return result
     }
 
     private suspend fun refreshInvites(updateLoading: Boolean = true): ApiResult<List<Invite>> {
         if (updateLoading) {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(status = UiStatus.Loading) }
         }
 
         val result = getInvitesUseCase()
-        when (result) {
-            is ApiResult.Error -> _uiState.update { it.copy(error = result.message) }
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault())
+            .onSuccess { list ->
+                _uiState.update { it.copy(invites = list) }
+            }
+            .onError { msg, _ ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg)) }
             }
 
-            is ApiResult.Success -> _uiState.update { it.copy(invites = result.data) }
-            else -> Unit
-        }
-
         if (updateLoading) {
-            _uiState.update { it.copy(isLoading = false) }
+            _uiState.update { it.copy(status = UiStatus.Idle) }
         }
 
         return result
@@ -148,6 +165,3 @@ class InviteViewModel @Inject constructor(
         code = "validation_error"
     )
 }
-
-private fun Throwable.messageOrDefault() =
-    localizedMessage ?: message ?: "Unexpected error"

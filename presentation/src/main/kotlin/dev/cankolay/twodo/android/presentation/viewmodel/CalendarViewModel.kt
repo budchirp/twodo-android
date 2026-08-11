@@ -8,6 +8,7 @@ import dev.cankolay.twodo.android.domain.model.api.ErrorReason
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryInput
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarPredictionSummary
 import dev.cankolay.twodo.android.domain.model.api.calendar.EjaculationLocation
 import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodDetails
@@ -18,11 +19,18 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.SexualActivityDetail
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.CreateCalendarEntryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.DeleteCalendarEntryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarEntriesUseCase
+import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarPredictionSummaryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.UpdateCalendarEntryUseCase
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.form.FormField
 import dev.cankolay.twodo.android.presentation.form.parseLocalDate
 import dev.cankolay.twodo.android.presentation.form.update
+import dev.cankolay.twodo.android.presentation.state.UiStatus
+import dev.cankolay.twodo.android.presentation.state.errorCode
+import dev.cankolay.twodo.android.presentation.state.errorMessage
+import dev.cankolay.twodo.android.presentation.state.isLoading
+import dev.cankolay.twodo.android.presentation.state.onError
+import dev.cankolay.twodo.android.presentation.state.onSuccess
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -66,24 +74,38 @@ data class CalendarEntryFormState(
     }
 }
 
+sealed interface CalendarSheet {
+    data object None : CalendarSheet
+    data object PredictionSummary : CalendarSheet
+    data class EntryForm(val form: CalendarEntryFormState) : CalendarSheet
+    data class DeleteConfirmation(val entry: CalendarEntry) : CalendarSheet
+}
+
 data class CalendarUiState(
     val entries: List<CalendarEntry>? = null,
+    val predictionSummary: CalendarPredictionSummary? = null,
     val visibleMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate = LocalDate.now(),
-    val entryForm: CalendarEntryFormState? = null,
-    val deletingEntry: CalendarEntry? = null,
-    val isLoading: Boolean = false,
-    val isSaving: Boolean = false,
-    val error: String? = null,
-    val errorCode: String? = null
-)
+    val activeSheet: CalendarSheet = CalendarSheet.None,
+    val status: UiStatus = UiStatus.Idle
+) {
+    val selectedEntries: List<CalendarEntry>
+        get() = entries.orEmpty().filter { it.date == selectedDate }
+    val isLoading: Boolean get() = status.isLoading
+    val error: String? get() = status.errorMessage
+    val errorCode: String? get() = status.errorCode
+    val entryForm: CalendarEntryFormState? get() = (activeSheet as? CalendarSheet.EntryForm)?.form
+    val deletingEntry: CalendarEntry? get() = (activeSheet as? CalendarSheet.DeleteConfirmation)?.entry
+    val isPredictionSheetVisible: Boolean get() = activeSheet is CalendarSheet.PredictionSummary
+}
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
     private val createCalendarEntryUseCase: CreateCalendarEntryUseCase,
     private val getCalendarEntriesUseCase: GetCalendarEntriesUseCase,
     private val updateCalendarEntryUseCase: UpdateCalendarEntryUseCase,
-    private val deleteCalendarEntryUseCase: DeleteCalendarEntryUseCase
+    private val deleteCalendarEntryUseCase: DeleteCalendarEntryUseCase,
+    private val getCalendarPredictionSummaryUseCase: GetCalendarPredictionSummaryUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState = _uiState.asStateFlow()
@@ -92,6 +114,14 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             refreshCalendar()
         }
+    }
+
+    fun openPredictionSheet() {
+        _uiState.update { it.copy(activeSheet = CalendarSheet.PredictionSummary) }
+    }
+
+    fun dismissPredictionSheet() {
+        _uiState.update { it.copy(activeSheet = CalendarSheet.None) }
     }
 
     fun moveMonth(months: Long) {
@@ -111,33 +141,28 @@ class CalendarViewModel @Inject constructor(
 
     fun openCreateEntryForm() {
         _uiState.update {
-            it.copy(
-                entryForm = CalendarEntryFormState.create(date = it.selectedDate),
-                deletingEntry = null
-            )
+            it.copy(activeSheet = CalendarSheet.EntryForm(CalendarEntryFormState.create(date = it.selectedDate)))
         }
     }
 
     fun openEditEntryForm(entry: CalendarEntry) {
         _uiState.update {
-            it.copy(
-                entryForm = CalendarEntryFormState.edit(entry = entry),
-                deletingEntry = null
-            )
+            it.copy(activeSheet = CalendarSheet.EntryForm(CalendarEntryFormState.edit(entry = entry)))
         }
     }
 
     fun dismissEntryForm() {
-        _uiState.update { it.copy(entryForm = null) }
+        _uiState.update { it.copy(activeSheet = CalendarSheet.None) }
     }
 
     fun requestDeleteEntry() {
-        val entry = _uiState.value.entryForm?.entry ?: return
-        _uiState.update { it.copy(entryForm = null, deletingEntry = entry) }
+        val form = (_uiState.value.activeSheet as? CalendarSheet.EntryForm)?.form ?: return
+        val entry = form.entry ?: return
+        _uiState.update { it.copy(activeSheet = CalendarSheet.DeleteConfirmation(entry = entry)) }
     }
 
     fun dismissDeleteEntry() {
-        _uiState.update { it.copy(deletingEntry = null) }
+        _uiState.update { it.copy(activeSheet = CalendarSheet.None) }
     }
 
     fun updateEntryDate(date: String) {
@@ -176,19 +201,39 @@ class CalendarViewModel @Inject constructor(
         updateEntryForm { it.copy(ejaculationLocation = ejaculationLocation) }
     }
 
-    suspend fun submitEntryForm(isFemale: Boolean): Boolean {
-        val form = _uiState.value.entryForm ?: return false
-        val input = buildEntryInput(form = form) ?: return false
-        val result = form.entry?.let { entry ->
-            updateEntry(id = entry.id, input = input, isFemale = isFemale)
-        } ?: createEntry(input = input, isFemale = isFemale)
+    fun submitEntryForm(isFemale: Boolean) {
+        val form = (_uiState.value.activeSheet as? CalendarSheet.EntryForm)?.form ?: return
+        val input = buildEntryInput(form = form) ?: return
+        dismissEntryForm()
 
-        return result is ApiResult.Success
+        viewModelScope.launch {
+            if (form.entry != null) {
+                updateEntry(id = form.entry.id, input = input, isFemale = isFemale)
+            } else {
+                createEntry(input = input, isFemale = isFemale)
+            }
+        }
     }
 
-    suspend fun deleteSelectedEntry(isFemale: Boolean): Boolean {
-        val entry = _uiState.value.deletingEntry ?: return false
-        return deleteEntry(entry = entry, isFemale = isFemale) is ApiResult.Success
+    fun deleteSelectedEntry(isFemale: Boolean) {
+        val entry =
+            (_uiState.value.activeSheet as? CalendarSheet.DeleteConfirmation)?.entry ?: return
+        dismissDeleteEntry()
+
+        _uiState.update { state ->
+            state.copy(entries = state.entries?.filterNot { it.id == entry.id })
+        }
+
+        viewModelScope.launch {
+            deleteCalendarEntryUseCase(id = entry.id)
+                .onSuccess {
+                    refreshPredictionSummary()
+                }
+                .onError { msg, code ->
+                    _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
+                    refreshCalendar()
+                }
+        }
     }
 
     suspend fun createEntry(
@@ -197,46 +242,35 @@ class CalendarViewModel @Inject constructor(
     ): ApiResult<CalendarEntry> {
         validateInput(input = input, isFemale = isFemale)?.let { return it }
 
-        _uiState.update { it.copy(isSaving = true, error = null, errorCode = null) }
+        _uiState.update { it.copy(status = UiStatus.Loading) }
 
         val result = createCalendarEntryUseCase(input = input)
-        when (result) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(error = result.message, errorCode = result.code)
-            }
-
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault(), errorCode = null)
-            }
-
-            is ApiResult.Success -> {
-                val entryMonth = YearMonth.from(result.data.date)
+            .onSuccess { newEntry ->
+                val entryMonth = YearMonth.from(newEntry.date)
                 if (entryMonth == _uiState.value.visibleMonth) {
                     _uiState.update { state ->
                         state.copy(
-                            selectedDate = result.data.date,
-                            entries = (state.entries.orEmpty() + result.data).sortedBy { it.date },
-                            error = null,
-                            errorCode = null
+                            selectedDate = newEntry.date,
+                            entries = (state.entries.orEmpty() + newEntry).sortedBy { it.date },
+                            status = UiStatus.Idle
                         )
                     }
                 } else {
                     _uiState.update {
                         it.copy(
                             visibleMonth = entryMonth,
-                            selectedDate = result.data.date,
-                            error = null,
-                            errorCode = null
+                            selectedDate = newEntry.date,
+                            status = UiStatus.Idle
                         )
                     }
                     refreshCalendar()
                 }
+                refreshPredictionSummary()
+            }
+            .onError { msg, code ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
             }
 
-            else -> Unit
-        }
-
-        _uiState.update { it.copy(isSaving = false) }
         return result
     }
 
@@ -247,133 +281,113 @@ class CalendarViewModel @Inject constructor(
     ): ApiResult<CalendarEntry> {
         validateInput(input = input, isFemale = isFemale)?.let { return it }
 
-        _uiState.update { it.copy(isSaving = true, error = null, errorCode = null) }
+        _uiState.update { it.copy(status = UiStatus.Loading) }
 
         val result = updateCalendarEntryUseCase(id = id, input = input)
-        when (result) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(error = result.message, errorCode = result.code)
-            }
-
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault(), errorCode = null)
-            }
-
-            is ApiResult.Success -> {
-                val entryMonth = YearMonth.from(result.data.date)
+            .onSuccess { updatedEntry ->
+                val entryMonth = YearMonth.from(updatedEntry.date)
                 if (entryMonth == _uiState.value.visibleMonth) {
                     _uiState.update { state ->
                         state.copy(
-                            selectedDate = result.data.date,
+                            selectedDate = updatedEntry.date,
                             entries = state.entries.orEmpty().map { entry ->
-                                if (entry.id == id) result.data else entry
+                                if (entry.id == id) updatedEntry else entry
                             }.sortedBy { it.date },
-                            error = null,
-                            errorCode = null
+                            status = UiStatus.Idle
                         )
                     }
                 } else {
                     _uiState.update {
                         it.copy(
                             visibleMonth = entryMonth,
-                            selectedDate = result.data.date,
-                            error = null,
-                            errorCode = null
+                            selectedDate = updatedEntry.date,
+                            status = UiStatus.Idle
                         )
                     }
                     refreshCalendar()
                 }
+                refreshPredictionSummary()
+            }
+            .onError { msg, code ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
             }
 
-            else -> Unit
-        }
-
-        _uiState.update { it.copy(isSaving = false) }
         return result
     }
 
     suspend fun deleteEntry(entry: CalendarEntry, isFemale: Boolean): ApiResult<Nothing?> {
         if (entry.type == CalendarEntryType.PERIOD && !isFemale) {
             val error = validationError(message = "Only female users can manage period entries.")
-            _uiState.update { it.copy(error = error.message, errorCode = error.code) }
+            _uiState.update { it.copy(status = UiStatus.Error(error.message, error.code)) }
             return error
         }
 
-        _uiState.update { it.copy(isSaving = true, error = null, errorCode = null) }
+        _uiState.update { it.copy(status = UiStatus.Loading) }
 
         val result = deleteCalendarEntryUseCase(id = entry.id)
-        when (result) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(error = result.message, errorCode = result.code)
-            }
-
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault(), errorCode = null)
-            }
-
-            is ApiResult.Success -> {
+            .onSuccess {
                 _uiState.update { state ->
                     state.copy(
                         entries = state.entries.orEmpty().filterNot { it.id == entry.id },
-                        error = null,
-                        errorCode = null
+                        status = UiStatus.Idle
                     )
                 }
+                refreshPredictionSummary()
+            }
+            .onError { msg, code ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
             }
 
-            else -> Unit
-        }
-
-        _uiState.update { it.copy(isSaving = false) }
         return result
     }
 
     private suspend fun refreshCalendar() {
         val state = _uiState.value
         if (state.entries == null) {
-            _uiState.update { it.copy(isLoading = true, error = null, errorCode = null) }
+            _uiState.update { it.copy(status = UiStatus.Loading) }
         }
 
-        when (val result = getCalendarEntriesUseCase(
+        getCalendarEntriesUseCase(
             startDate = state.visibleMonth.atDay(1),
             endDate = state.visibleMonth.atEndOfMonth()
-        )) {
-            is ApiResult.Error -> _uiState.update {
-                it.copy(error = result.message, errorCode = result.code)
+        )
+            .onSuccess { list ->
+                _uiState.update {
+                    it.copy(
+                        entries = list.sortedBy { entry -> entry.date },
+                        status = UiStatus.Idle
+                    )
+                }
+            }
+            .onError { msg, code ->
+                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
             }
 
-            is ApiResult.Fatal -> _uiState.update {
-                it.copy(error = result.exception.messageOrDefault(), errorCode = null)
+        refreshPredictionSummary()
+    }
+
+    private suspend fun refreshPredictionSummary() {
+        getCalendarPredictionSummaryUseCase()
+            .onSuccess { summary ->
+                _uiState.update { it.copy(predictionSummary = summary) }
             }
-
-            is ApiResult.Success -> _uiState.update {
-                it.copy(
-                    entries = result.data.sortedBy { entry -> entry.date },
-                    error = null,
-                    errorCode = null
-                )
-            }
-
-            else -> Unit
-        }
-
-        _uiState.update { it.copy(isLoading = false) }
     }
 
     private fun updateEntryForm(update: (CalendarEntryFormState) -> CalendarEntryFormState) {
         _uiState.update { state ->
-            state.entryForm?.let { form -> state.copy(entryForm = update(form)) } ?: state
+            val form = (state.activeSheet as? CalendarSheet.EntryForm)?.form ?: return@update state
+            state.copy(activeSheet = CalendarSheet.EntryForm(form = update(form)))
         }
     }
 
     private fun buildEntryInput(form: CalendarEntryFormState): CalendarEntryInput? {
         val (dateField, date) = form.date.parseLocalDate(error = R.string.invalid_date)
         if (date == null) {
-            _uiState.update { it.copy(entryForm = form.copy(date = dateField)) }
+            _uiState.update { it.copy(activeSheet = CalendarSheet.EntryForm(form = form.copy(date = dateField))) }
             return null
         }
 
-        _uiState.update { it.copy(entryForm = form.copy(date = dateField)) }
+        _uiState.update { it.copy(activeSheet = CalendarSheet.EntryForm(form = form.copy(date = dateField))) }
 
         return CalendarEntryInput(
             date = date,
@@ -420,7 +434,7 @@ class CalendarViewModel @Inject constructor(
 
             CalendarEntryType.OVULATION, CalendarEntryType.PERIOD_PREDICTION -> null
         }?.also { error ->
-            _uiState.update { it.copy(error = error.message, errorCode = error.code) }
+            _uiState.update { it.copy(status = UiStatus.Error(error.message, error.code)) }
         }
     }
 
@@ -430,6 +444,3 @@ class CalendarViewModel @Inject constructor(
         code = "validation_error"
     )
 }
-
-private fun Throwable.messageOrDefault() =
-    localizedMessage ?: message ?: "Unexpected error"

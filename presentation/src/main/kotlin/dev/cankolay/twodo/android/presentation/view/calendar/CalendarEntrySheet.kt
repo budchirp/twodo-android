@@ -40,7 +40,7 @@ internal fun CalendarEntrySheet(
     isSaving: Boolean,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null,
-    onSave: suspend () -> Boolean,
+    onSave: () -> Unit,
     onDateChange: (String) -> Unit,
     onTypeChange: (CalendarEntryType) -> Unit,
     onNotesChange: (String) -> Unit,
@@ -86,12 +86,7 @@ internal fun CalendarEntrySheet(
             Button(
                 enabled = !isSaving,
                 onClick = {
-                    scope.launch {
-                        if (onSave()) {
-                            sheetState.hide()
-                            onDismiss()
-                        }
-                    }
+                    onSave()
                 }
             ) {
                 Text(text = stringResource(id = R.string.save))
@@ -310,7 +305,7 @@ private fun <T> EnumRadioList(
 internal fun DeleteCalendarEntrySheet(
     isLoading: Boolean,
     onDismiss: () -> Unit,
-    onDelete: suspend () -> Boolean
+    onDelete: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
@@ -338,12 +333,7 @@ internal fun DeleteCalendarEntrySheet(
                     contentColor = MaterialTheme.colorScheme.onError
                 ),
                 onClick = {
-                    scope.launch {
-                        if (onDelete()) {
-                            sheetState.hide()
-                            onDismiss()
-                        }
-                    }
+                    onDelete()
                 }
             ) {
                 Text(text = stringResource(id = R.string.delete))

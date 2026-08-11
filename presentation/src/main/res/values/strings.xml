@@ -243,4 +243,13 @@
     <string name="ejaculation_anal">Anal</string>
     <string name="ejaculation_oral">Oral</string>
     <string name="ejaculation_other_body">Other body</string>
+
+    <string name="pregnancy_test_recommended">Home pregnancy test recommended</string>
+    <string name="period_late_days">Period is %1$d day(s) late</string>
+    <string name="fertile_window_title">Fertility &amp; Conception Window</string>
+    <string name="days_uncertainty">days uncertainty</string>
+    <string name="estimated_ovulation">Estimated Ovulation</string>
+    <string name="fertile_window">Fertile Window</string>
+    <string name="conception_risk">Conception Risk</string>
+    <string name="default_medical_disclaimer">Predictions are estimates based on your logged history and should not be used as medical advice or contraception.</string>
 </resources>

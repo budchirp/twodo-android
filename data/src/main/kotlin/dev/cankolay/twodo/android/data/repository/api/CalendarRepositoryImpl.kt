@@ -84,6 +84,21 @@ constructor(
         calendarService.delete(id = id)
     }
 
+    override suspend fun getPredictionSummary() = withCouple {
+        when (val result = calendarService.getPredictionSummary()) {
+            is ApiResult.Success -> ApiResult.Success(
+                message = result.message,
+                data = result.data.toDomain(),
+                code = result.code
+            )
+
+            is ApiResult.Loading -> result
+
+            is ApiResult.Error -> result
+            is ApiResult.Fatal -> result
+        }
+    }
+
     private suspend fun <T> withCouple(block: suspend () -> ApiResult<T>): ApiResult<T> {
         if (sessionCache.isCoupleCached()) {
             return if (sessionCache.getCouple() == null) {

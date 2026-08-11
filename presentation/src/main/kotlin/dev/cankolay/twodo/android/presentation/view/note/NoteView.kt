@@ -1,5 +1,6 @@
 package dev.cankolay.twodo.android.presentation.view.note
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -38,7 +40,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
-import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
@@ -50,12 +51,9 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBa
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.composition.LocalSnackbarHostState
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
+import dev.cankolay.twodo.android.presentation.viewmodel.NoteSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.NoteViewModel
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -65,7 +63,6 @@ import java.time.format.DateTimeFormatter
 fun NoteView(
     id: String,
     noteViewModel: NoteViewModel = hiltViewModel(),
-    userViewModel: UserViewModel = hiltViewModel()
 ) {
     val snackbarHostState = LocalSnackbarHostState.current
 
@@ -83,29 +80,35 @@ fun NoteView(
         }
     }
 
-    LaunchedEffect(key1 = uiState.errorCode) {
-        if (uiState.errorCode == "error-profile-required") {
-            userViewModel.fetchUser()
-            navBackStack.add(element = Route.ProfileSetup)
-            while (navBackStack.size > 1) {
-                navBackStack.removeAt(0)
-            }
+    val richTextState = rememberRichTextState()
+    richTextState.config.linkColor = MaterialTheme.colorScheme.primary
+
+    val performBackSave = {
+        noteViewModel.flushDraftSave(content = richTextState.toMarkdown())
+        if (navBackStack.size > 1) {
+            navBackStack.removeLastOrNull()
         }
     }
 
-    val richTextState = rememberRichTextState()
-    richTextState.config.linkColor = MaterialTheme.colorScheme.primary
+    BackHandler {
+        performBackSave()
+    }
 
     note?.let {
         val noteDraft = uiState.noteDraft ?: return@let
 
-        LaunchedEffect(key1 = noteDraft.id) {
-            richTextState.setMarkdown(markdown = noteDraft.content)
-            richTextState.selection = TextRange(index = 0)
+        DisposableEffect(key1 = id) {
+            onDispose {
+                noteViewModel.flushDraftSave()
+            }
+        }
+
+        LaunchedEffect(key1 = id) {
+            val initialContent = noteDraft.content
+            richTextState.setMarkdown(markdown = initialContent)
+            richTextState.selection = TextRange(index = initialContent.length)
             snapshotFlow { richTextState.toMarkdown() }
-                .debounce(500)
-                .distinctUntilChanged()
-                .collectLatest { content ->
+                .collect { content ->
                     noteViewModel.updateNoteDraftContent(content = content)
                 }
         }
@@ -124,6 +127,7 @@ fun NoteView(
                 AppTopAppBar(
                     type = AppTopAppBarType.Default,
                     context = context,
+                    onBackClick = { performBackSave() },
                     title = {
                         BasicTextField(
                             value = noteDraft.title,
@@ -175,7 +179,6 @@ fun NoteView(
                             horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "hi")
                         }
 
                         FilledIconButton(onClick = { noteViewModel.openNoteActionsSheet() }) {
@@ -185,67 +188,64 @@ fun NoteView(
                 }
             }
 
-            if (uiState.isNoteActionsSheetVisible) {
-                val sheetTitle =
-                    if (noteDraft.title.isBlank()) stringResource(id = R.string.notes) else noteDraft.title
+            when (val sheet = uiState.activeSheet) {
+                is NoteSheet.NoteActions -> {
+                    val sheetTitle =
+                        noteDraft.title.ifBlank { stringResource(id = R.string.notes) }
 
-                AppBottomSheet(
-                    title = sheetTitle,
-                    onDismiss = { noteViewModel.dismissNoteActionsSheet() },
-                    sheetState = bottomSheetState
-                ) {
-                    item {
-                        CardStackList(
-                            items = listOf(
-                                CardStackListItem(
-                                    title = stringResource(
-                                        id = R.string.edited_at,
-                                        OffsetDateTime.parse(noteDraft.updatedAt)
-                                            .format(
-                                                DateTimeFormatter.ofPattern("dd EEE yyyy HH:mm")
-                                            )
-                                    ),
-                                    leadingContent = {
-                                        Icon(icon = Icons.Default.Update)
-                                    }
-                                ),
-                                CardStackListItem(
-                                    title = stringResource(id = R.string.delete),
-                                    onClick = {
-                                        scope.launch {
-                                            bottomSheetState.hide()
-                                        }.invokeOnCompletion {
-                                            noteViewModel.requestDeleteNote()
+                    AppBottomSheet(
+                        title = sheetTitle,
+                        onDismiss = { noteViewModel.dismissNoteActionsSheet() },
+                        sheetState = bottomSheetState
+                    ) {
+                        item {
+                            CardStackList(
+                                items = listOf(
+                                    CardStackListItem(
+                                        title = stringResource(
+                                            id = R.string.edited_at,
+                                            OffsetDateTime.parse(noteDraft.updatedAt)
+                                                .format(
+                                                    DateTimeFormatter.ofPattern("dd EEE yyyy HH:mm")
+                                                )
+                                        ),
+                                        leadingContent = {
+                                            Icon(icon = Icons.Default.Update)
                                         }
-                                    },
-                                    leadingContent = {
-                                        Icon(icon = Icons.Default.Delete)
-                                    }
+                                    ),
+                                    CardStackListItem(
+                                        title = stringResource(id = R.string.delete),
+                                        onClick = {
+                                            scope.launch {
+                                                bottomSheetState.hide()
+                                            }.invokeOnCompletion {
+                                                noteViewModel.requestDeleteNote()
+                                            }
+                                        },
+                                        leadingContent = {
+                                            Icon(icon = Icons.Default.Delete)
+                                        }
+                                    )
                                 )
                             )
-                        )
-                    }
-                }
-            }
-
-            if (uiState.isDeleteNoteSheetVisible) {
-                DeleteNoteSheet(
-                    isLoading = uiState.isLoading,
-                    onDismiss = { noteViewModel.dismissDeleteNoteSheet() },
-                    onDelete = {
-                        when (noteViewModel.deleteNote(id = id)) {
-                            is ApiResult.Success -> {
-                                navBackStack.add(element = Route.Notes)
-                                while (navBackStack.size > 1) {
-                                    navBackStack.removeAt(0)
-                                }
-                                true
-                            }
-
-                            else -> false
                         }
                     }
-                )
+                }
+
+                is NoteSheet.DeleteConfirmation -> {
+                    DeleteNoteSheet(
+                        onDismiss = { noteViewModel.dismissDeleteNoteSheet() },
+                        onDelete = {
+                            noteViewModel.confirmDeleteNote(id = sheet.noteId)
+                            navBackStack.add(element = Route.Notes)
+                            while (navBackStack.size > 1) {
+                                navBackStack.removeAt(index = 0)
+                            }
+                        }
+                    )
+                }
+
+                else -> Unit
             }
         }
     }
@@ -254,12 +254,10 @@ fun NoteView(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeleteNoteSheet(
-    isLoading: Boolean,
     onDismiss: () -> Unit,
-    onDelete: suspend () -> Boolean
+    onDelete: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-
     val sheetState = rememberModalBottomSheetState()
 
     AppBottomSheet(
@@ -281,18 +279,12 @@ fun DeleteNoteSheet(
             }
 
             Button(
-                enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.onError
                 ),
                 onClick = {
-                    scope.launch {
-                        if (onDelete()) {
-                            sheetState.hide()
-                            onDismiss()
-                        }
-                    }
+                    onDelete()
                 }
             ) {
                 Text(text = stringResource(id = R.string.delete))

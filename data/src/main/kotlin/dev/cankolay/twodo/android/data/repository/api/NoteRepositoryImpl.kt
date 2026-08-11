@@ -62,17 +62,6 @@ constructor(
     }
 
     override suspend fun get(id: String) = withCouple {
-        cachedNotes?.find { it.id == id }?.let { cachedNote ->
-            // If cached note content is already populated, return immediately
-            if (cachedNote.content != null) {
-                return@withCouple ApiResult.Success(
-                    message = "Success",
-                    data = cachedNote,
-                    code = "success"
-                )
-            }
-        }
-
         when (val result = noteService.get(id = id)) {
             is ApiResult.Success -> {
                 val note = result.data.toDomain()
@@ -86,7 +75,6 @@ constructor(
             }
 
             is ApiResult.Loading -> result
-
             is ApiResult.Error -> result
             is ApiResult.Fatal -> result
         }

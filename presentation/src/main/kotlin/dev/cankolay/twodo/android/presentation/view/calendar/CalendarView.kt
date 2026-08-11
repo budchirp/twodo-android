@@ -8,12 +8,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -48,6 +47,7 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBa
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.composition.LocalSnackbarHostState
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
+import dev.cankolay.twodo.android.presentation.viewmodel.CalendarSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.CalendarViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
 import java.time.DayOfWeek
@@ -61,7 +61,7 @@ fun CalendarView(
     userViewModel: UserViewModel = hiltViewModel(),
     calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
-    val navBackStack = LocalNavBackStack.current
+    LocalNavBackStack.current
     val snackbarHostState = LocalSnackbarHostState.current
 
     val userState by userViewModel.uiState.collectAsStateWithLifecycle()
@@ -76,21 +76,17 @@ fun CalendarView(
     }
 
     LaunchedEffect(key1 = uiState.error) {
-        uiState.error?.let { snackbarHostState.showSnackbar(message = it) }
-    }
-
-    LaunchedEffect(key1 = uiState.errorCode) {
-        if (uiState.errorCode == "error-profile-required") {
-            userViewModel.fetchUser()
-            navBackStack.add(element = Route.ProfileSetup)
-            while (navBackStack.size > 1) {
-                navBackStack.removeAt(0)
-            }
+        uiState.error?.let { message ->
+            snackbarHostState.showSnackbar(message = message)
         }
     }
 
     AppLayout(route = Route.Calendar, topBar = { context ->
         AppTopAppBar(context = context, trailingContent = {
+            IconButton(onClick = { calendarViewModel.openPredictionSheet() }) {
+                Icon(icon = Icons.Default.AutoAwesome)
+            }
+
             IconButton(onClick = { calendarViewModel.openCreateEntryForm() }) {
                 Icon(icon = Icons.Default.Add)
             }
@@ -107,6 +103,8 @@ fun CalendarView(
                     visibleMonth = uiState.visibleMonth,
                     selectedDate = uiState.selectedDate,
                     entries = entries.orEmpty(),
+                    conceptionRiskEvents = uiState.predictionSummary?.conceptionRisk?.relevantEvents.orEmpty()
+                        .toSet(),
                     onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
                     onNextMonth = { calendarViewModel.moveMonth(months = 1) },
                     onDateClick = { calendarViewModel.selectDate(date = it) }
@@ -139,36 +137,47 @@ fun CalendarView(
             }
         }
 
-        uiState.entryForm?.let { form ->
-            CalendarEntrySheet(
-                form = form,
-                isFemale = isFemale,
-                isSaving = uiState.isSaving,
-                onDismiss = { calendarViewModel.dismissEntryForm() },
-                onDelete = { calendarViewModel.requestDeleteEntry() },
-                onSave = { calendarViewModel.submitEntryForm(isFemale = isFemale) },
-                onDateChange = { calendarViewModel.updateEntryDate(date = it) },
-                onTypeChange = { calendarViewModel.updateEntryType(type = it) },
-                onNotesChange = { calendarViewModel.updateEntryNotes(notes = it) },
-                onPeriodEventChange = { calendarViewModel.updatePeriodEvent(event = it) },
-                onFlowLevelChange = { calendarViewModel.updateFlowLevel(flowLevel = it) },
-                onSymptomsChange = { calendarViewModel.updateSymptoms(symptoms = it) },
-                onSexOccurredChange = { calendarViewModel.updateSexOccurred(sexOccurred = it) },
-                onProtectionMethodChange = {
-                    calendarViewModel.updateProtectionMethod(protectionMethod = it)
-                },
-                onEjaculationLocationChange = {
-                    calendarViewModel.updateEjaculationLocation(ejaculationLocation = it)
-                }
-            )
-        }
+        when (val sheet = uiState.activeSheet) {
+            is CalendarSheet.PredictionSummary -> {
+                PredictionSummarySheet(
+                    summary = uiState.predictionSummary,
+                    onDismiss = { calendarViewModel.dismissPredictionSheet() }
+                )
+            }
 
-        if (uiState.deletingEntry != null) {
-            DeleteCalendarEntrySheet(
-                isLoading = uiState.isSaving,
-                onDismiss = { calendarViewModel.dismissDeleteEntry() },
-                onDelete = { calendarViewModel.deleteSelectedEntry(isFemale = isFemale) }
-            )
+            is CalendarSheet.EntryForm -> {
+                CalendarEntrySheet(
+                    form = sheet.form,
+                    isFemale = isFemale,
+                    isSaving = uiState.isLoading,
+                    onDismiss = { calendarViewModel.dismissEntryForm() },
+                    onDelete = { calendarViewModel.requestDeleteEntry() },
+                    onSave = { calendarViewModel.submitEntryForm(isFemale = isFemale) },
+                    onDateChange = { calendarViewModel.updateEntryDate(date = it) },
+                    onTypeChange = { calendarViewModel.updateEntryType(type = it) },
+                    onNotesChange = { calendarViewModel.updateEntryNotes(notes = it) },
+                    onPeriodEventChange = { calendarViewModel.updatePeriodEvent(event = it) },
+                    onFlowLevelChange = { calendarViewModel.updateFlowLevel(flowLevel = it) },
+                    onSymptomsChange = { calendarViewModel.updateSymptoms(symptoms = it) },
+                    onSexOccurredChange = { calendarViewModel.updateSexOccurred(sexOccurred = it) },
+                    onProtectionMethodChange = {
+                        calendarViewModel.updateProtectionMethod(protectionMethod = it)
+                    },
+                    onEjaculationLocationChange = {
+                        calendarViewModel.updateEjaculationLocation(ejaculationLocation = it)
+                    }
+                )
+            }
+
+            is CalendarSheet.DeleteConfirmation -> {
+                DeleteCalendarEntrySheet(
+                    isLoading = uiState.isLoading,
+                    onDismiss = { calendarViewModel.dismissDeleteEntry() },
+                    onDelete = { calendarViewModel.deleteSelectedEntry(isFemale = isFemale) }
+                )
+            }
+
+            CalendarSheet.None -> Unit
         }
     }
 }
@@ -178,6 +187,7 @@ private fun MonthCalendarCard(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entries: List<CalendarEntry>,
+    conceptionRiskEvents: Set<LocalDate>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDateClick: (LocalDate) -> Unit
@@ -217,6 +227,7 @@ private fun MonthCalendarCard(
             visibleMonth = visibleMonth,
             selectedDate = selectedDate,
             entriesByDate = entriesByDate,
+            conceptionRiskEvents = conceptionRiskEvents,
             onDateClick = onDateClick
         )
     }
@@ -244,6 +255,7 @@ private fun CalendarMonthGrid(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entriesByDate: Map<LocalDate, List<CalendarEntry>>,
+    conceptionRiskEvents: Set<LocalDate>,
     onDateClick: (LocalDate) -> Unit
 ) {
     val firstDay = visibleMonth.atDay(1)
@@ -268,12 +280,13 @@ private fun CalendarMonthGrid(
                             dateEntries.any { it.type == CalendarEntryType.OVULATION }
                         val hasPeriodPrediction =
                             dateEntries.any { it.type == CalendarEntryType.PERIOD_PREDICTION }
+                        val isConceptionRiskEvent = date in conceptionRiskEvents
                         CalendarDayCell(
                             modifier = Modifier.weight(weight = 1f),
                             date = date,
                             selected = date == selectedDate,
                             entryCount = dateEntries.size,
-                            isPredictedPeriod = hasPeriodPrediction,
+                            isPredictedPeriod = hasPeriodPrediction || isConceptionRiskEvent,
                             hasOvulation = hasOvulation,
                             onClick = { onDateClick(date) }
                         )
@@ -302,12 +315,28 @@ private fun CalendarDayCell(
     hasOvulation: Boolean = false,
     onClick: () -> Unit
 ) {
+    val isToday = date == LocalDate.now()
+
     val containerColor = when {
         selected -> MaterialTheme.colorScheme.primaryContainer
         hasOvulation -> MaterialTheme.colorScheme.secondaryContainer
         isPredictedPeriod -> MaterialTheme.colorScheme.tertiaryContainer
         entryCount > 0 -> MaterialTheme.colorScheme.surfaceContainerHighest
         else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
+    val textColor = when {
+        selected -> MaterialTheme.colorScheme.onPrimaryContainer
+        isToday -> MaterialTheme.colorScheme.primary
+        hasOvulation -> MaterialTheme.colorScheme.onSecondaryContainer
+        isPredictedPeriod -> MaterialTheme.colorScheme.onTertiaryContainer
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
+    val fontWeight = when {
+        isToday -> FontWeight.ExtraBold
+        selected -> FontWeight.Bold
+        else -> FontWeight.Medium
     }
 
     Surface(
@@ -326,38 +355,17 @@ private fun CalendarDayCell(
         ) {
             Text(
                 text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = fontWeight),
+                color = textColor
             )
 
-            if (entryCount > 0 || isPredictedPeriod || hasOvulation) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(space = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (entryCount > 0) {
-                        Text(
-                            text = entryCount.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    if (hasOvulation) {
-                        Surface(
-                            modifier = Modifier.size(size = 6.dp),
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondary
-                        ) {}
-                    }
-
-                    if (isPredictedPeriod) {
-                        Surface(
-                            modifier = Modifier.size(size = 6.dp),
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.tertiary
-                        ) {}
-                    }
-                }
+            if (entryCount > 0) {
+                Text(
+                    text = entryCount.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
