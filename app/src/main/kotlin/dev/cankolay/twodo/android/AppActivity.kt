@@ -26,8 +26,8 @@ class AppActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition {
-            settingsViewModel.uiState.value.settingsState == null ||
-                    authViewModel.uiState.value.authState == null
+            !settingsViewModel.uiState.value.isInitialized ||
+                    !authViewModel.uiState.value.isInitialized
         }
 
         super.onCreate(savedInstanceState)

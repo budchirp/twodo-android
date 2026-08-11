@@ -37,15 +37,12 @@ fun PredictionSummarySheet(
     summary: CalendarPredictionSummary?,
     onDismiss: () -> Unit
 ) {
-    val titleText = stringResource(id = R.string.fertile_window_title)
-    val ovulationLabel = stringResource(id = R.string.estimated_ovulation)
-    val fertileWindowLabel = stringResource(id = R.string.fertile_window)
-    val conceptionRiskLabel = stringResource(id = R.string.conception_risk)
-    val pregnancyTestText = stringResource(id = R.string.pregnancy_test_recommended)
-    val defaultDisclaimer = stringResource(id = R.string.default_medical_disclaimer)
+    val conceptionRisk = stringResource(id = R.string.conception_risk)
+    val fertileWindow = stringResource(id = R.string.fertile_window)
+    val estimatedOvulation = stringResource(id = R.string.estimated_ovulation)
 
     AppBottomSheet(
-        title = titleText,
+        title = stringResource(id = R.string.fertile_window_title),
         onDismiss = onDismiss
     ) {
         summary?.let { data ->
@@ -54,31 +51,52 @@ fun PredictionSummarySheet(
             val risk = data.conceptionRisk
             val cycle = data.cyclePrediction
 
-            if (pregnancy.status == PregnancyAssessmentStatus.POSSIBLE_PREGNANCY || pregnancy.needsPregnancyTest) {
+            if (
+                pregnancy.status == PregnancyAssessmentStatus.POSSIBLE_PREGNANCY ||
+                pregnancy.needsPregnancyTest
+            ) {
                 item {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.errorContainer)
-                            .padding(12.dp)
+                            .clip(
+                                shape = RoundedCornerShape(
+                                    size = 12.dp
+                                )
+                            )
+                            .background(
+                                color = MaterialTheme.colorScheme.errorContainer
+                            )
+                            .padding(
+                                all = 12.dp
+                            )
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(
+                                space = 10.dp
+                            )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Warning,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(
+                                    size = 24.dp
+                                )
                             )
+
                             Column {
                                 Text(
-                                    text = pregnancyTestText,
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    text = stringResource(
+                                        id = R.string.pregnancy_test_recommended
+                                    ),
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
+
                                 if (pregnancy.explanation.isNotBlank()) {
                                     Text(
                                         text = pregnancy.explanation,
@@ -90,30 +108,49 @@ fun PredictionSummarySheet(
                         }
                     }
                 }
-            } else if (pregnancy.status == PregnancyAssessmentStatus.PERIOD_LATE && pregnancy.daysLate > 0) {
+            } else if (
+                pregnancy.status == PregnancyAssessmentStatus.PERIOD_LATE &&
+                pregnancy.daysLate > 0
+            ) {
                 item {
-                    val lateText =
-                        stringResource(id = R.string.period_late_days, pregnancy.daysLate)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.tertiaryContainer)
-                            .padding(12.dp)
+                            .clip(
+                                shape = RoundedCornerShape(
+                                    size = 12.dp
+                                )
+                            )
+                            .background(
+                                color = MaterialTheme.colorScheme.tertiaryContainer
+                            )
+                            .padding(
+                                all = 12.dp
+                            )
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(
+                                space = 10.dp
+                            )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(
+                                    size = 20.dp
+                                )
                             )
+
                             Text(
-                                text = lateText,
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                                text = stringResource(
+                                    id = R.string.period_late_days,
+                                    pregnancy.daysLate
+                                ),
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                         }
@@ -125,32 +162,49 @@ fun PredictionSummarySheet(
                 fertility.ovulationDate?.let { date ->
                     add(
                         CardStackListItem(
-                            title = ovulationLabel,
-                            description = formatSummaryDate(date)
+                            title = estimatedOvulation,
+                            description = formatSummaryDate(
+                                date = date
+                            )
                         )
                     )
                 }
 
                 val startDate = fertility.fertileWindowStartDate
                 val endDate = fertility.fertileWindowEndDate
+
                 if (startDate != null && endDate != null) {
                     add(
                         CardStackListItem(
-                            title = fertileWindowLabel,
-                            description = "${formatSummaryDate(startDate)} – ${
+                            title = fertileWindow,
+                            description = "${
                                 formatSummaryDate(
-                                    endDate
+                                    date = startDate
+                                )
+                            } – ${
+                                formatSummaryDate(
+                                    date = endDate
                                 )
                             }"
                         )
                     )
                 }
 
-                if (risk.level != ConceptionRiskLevel.UNKNOWN && risk.level != ConceptionRiskLevel.NONE) {
+                if (
+                    risk.level != ConceptionRiskLevel.UNKNOWN &&
+                    risk.level != ConceptionRiskLevel.NONE
+                ) {
                     add(
                         CardStackListItem(
-                            title = conceptionRiskLabel,
-                            description = if (risk.explanation.isNotBlank()) "${risk.level.name} (${risk.explanation})" else risk.level.name
+                            title = conceptionRisk,
+                            description = risk.explanation
+                                .takeIf { explanation ->
+                                    explanation.isNotBlank()
+                                }
+                                ?.let { explanation ->
+                                    "${risk.level.name} ($explanation)"
+                                }
+                                ?: risk.level.name
                         )
                     )
                 }
@@ -158,15 +212,22 @@ fun PredictionSummarySheet(
 
             if (items.isNotEmpty()) {
                 item {
-                    CardStackList(items = items)
+                    CardStackList(
+                        items = items
+                    )
                 }
             }
 
             item {
                 Text(
-                    text = cycle?.disclaimer ?: defaultDisclaimer,
+                    text = cycle?.disclaimer
+                        ?: stringResource(
+                            id = R.string.default_medical_disclaimer
+                        ),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                        alpha = 0.6f
+                    )
                 )
             }
         }

@@ -15,9 +15,9 @@ import androidx.compose.material.icons.filled.HeartBroken
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -68,7 +68,11 @@ fun CoupleView(userViewModel: UserViewModel = hiltViewModel()) {
             AppLazyColumn(horizontalAlignment = Alignment.CenterHorizontally) {
                 if (isLoading && error == null) {
                     item {
-                        CircularProgressIndicator()
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        )
                     }
                 } else {
                     error?.let { message ->

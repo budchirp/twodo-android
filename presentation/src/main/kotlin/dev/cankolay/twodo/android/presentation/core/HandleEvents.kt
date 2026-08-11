@@ -1,8 +1,11 @@
 package dev.cankolay.twodo.android.presentation.core
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.composition.LocalSnackbarHostState
 import dev.cankolay.twodo.android.presentation.navigation.resetTo
@@ -24,15 +27,15 @@ fun HandleEvents(
 }
 
 private class EventHandler(
-    private val snackbarHostState: androidx.compose.material3.SnackbarHostState,
-    private val navBackStack: androidx.navigation3.runtime.NavBackStack<androidx.navigation3.runtime.NavKey>,
+    private val snackbarHostState: SnackbarHostState,
+    private val navBackStack: NavBackStack<NavKey>,
     private val onEvent: (UiEvent) -> Unit
 ) {
     suspend fun handle(event: UiEvent) {
         when (event) {
-            is UiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
-            is UiEvent.NavigateTo -> navBackStack.add(event.route)
-            is UiEvent.ResetTo -> navBackStack.resetTo(event.route)
+            is UiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(message = event.message)
+            is UiEvent.NavigateTo -> navBackStack.add(element = event.route)
+            is UiEvent.ResetTo -> navBackStack.resetTo(route = event.route)
             UiEvent.NavigateBack -> navBackStack.removeLastOrNull()
             UiEvent.InviteAccepted -> onEvent(event)
         }

@@ -18,7 +18,8 @@ import javax.inject.Inject
 data class AuthUiState(
     val authState: AuthState = AuthState(),
     val isAuthenticating: Boolean = false,
-    val authUrl: String = ""
+    val authUrl: String = "",
+    val isInitialized: Boolean = false
 )
 
 @HiltViewModel
@@ -35,8 +36,8 @@ class AuthViewModel @Inject constructor(
             getAuthStateUseCase()
                 .catch { emit(AuthState()) }
                 .collect { authState ->
-                updateState { copy(authState = authState) }
-            }
+                    updateState { copy(authState = authState, isInitialized = true) }
+                }
         }
     }
 

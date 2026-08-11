@@ -62,6 +62,7 @@ fun NoteView(
 
     val uiState by noteViewModel.uiState.collectAsStateWithLifecycle()
     val note = uiState.note
+
     HandleEvents(viewModel = noteViewModel)
 
     LaunchedEffect(key1 = id) {

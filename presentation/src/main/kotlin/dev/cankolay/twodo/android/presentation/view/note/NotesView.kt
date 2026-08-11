@@ -12,6 +12,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -43,7 +44,12 @@ fun NotesView(
 
     val state by noteViewModel.uiState.collectAsStateWithLifecycle()
     val notes = state.notes
+
     HandleEvents(viewModel = noteViewModel)
+
+    LaunchedEffect(key1 = Unit) {
+        noteViewModel.fetchNotes()
+    }
 
     val isLoading = state.isLoading
     val error = state.error

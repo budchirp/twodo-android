@@ -61,8 +61,8 @@ fun MaterialYouView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
     AppLayout(route = Route.MaterialYou) {
-        uiState.settingsState?.let { state ->
-            AppLazyColumn {
+        val state = uiState.settingsState
+        AppLazyColumn {
                 item {
                     val onClick = { materialYou: Boolean ->
                         settingsViewModel.updateSettings(
@@ -178,7 +178,6 @@ fun MaterialYouView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
                         },
                     )
                 }
-            }
         }
     }
 }

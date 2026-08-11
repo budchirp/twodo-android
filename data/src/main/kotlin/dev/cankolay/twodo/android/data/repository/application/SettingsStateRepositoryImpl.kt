@@ -56,7 +56,9 @@ constructor(
         }
     }.map { preferences ->
         SettingsState(
-            theme = Theme.valueOf(value = preferences[PreferenceKeys.THEME] ?: default.theme.name),
+            theme = runCatching {
+                Theme.valueOf(value = preferences[PreferenceKeys.THEME] ?: default.theme.name)
+            }.getOrDefault(default.theme),
 
             isAmoled = preferences[PreferenceKeys.IS_AMOLED] ?: default.isAmoled,
 
@@ -64,7 +66,10 @@ constructor(
                 "off" -> MaterialYou.OFF
                 "wallpaper" -> MaterialYou.WALLPAPER
                 null -> default.materialYou
-                else -> MaterialYou.SEED(color = Color(color = preferences[PreferenceKeys.MATERIAL_YOU]!!.toInt()))
+                else -> preferences[PreferenceKeys.MATERIAL_YOU]
+                    ?.toIntOrNull()
+                    ?.let { color -> MaterialYou.SEED(color = Color(color = color)) }
+                    ?: default.materialYou
             }
         )
     }

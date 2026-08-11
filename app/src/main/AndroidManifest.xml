@@ -12,12 +12,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.App"
         android:usesCleartextTraffic="true"
-        android:windowSoftInputMode="adjustPan"
         tools:targetApi="34">
         <activity
             android:name=".AppActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppSplash">
+            android:theme="@style/Theme.AppSplash"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

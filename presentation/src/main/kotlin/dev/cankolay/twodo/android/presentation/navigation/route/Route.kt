@@ -159,7 +159,12 @@ fun NavKey.getDetails(): RouteDetail {
         ),
     )
 
-    return routeDetail[this]!!
+    val lookupKey = when (this) {
+        is Route.Note -> Route.Notes
+        else -> this
+    }
+
+    return routeDetail[lookupKey] ?: routeDetail.getValue(Route.Notes)
 }
 
 val navigationRoutes = listOf(

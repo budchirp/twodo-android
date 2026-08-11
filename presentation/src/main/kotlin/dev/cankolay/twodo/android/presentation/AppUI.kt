@@ -39,6 +39,8 @@ fun AppUI(
     val settingsState = settingsUiState.settingsState
     val authState = authUiState.authState
     val user = userUiState.user
+    val isStartupInitialized =
+        settingsUiState.isInitialized && authUiState.isInitialized
 
     HandleAuthUri(
         authUri = uri,
@@ -46,43 +48,51 @@ fun AppUI(
         onAuthIntentConsumed = onAuthIntentConsumed
     )
 
-    SyncUserState(
-        token = authState.token,
-        isAuthenticating = authUiState.isAuthenticating,
-        userId = user?.id,
-        isUserLoading = userUiState.isLoading,
-        isUserInitialized = userUiState.isInitialized,
-        userViewModel = userViewModel
-    )
-
-    val startRoute = resolveStartRoute(
-        token = authState.token,
-        isAuthenticating = authUiState.isAuthenticating,
-        user = user,
-        userError = userUiState.error,
-        userErrorCode = userUiState.errorCode
-    )
-
     AppTheme(settingsState = settingsState) {
         Surface(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.fillMaxSize()
         ) {
-            if (startRoute != null) {
-                AppRoot(
-                    startRoute = startRoute,
-                    authViewModel = authViewModel,
+            if (!isStartupInitialized) {
+                LoadingContent()
+            } else {
+                SyncUserState(
+                    token = authState.token,
+                    isAuthenticating = authUiState.isAuthenticating,
+                    userId = user?.id,
+                    isUserInitialized = userUiState.isInitialized,
                     userViewModel = userViewModel
                 )
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+
+                val startRoute = resolveStartRoute(
+                    token = authState.token,
+                    isAuthenticating = authUiState.isAuthenticating,
+                    user = user,
+                    userError = userUiState.error,
+                    userErrorCode = userUiState.errorCode
+                )
+
+                if (startRoute != null) {
+                    AppRoot(
+                        startRoute = startRoute,
+                        authViewModel = authViewModel,
+                        userViewModel = userViewModel
+                    )
+                } else {
+                    LoadingContent()
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LoadingContent() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
     }
 }
 
@@ -102,10 +112,9 @@ private fun HandleAuthUri(
 
 @Composable
 private fun SyncUserState(
-    token: String?,
+    token: String,
     isAuthenticating: Boolean,
     userId: String?,
-    isUserLoading: Boolean,
     isUserInitialized: Boolean,
     userViewModel: UserViewModel
 ) {
@@ -113,16 +122,13 @@ private fun SyncUserState(
         token,
         isAuthenticating,
         userId,
-        isUserLoading,
         isUserInitialized
     ) {
         when {
-            token == null -> Unit
             token.isEmpty() -> userViewModel.clearUser()
 
             !isAuthenticating &&
                     userId == null &&
-                    !isUserLoading &&
                     !isUserInitialized -> {
                 userViewModel.fetchUser()
             }

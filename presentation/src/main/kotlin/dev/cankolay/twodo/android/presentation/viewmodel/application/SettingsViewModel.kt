@@ -11,7 +11,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val settingsState: SettingsState = SettingsState()
+    val settingsState: SettingsState = SettingsState(),
+    val isInitialized: Boolean = false
 )
 
 @HiltViewModel
@@ -24,8 +25,8 @@ class SettingsViewModel @Inject constructor(
             getSettingsStateUseCase()
                 .catch { emit(SettingsState()) }
                 .collect { settingsState ->
-                updateState { copy(settingsState = settingsState) }
-            }
+                    updateState { copy(settingsState = settingsState, isInitialized = true) }
+                }
         }
     }
 

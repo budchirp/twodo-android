@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +34,11 @@ fun AppBottomSheet(
         sheetState = sheetState,
         onDismissRequest = onDismiss
     ) {
-        AppLazyColumn(contentPadding = PaddingValues(all = 16.dp), fill = false) {
+        AppLazyColumn(
+            modifier = Modifier.imePadding(),
+            contentPadding = PaddingValues(all = 16.dp),
+            fill = false
+        ) {
             item {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(space = 8.dp)

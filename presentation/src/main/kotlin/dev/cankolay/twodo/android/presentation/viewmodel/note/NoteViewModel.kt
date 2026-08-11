@@ -43,7 +43,7 @@ data class NoteUiState(
 ) {
     val notes: List<Note>? get() = cachedNotes ?: notesResult.dataOrNull
     val note: Note? get() = noteDraft ?: noteResult.dataOrNull
-    val isLoading: Boolean get() = notesResult.isLoading || noteResult.isLoading
+    val isLoading: Boolean get() = notesResult.isLoading
     val error: String? get() = noteResult.errorMessage ?: notesResult.errorMessage
 }
 
@@ -55,10 +55,6 @@ class NoteViewModel @Inject constructor(
     private val updateNoteUseCase: UpdateNoteUseCase,
     private val deleteNoteUseCase: DeleteNoteUseCase
 ) : BaseViewModel<NoteUiState>(NoteUiState()) {
-
-    init {
-        fetchNotes()
-    }
 
     fun openCreateNoteSheet() {
         updateState {
@@ -108,6 +104,7 @@ class NoteViewModel @Inject constructor(
             updateState { copy(activeSheet = NoteSheet.None) }
             val result = createNoteUseCase(title = title.value.trim())
             result.onSuccess { newNote ->
+                sendEvent(UiEvent.NavigateTo(Route.Note(newNote.id)))
                 updateState {
                     copy(
                         cachedNotes = notes.orEmpty() + newNote,
@@ -115,7 +112,6 @@ class NoteViewModel @Inject constructor(
                         noteDraft = newNote
                     )
                 }
-                sendEvent(UiEvent.NavigateTo(Route.Note(newNote.id)))
             }.onError { message, _ ->
                 sendEvent(UiEvent.ShowSnackbar(message))
             }
@@ -171,19 +167,13 @@ class NoteViewModel @Inject constructor(
 
     fun confirmDeleteNote(id: String) {
         dismissSheet()
-        updateState {
-            copy(
-                cachedNotes = notes?.filterNot { it.id == id },
-                noteDraft = noteDraft?.takeUnless { it.id == id }
-            )
-        }
-        sendEvent(UiEvent.ResetTo(Route.Notes))
 
         launchOnce("delete-note:$id") {
             val result = deleteNoteUseCase(id)
-            result.onError { message, _ ->
+            result.onSuccess {
+                sendEvent(UiEvent.ResetTo(Route.Notes))
+            }.onError { message, _ ->
                 sendEvent(UiEvent.ShowSnackbar(message))
-                fetchNotes()
             }
         }
     }

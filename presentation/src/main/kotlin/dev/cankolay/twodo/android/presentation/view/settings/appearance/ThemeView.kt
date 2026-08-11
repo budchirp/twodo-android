@@ -25,8 +25,8 @@ fun ThemeView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
     AppLayout(route = Route.Theme) {
-        uiState.settingsState?.let { state ->
-            AppLazyColumn {
+        val state = uiState.settingsState
+        AppLazyColumn {
                 item {
                     CardRadioList(
                         modifier =
@@ -74,7 +74,6 @@ fun ThemeView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
                         },
                     )
                 }
-            }
         }
     }
 }
