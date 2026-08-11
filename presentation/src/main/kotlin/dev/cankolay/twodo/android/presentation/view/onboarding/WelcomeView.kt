@@ -36,6 +36,7 @@ fun WelcomeView(
 ) {
     val context = LocalContext.current
     val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
+
     HandleEvents(viewModel = authViewModel)
 
     OnboardingLayout(

@@ -29,7 +29,7 @@ fun OnboardingLayout(
     title: String,
     description: String,
     isLoading: Boolean = false,
-    onRefresh: () -> Unit = {},
+    onRefresh: (() -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
     lazyContent: LazyListScope.() -> Unit,
     content: @Composable () -> Unit = {}

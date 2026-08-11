@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.window.core.layout.WindowSizeClass
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
 import dev.cankolay.twodo.android.domain.model.api.user.Gender
@@ -68,6 +70,10 @@ fun CalendarView(
 
     HandleEvents(viewModel = calendarViewModel)
 
+    val isWideScreen = currentWindowAdaptiveInfoV2().windowSizeClass.isWidthAtLeastBreakpoint(
+        widthDpBreakpoint = WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND
+    )
+
     AppLayout(route = Route.Calendar, topBar = { context ->
         AppTopAppBar(context = context, trailingContent = {
             IconButton(onClick = { calendarViewModel.openPredictionSheet() }) {
@@ -85,41 +91,67 @@ fun CalendarView(
                 calendarViewModel.fetchEntries()
             }
         ) {
-            item {
-                MonthCalendarCard(
-                    visibleMonth = uiState.visibleMonth,
-                    selectedDate = uiState.selectedDate,
-                    entries = entries.orEmpty(),
-                    conceptionRiskEvents = uiState.predictionSummary?.conceptionRisk?.relevantEvents.orEmpty()
-                        .toSet(),
-                    onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
-                    onNextMonth = { calendarViewModel.moveMonth(months = 1) },
-                    onDateClick = { calendarViewModel.selectDate(date = it) }
-                )
-            }
+            if (isWideScreen) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Box(modifier = Modifier.weight(weight = 1f)) {
+                            MonthCalendarCard(
+                                visibleMonth = uiState.visibleMonth,
+                                selectedDate = uiState.selectedDate,
+                                entries = entries.orEmpty(),
+                                conceptionRiskEvents = uiState.predictionSummary?.conceptionRisk?.relevantEvents.orEmpty()
+                                    .toSet(),
+                                onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
+                                onNextMonth = { calendarViewModel.moveMonth(months = 1) },
+                                onDateClick = { calendarViewModel.selectDate(date = it) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
 
-            when {
-                uiState.error != null && entries == null -> {
-                    item {
-                        ErrorCard(
-                            title = stringResource(id = R.string.calendar_error),
-                            error = uiState.error,
-                            onRefresh = { calendarViewModel.fetchEntries() }
-                        )
+                        Box(modifier = Modifier.weight(weight = 1f)) {
+                            CalendarEntriesContent(
+                                date = uiState.selectedDate,
+                                entries = entries,
+                                selectedEntries = selectedEntries,
+                                error = uiState.error,
+                                isFemale = isFemale,
+                                onEntryClick = { calendarViewModel.openEditEntrySheet(entry = it) },
+                                onRefresh = { calendarViewModel.fetchEntries() },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
+            } else {
+                item {
+                    MonthCalendarCard(
+                        visibleMonth = uiState.visibleMonth,
+                        selectedDate = uiState.selectedDate,
+                        entries = entries.orEmpty(),
+                        conceptionRiskEvents = uiState.predictionSummary?.conceptionRisk?.relevantEvents.orEmpty()
+                            .toSet(),
+                        onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
+                        onNextMonth = { calendarViewModel.moveMonth(months = 1) },
+                        onDateClick = { calendarViewModel.selectDate(date = it) }
+                    )
+                }
 
-                entries == null -> Unit
-
-                else -> {
-                    item {
-                        SelectedDayEntries(
-                            date = uiState.selectedDate,
-                            entries = selectedEntries,
-                            isFemale = isFemale,
-                            onEntryClick = { calendarViewModel.openEditEntrySheet(entry = it) }
-                        )
-                    }
+                item {
+                    CalendarEntriesContent(
+                        date = uiState.selectedDate,
+                        entries = entries,
+                        selectedEntries = selectedEntries,
+                        error = uiState.error,
+                        isFemale = isFemale,
+                        onEntryClick = { calendarViewModel.openEditEntrySheet(entry = it) },
+                        onRefresh = { calendarViewModel.fetchEntries() }
+                    )
                 }
             }
         }
@@ -174,13 +206,14 @@ private fun MonthCalendarCard(
     conceptionRiskEvents: Set<LocalDate>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
-    onDateClick: (LocalDate) -> Unit
+    onDateClick: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier.padding(horizontal = 16.dp)
 ) {
     val entriesByDate = entries.groupBy { it.date }
     val locale = LocalLocale.current.platformLocale
 
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(space = 12.dp)
     ) {
         Row(
@@ -356,14 +389,50 @@ private fun CalendarDayCell(
 }
 
 @Composable
+private fun CalendarEntriesContent(
+    date: LocalDate,
+    entries: List<CalendarEntry>?,
+    selectedEntries: List<CalendarEntry>,
+    error: String?,
+    isFemale: Boolean,
+    onEntryClick: (CalendarEntry) -> Unit,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier.padding(horizontal = 16.dp)
+) {
+    when {
+        error != null && entries == null -> {
+            ErrorCard(
+                modifier = modifier,
+                title = stringResource(id = R.string.calendar_error),
+                error = error,
+                onRefresh = onRefresh
+            )
+        }
+
+        entries == null -> Unit
+
+        else -> {
+            SelectedDayEntries(
+                modifier = modifier,
+                date = date,
+                entries = selectedEntries,
+                isFemale = isFemale,
+                onEntryClick = onEntryClick
+            )
+        }
+    }
+}
+
+@Composable
 private fun SelectedDayEntries(
     date: LocalDate,
     entries: List<CalendarEntry>,
     isFemale: Boolean,
-    onEntryClick: (CalendarEntry) -> Unit
+    onEntryClick: (CalendarEntry) -> Unit,
+    modifier: Modifier = Modifier.padding(horizontal = 16.dp)
 ) {
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(space = 8.dp)
     ) {
         Text(

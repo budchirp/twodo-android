@@ -16,13 +16,18 @@ import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.navigation.resetTo
+import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 import dev.cankolay.twodo.android.presentation.navigation.route.navigationRoutes
+import dev.cankolay.twodo.android.presentation.navigation.route.onboardingRoutes
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppNavigationRail() {
     val navBackStack = LocalNavBackStack.current
+    val route = navBackStack.lastOrNull() ?: Route.Notes
+
+    if (onboardingRoutes.any { it == route }) return
 
     NavigationRail(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,

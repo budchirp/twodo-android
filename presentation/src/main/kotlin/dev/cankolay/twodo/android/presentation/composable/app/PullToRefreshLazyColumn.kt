@@ -28,14 +28,15 @@ fun PullToRefreshLazyColumn(
     contentPadding: PaddingValues = PaddingValues(vertical = 16.dp),
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(space = 16.dp),
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
-    onRefresh: () -> Unit,
+    onRefresh: (() -> Unit)? = null,
     isLoading: Boolean = false,
     content: LazyListScope.() -> Unit,
 ) {
     val pullToRefreshState = rememberPullToRefreshState()
 
     PullToRefreshBox(
-        onRefresh = onRefresh,
+        enabled = onRefresh != null,
+        onRefresh = onRefresh ?: {},
         isRefreshing = isLoading,
         state = pullToRefreshState,
         indicator = {

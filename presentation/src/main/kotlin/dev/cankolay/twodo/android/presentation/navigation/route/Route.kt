@@ -167,6 +167,10 @@ fun NavKey.getDetails(): RouteDetail {
     return routeDetail[lookupKey] ?: routeDetail.getValue(Route.Notes)
 }
 
+val onboardingRoutes = listOf(
+    Route.Welcome, Route.ProfileSetup, Route.StartupError, Route.CoupleSetup
+)
+
 val navigationRoutes = listOf(
     Route.Notes, Route.Calendar, Route.Settings
 )
