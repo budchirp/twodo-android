@@ -2,7 +2,9 @@ package dev.cankolay.twodo.android.presentation.composable.app.layout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
@@ -14,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.navigation.resetTo
-import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 import dev.cankolay.twodo.android.presentation.navigation.route.navigationRoutes
 
@@ -22,11 +23,10 @@ import dev.cankolay.twodo.android.presentation.navigation.route.navigationRoutes
 @Composable
 fun AppNavigationRail() {
     val navBackStack = LocalNavBackStack.current
-    val route = navBackStack.lastOrNull() ?: Route.Notes
-    if (navigationRoutes.none { it == route }) return
 
     NavigationRail(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        windowInsets = WindowInsets.systemBars
     ) {
         Column(
             modifier = Modifier.fillMaxHeight(),

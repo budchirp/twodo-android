@@ -339,7 +339,7 @@ private fun CalendarDayCell(
         ) {
             Text(
                 text = date.dayOfMonth.toString(),
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = fontWeight),
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = fontWeight),
                 color = textColor
             )
 
