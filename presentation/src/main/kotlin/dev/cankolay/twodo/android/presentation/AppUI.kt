@@ -20,9 +20,9 @@ import dev.cankolay.twodo.android.presentation.composition.ProvideSnackbarHostSt
 import dev.cankolay.twodo.android.presentation.navigation.AppNavigation
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.theme.AppTheme
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.application.AuthViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.application.SettingsViewModel
+import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
 
 @Composable
 fun AppUI(
@@ -47,15 +47,13 @@ fun AppUI(
     )
 
     SyncUserState(
-        token = authState?.token,
+        token = authState.token,
         isAuthenticating = authUiState.isAuthenticating,
         userId = user?.id,
         isUserLoading = userUiState.isLoading,
         isUserInitialized = userUiState.isInitialized,
         userViewModel = userViewModel
     )
-
-    if (settingsState == null || authState == null) return
 
     val startRoute = resolveStartRoute(
         token = authState.token,

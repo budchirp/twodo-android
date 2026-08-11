@@ -5,13 +5,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -21,28 +18,19 @@ import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
+import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
+import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
-import dev.cankolay.twodo.android.presentation.viewmodel.application.AuthViewModel
-import kotlinx.coroutines.launch
+import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ProfileSetupView(
-    userViewModel: UserViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    userViewModel: UserViewModel = hiltViewModel()
 ) {
-    val scope = rememberCoroutineScope()
-
     val userState by userViewModel.uiState.collectAsStateWithLifecycle()
     val profileForm = userState.profileForm
-    LaunchedEffect(key1 = Unit) {
-        if (!userState.isInitialized && !userState.isLoading) {
-            userViewModel.fetchUser()
-        }
-    }
+    HandleEvents(viewModel = userViewModel)
 
     val isLoading = userState.isLoading
     val selectedGender = profileForm.gender.value
@@ -57,11 +45,7 @@ fun ProfileSetupView(
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading && profileForm.canSubmit,
-                onClick = {
-                    scope.launch {
-                        userViewModel.submitProfile()
-                    }
-                }
+                onClick = userViewModel::submitProfile
             ) {
                 Text(text = stringResource(id = R.string.save))
             }
@@ -104,23 +88,20 @@ fun ProfileSetupView(
                     Gender.MALE to R.string.male
                 )
 
-                CardStackList(
+                CardRadioList(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    items = genders.map { item ->
-                        val onClick = { userViewModel.updateProfileGender(gender = item.key) }
-
-                        CardStackListItem(
-                            title = stringResource(id = item.value),
-                            onClick = onClick,
-                            leadingContent = {
-                                RadioButton(
-                                    selected = selectedGender == item.key,
-                                    onClick = onClick
-                                )
-                            }
-                        )
-                    }
+                    items = genders.keys.toList(),
+                    selected = selectedGender,
+                    label = { gender -> stringResource(id = genders.getValue(gender)) },
+                    onSelected = userViewModel::updateProfileGender
                 )
+
+                profileForm.gender.error?.let { error ->
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = stringResource(id = error)
+                    )
+                }
             }
         }
     )

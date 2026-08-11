@@ -14,21 +14,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Update
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import dev.cankolay.twodo.android.presentation.R
+import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
@@ -48,15 +43,14 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSh
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBarType
+import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
-import dev.cankolay.twodo.android.presentation.composition.LocalSnackbarHostState
+import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.viewmodel.NoteSheet
-import dev.cankolay.twodo.android.presentation.viewmodel.NoteViewModel
+import dev.cankolay.twodo.android.presentation.view.calendar.formatNoteDateTime
+import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteSheet
+import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteViewModel
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.launch
-import java.time.OffsetDateTime
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
@@ -64,20 +58,14 @@ fun NoteView(
     id: String,
     noteViewModel: NoteViewModel = hiltViewModel(),
 ) {
-    val snackbarHostState = LocalSnackbarHostState.current
-
     val navBackStack = LocalNavBackStack.current
 
     val uiState by noteViewModel.uiState.collectAsStateWithLifecycle()
     val note = uiState.note
+    HandleEvents(viewModel = noteViewModel)
+
     LaunchedEffect(key1 = id) {
         noteViewModel.fetchNote(id = id)
-    }
-
-    LaunchedEffect(key1 = uiState.error) {
-        uiState.error?.let { message ->
-            snackbarHostState.showSnackbar(message = message)
-        }
     }
 
     val richTextState = rememberRichTextState()
@@ -92,6 +80,18 @@ fun NoteView(
 
     BackHandler {
         performBackSave()
+    }
+
+    if (note == null) {
+        AppLayout(route = Route.Note(id = id)) {
+            uiState.error?.let { message ->
+                ErrorCard(
+                    title = stringResource(id = R.string.notes_error),
+                    error = message,
+                    onRefresh = { noteViewModel.fetchNote(id) }
+                )
+            }
+        }
     }
 
     note?.let {
@@ -112,9 +112,6 @@ fun NoteView(
                     noteViewModel.updateNoteDraftContent(content = content)
                 }
         }
-
-        val scope = rememberCoroutineScope()
-        val bottomSheetState = rememberModalBottomSheetState()
 
         AppLayout(
             route = Route.Note(id = id),
@@ -195,8 +192,7 @@ fun NoteView(
 
                     AppBottomSheet(
                         title = sheetTitle,
-                        onDismiss = { noteViewModel.dismissNoteActionsSheet() },
-                        sheetState = bottomSheetState
+                        onDismiss = { noteViewModel.dismissSheet() }
                     ) {
                         item {
                             CardStackList(
@@ -204,10 +200,7 @@ fun NoteView(
                                     CardStackListItem(
                                         title = stringResource(
                                             id = R.string.edited_at,
-                                            OffsetDateTime.parse(noteDraft.updatedAt)
-                                                .format(
-                                                    DateTimeFormatter.ofPattern("dd EEE yyyy HH:mm")
-                                                )
+                                            formatNoteDateTime(noteDraft.updatedAt)
                                         ),
                                         leadingContent = {
                                             Icon(icon = Icons.Default.Update)
@@ -216,11 +209,7 @@ fun NoteView(
                                     CardStackListItem(
                                         title = stringResource(id = R.string.delete),
                                         onClick = {
-                                            scope.launch {
-                                                bottomSheetState.hide()
-                                            }.invokeOnCompletion {
-                                                noteViewModel.requestDeleteNote()
-                                            }
+                                            noteViewModel.requestDeleteNote()
                                         },
                                         leadingContent = {
                                             Icon(icon = Icons.Default.Delete)
@@ -234,13 +223,9 @@ fun NoteView(
 
                 is NoteSheet.DeleteConfirmation -> {
                     DeleteNoteSheet(
-                        onDismiss = { noteViewModel.dismissDeleteNoteSheet() },
+                        onDismiss = { noteViewModel.dismissSheet() },
                         onDelete = {
                             noteViewModel.confirmDeleteNote(id = sheet.noteId)
-                            navBackStack.add(element = Route.Notes)
-                            while (navBackStack.size > 1) {
-                                navBackStack.removeAt(index = 0)
-                            }
                         }
                     )
                 }
@@ -251,44 +236,16 @@ fun NoteView(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeleteNoteSheet(
     onDismiss: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState()
-
-    AppBottomSheet(
+    DestructiveConfirmationSheet(
         title = stringResource(id = R.string.delete_note),
         description = stringResource(id = R.string.delete_note_desc),
+        confirmText = stringResource(id = R.string.delete),
         onDismiss = onDismiss,
-        sheetState = sheetState,
-        actions = {
-            TextButton(
-                onClick = {
-                    scope.launch {
-                        sheetState.hide()
-                    }.invokeOnCompletion {
-                        onDismiss()
-                    }
-                }
-            ) {
-                Text(text = stringResource(id = R.string.cancel))
-            }
-
-            Button(
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                ),
-                onClick = {
-                    onDelete()
-                }
-            ) {
-                Text(text = stringResource(id = R.string.delete))
-            }
-        }
+        onConfirm = onDelete
     )
 }

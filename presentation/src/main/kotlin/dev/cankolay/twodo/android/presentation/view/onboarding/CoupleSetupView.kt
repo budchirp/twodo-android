@@ -1,8 +1,5 @@
 package dev.cankolay.twodo.android.presentation.view.onboarding
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,10 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HourglassEmpty
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Button
@@ -23,18 +20,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.invite.InviteAction
 import dev.cankolay.twodo.android.domain.model.api.invite.InviteStatus
 import dev.cankolay.twodo.android.domain.model.api.invite.InviteType
@@ -45,12 +38,13 @@ import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
+import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.viewmodel.InvitePartnerFormState
-import dev.cankolay.twodo.android.presentation.viewmodel.InviteViewModel
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.application.AuthViewModel
-import kotlinx.coroutines.launch
+import dev.cankolay.twodo.android.presentation.viewmodel.invite.InvitePartnerFormState
+import dev.cankolay.twodo.android.presentation.viewmodel.invite.InviteSheet
+import dev.cankolay.twodo.android.presentation.viewmodel.invite.InviteViewModel
+import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -59,21 +53,15 @@ fun CoupleSetupView(
     inviteViewModel: InviteViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    val scope = rememberCoroutineScope()
-
     val userState by userViewModel.uiState.collectAsStateWithLifecycle()
     val user = userState.user
-    LaunchedEffect(key1 = Unit) {
-        if (!userState.isInitialized && !userState.isLoading) {
-            userViewModel.fetchUser()
-        }
-    }
+    HandleEvents(viewModel = userViewModel)
 
     val inviteState by inviteViewModel.uiState.collectAsStateWithLifecycle()
     val invites = inviteState.invites
-    LaunchedEffect(key1 = user?.id) {
-        if (user != null) {
-            inviteViewModel.fetchInvites()
+    HandleEvents(viewModel = inviteViewModel) { event ->
+        if (event == dev.cankolay.twodo.android.presentation.core.UiEvent.InviteAccepted) {
+            userViewModel.fetchUser()
         }
     }
 
@@ -100,15 +88,15 @@ fun CoupleSetupView(
                     horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(icon = Icons.Default.Logout)
+                    Icon(icon = Icons.AutoMirrored.Filled.Logout)
 
                     Text(text = stringResource(id = R.string.sign_out))
                 }
             }
         },
         lazyContent = {
-            when (true) {
-                (user == null || userState.error != null) -> {
+            when {
+                user == null || userState.error != null -> {
                     item {
                         ErrorCard(
                             title = stringResource(id = R.string.couple_setup_error_title),
@@ -116,6 +104,16 @@ fun CoupleSetupView(
                             onRefresh = {
                                 userViewModel.fetchUser()
                             })
+                    }
+                }
+
+                inviteState.error != null && invites == null -> {
+                    item {
+                        ErrorCard(
+                            title = stringResource(id = R.string.error),
+                            error = inviteState.error,
+                            onRefresh = { inviteViewModel.fetchInvites() }
+                        )
                     }
                 }
 
@@ -163,31 +161,25 @@ fun CoupleSetupView(
                                                         space = 8.dp
                                                     )
                                                 ) {
-                                                    IconButton(onClick = {
-                                                        scope.launch {
+                                                    IconButton(
+                                                        onClick = {
                                                             inviteViewModel.handleInvite(
                                                                 action = InviteAction.Reject,
                                                                 id = invite.id
                                                             )
-                                                        }
-                                                    }, enabled = !inviteState.isLoading) {
+                                                        },
+                                                        enabled = !inviteState.isLoading
+                                                    ) {
                                                         Icon(icon = Icons.Default.Close)
                                                     }
 
                                                     IconButton(
                                                         enabled = !inviteState.isLoading,
                                                         onClick = {
-                                                            scope.launch {
-                                                                val result =
-                                                                    inviteViewModel.handleInvite(
-                                                                        action = InviteAction.Accept,
-                                                                        id = invite.id
-                                                                    )
-
-                                                                if (result is ApiResult.Success) {
-                                                                    userViewModel.fetchUser()
-                                                                }
-                                                            }
+                                                            inviteViewModel.handleInvite(
+                                                                action = InviteAction.Accept,
+                                                                id = invite.id
+                                                            )
                                                         }
                                                     ) {
                                                         Icon(icon = Icons.Default.Check)
@@ -229,14 +221,12 @@ fun CoupleSetupView(
                 }
             }
         }) {
-        inviteState.inviteForm?.let { form ->
+        (inviteState.activeSheet as? InviteSheet.InvitePartner)?.let { sheet ->
             InvitePartnerSheet(
-                form = form,
-                error = inviteState.error,
-                isLoading = inviteState.isLoading,
-                onDismiss = { inviteViewModel.dismissInvitePartnerSheet() },
+                form = sheet.form,
+                onDismiss = { inviteViewModel.dismissSheet() },
                 onUsernameChange = { inviteViewModel.updateInviteUsername(username = it) },
-                onInvite = { inviteViewModel.submitInvite() is ApiResult.Success }
+                onInvite = inviteViewModel::submitInvite
             )
         }
     }
@@ -246,73 +236,34 @@ fun CoupleSetupView(
 @Composable
 private fun InvitePartnerSheet(
     form: InvitePartnerFormState,
-    error: String?,
-    isLoading: Boolean,
     onDismiss: () -> Unit,
     onUsernameChange: (String) -> Unit,
-    onInvite: suspend () -> Boolean
+    onInvite: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-
-    val sheetState = rememberModalBottomSheetState()
-
     AppBottomSheet(
         title = stringResource(id = R.string.invite_partner),
         onDismiss = onDismiss,
-        sheetState = sheetState,
         actions = {
             Button(
-                enabled = form.canSubmit && !isLoading,
-                onClick = {
-                    scope.launch {
-                        if (onInvite()) {
-                            sheetState.hide()
-                            onDismiss()
-                        }
-                    }
-                }
+                enabled = form.canSubmit,
+                onClick = onInvite
             ) {
                 Text(text = stringResource(id = R.string.invite))
             }
         }
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-                AnimatedVisibility(
-                    visible = error != null,
-                    enter = expandVertically(),
-                    exit = shrinkVertically()
-                ) {
-                    error?.let { message ->
-                        ErrorCard(
-                            modifier = Modifier.padding(bottom = 8.dp),
-                            title = stringResource(id = R.string.error),
-                            error = message
-                        )
-                    }
+            TextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = form.username.value,
+                onValueChange = onUsernameChange,
+                singleLine = true,
+                label = { Text(text = stringResource(id = R.string.username)) },
+                isError = form.username.error != null,
+                supportingText = form.username.error?.let { error ->
+                    { Text(text = stringResource(id = error)) }
                 }
-
-                TextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = form.username.value,
-                    onValueChange = onUsernameChange,
-                    singleLine = true,
-                    label = { Text(text = stringResource(id = R.string.username)) },
-                    isError = form.username.error != null
-                )
-
-                AnimatedVisibility(
-                    visible = form.username.value.isEmpty() || form.username.error != null,
-                    enter = expandVertically(),
-                    exit = shrinkVertically()
-                ) {
-                    Text(
-                        text = form.username.error?.let { stringResource(id = it) }
-                            ?: stringResource(id = R.string.username_required)
-                    )
-
-                }
-            }
+            )
         }
     }
 }

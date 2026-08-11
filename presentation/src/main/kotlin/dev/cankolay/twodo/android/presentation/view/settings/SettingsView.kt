@@ -6,7 +6,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -22,11 +21,12 @@ import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
-import dev.cankolay.twodo.android.presentation.composition.LocalSnackbarHostState
+import dev.cankolay.twodo.android.presentation.core.HandleEvents
+import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.application.AuthViewModel
+import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,24 +34,14 @@ fun SettingsView(
     userViewModel: UserViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-    val snackbarHostState = LocalSnackbarHostState.current
     val navBackStack = LocalNavBackStack.current
 
     val userState by userViewModel.uiState.collectAsStateWithLifecycle()
     val user = userState.user
-    LaunchedEffect(key1 = Unit) {
-        if (!userState.isInitialized && !userState.isLoading) {
-            userViewModel.fetchUser()
-        }
-    }
+    HandleEvents(viewModel = userViewModel)
 
     val isLoading = userState.isLoading
     val error = userState.error
-    LaunchedEffect(key1 = error) {
-        error?.let {
-            snackbarHostState.showSnackbar(message = it)
-        }
-    }
 
     AppLayout(route = Route.Settings) {
         AppLazyColumn {
@@ -59,10 +49,7 @@ fun SettingsView(
                 ProfileCard(user = user, isLoading = isLoading, error = error, onLogout = {
                     authViewModel.logout()
 
-                    navBackStack.add(element = Route.Welcome)
-                    while (navBackStack.size > 1) {
-                        navBackStack.removeAt(0)
-                    }
+                    navBackStack.resetTo(Route.Welcome)
                 })
             }
 

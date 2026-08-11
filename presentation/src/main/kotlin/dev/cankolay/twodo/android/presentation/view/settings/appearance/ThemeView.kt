@@ -2,7 +2,6 @@ package dev.cankolay.twodo.android.presentation.view.settings.appearance
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,8 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.application.Theme
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.CardList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
+import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
@@ -30,36 +28,23 @@ fun ThemeView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
         uiState.settingsState?.let { state ->
             AppLazyColumn {
                 item {
-                    CardStackList(
+                    CardRadioList(
                         modifier =
                             Modifier
                                 .padding(horizontal = 16.dp),
-                        items = Theme.entries.map { theme ->
-                            val onClick = {
-                                settingsViewModel.updateSettings(
-                                    settingsState = state.copy(
-                                        theme = theme
-                                    )
-                                )
-                            }
-
-                            CardStackListItem(
-                                title =
-                                    stringResource(
-                                        id = when (theme) {
-                                            Theme.SYSTEM -> R.string.system
-                                            Theme.DARK -> R.string.dark
-                                            Theme.LIGHT -> R.string.light
-                                        }
-                                    ),
-                                onClick = onClick,
-                                leadingContent = {
-                                    RadioButton(
-                                        selected = theme == state.theme,
-                                        onClick = onClick,
-                                    )
-                                },
+                        items = Theme.entries,
+                        selected = state.theme,
+                        label = { theme ->
+                            stringResource(
+                                id = when (theme) {
+                                    Theme.SYSTEM -> R.string.system
+                                    Theme.DARK -> R.string.dark
+                                    Theme.LIGHT -> R.string.light
+                                }
                             )
+                        },
+                        onSelected = { theme ->
+                            settingsViewModel.updateSettings(state.copy(theme = theme))
                         }
                     )
                 }

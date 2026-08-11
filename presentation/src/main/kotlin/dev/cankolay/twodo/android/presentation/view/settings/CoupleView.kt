@@ -22,12 +22,8 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -37,21 +33,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.Avatar
 import dev.cankolay.twodo.android.presentation.composable.app.Card
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
+import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
-import dev.cankolay.twodo.android.presentation.composition.LocalSnackbarHostState
+import dev.cankolay.twodo.android.presentation.core.HandleEvents
+import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
-import kotlinx.coroutines.launch
+import dev.cankolay.twodo.android.presentation.viewmodel.user.UserSheet
+import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
@@ -59,23 +55,13 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun CoupleView(userViewModel: UserViewModel = hiltViewModel()) {
     val navBackStack = LocalNavBackStack.current
-    val snackbarHostState = LocalSnackbarHostState.current
 
     val userState by userViewModel.uiState.collectAsStateWithLifecycle()
     val user = userState.user
-    LaunchedEffect(key1 = Unit) {
-        if (!userState.isInitialized && !userState.isLoading) {
-            userViewModel.fetchUser()
-        }
-    }
+    HandleEvents(viewModel = userViewModel)
 
     val isLoading = userState.isLoading
     val error = userState.error
-    LaunchedEffect(key1 = error) {
-        error?.let {
-            snackbarHostState.showSnackbar(message = it)
-        }
-    }
 
     AppLayout(route = Route.Couple) {
         if (user == null) {
@@ -239,10 +225,7 @@ fun CoupleView(userViewModel: UserViewModel = hiltViewModel()) {
                                     Icon(icon = Icons.Default.PersonAdd)
                                 },
                                 onClick = {
-                                    navBackStack.add(element = Route.CoupleSetup)
-                                    while (navBackStack.size > 1) {
-                                        navBackStack.removeAt(0)
-                                    }
+                                    navBackStack.resetTo(Route.CoupleSetup)
                                 }
                             )
                         )
@@ -251,64 +234,25 @@ fun CoupleView(userViewModel: UserViewModel = hiltViewModel()) {
             }
         }
 
-        if (userState.isLeaveCoupleSheetVisible) {
+        if (userState.activeSheet is UserSheet.LeaveCouple) {
             BreakupPartnerSheet(
-                isLoading = isLoading,
-                onDismiss = { userViewModel.dismissLeaveCoupleSheet() },
-                onLeave = {
-                    userViewModel.leaveCouple() is ApiResult.Success
-                }
+                onDismiss = { userViewModel.dismissSheet() },
+                onLeave = userViewModel::leaveCouple
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BreakupPartnerSheet(
-    isLoading: Boolean,
     onDismiss: () -> Unit,
-    onLeave: suspend () -> Boolean
+    onLeave: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-
-    val sheetState = rememberModalBottomSheetState()
-
-    AppBottomSheet(
+    DestructiveConfirmationSheet(
         title = stringResource(id = R.string.break_up),
         description = stringResource(id = R.string.break_up_desc),
+        confirmText = stringResource(id = R.string.break_up),
         onDismiss = onDismiss,
-        sheetState = sheetState,
-        actions = {
-            TextButton(
-                onClick = {
-                    scope.launch {
-                        sheetState.hide()
-                    }.invokeOnCompletion {
-                        onDismiss()
-                    }
-                }
-            ) {
-                Text(text = stringResource(id = R.string.cancel))
-            }
-
-            Button(
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                ),
-                onClick = {
-                    scope.launch {
-                        if (onLeave()) {
-                            sheetState.hide()
-                            onDismiss()
-                        }
-                    }
-                }
-            ) {
-                Text(text = stringResource(id = R.string.break_up))
-            }
-        }
+        onConfirm = onLeave
     )
 }

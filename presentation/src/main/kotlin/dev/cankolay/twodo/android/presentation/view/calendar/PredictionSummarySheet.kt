@@ -30,8 +30,6 @@ import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,8 +171,4 @@ fun PredictionSummarySheet(
             }
         }
     }
-}
-
-private fun formatSummaryDate(date: LocalDate): String {
-    return date.format(DateTimeFormatter.ofPattern("d MMM yyyy"))
 }

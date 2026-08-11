@@ -19,6 +19,7 @@ import androidx.compose.ui.zIndex
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.motion.slideInY
+import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.RouteDetail
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
@@ -79,12 +80,7 @@ fun BoxScope.AppToolbar() {
                         },
                         onClick = {
                             if (!isSelected) {
-                                navBackStack.add(
-                                    element = route.instance
-                                )
-                                while (navBackStack.size > 1) {
-                                    navBackStack.removeAt(0)
-                                }
+                                navBackStack.resetTo(route.instance)
                             }
                         },
                     )

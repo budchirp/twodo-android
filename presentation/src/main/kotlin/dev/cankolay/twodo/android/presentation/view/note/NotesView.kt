@@ -11,17 +11,13 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
@@ -32,11 +28,11 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSh
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
+import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.viewmodel.CreateNoteFormState
-import dev.cankolay.twodo.android.presentation.viewmodel.NoteSheet
-import dev.cankolay.twodo.android.presentation.viewmodel.NoteViewModel
-import kotlinx.coroutines.launch
+import dev.cankolay.twodo.android.presentation.viewmodel.note.CreateNoteFormState
+import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteSheet
+import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -47,11 +43,7 @@ fun NotesView(
 
     val state by noteViewModel.uiState.collectAsStateWithLifecycle()
     val notes = state.notes
-    LaunchedEffect(key1 = Unit) {
-        if (state.notes == null) {
-            noteViewModel.fetchNotes()
-        }
-    }
+    HandleEvents(viewModel = noteViewModel)
 
     val isLoading = state.isLoading
     val error = state.error
@@ -120,19 +112,9 @@ fun NotesView(
         (state.activeSheet as? NoteSheet.CreateNote)?.let { sheet ->
             CreateNoteSheet(
                 form = sheet.form,
-                isLoading = isLoading,
-                onDismiss = { noteViewModel.dismissCreateNoteSheet() },
+                onDismiss = { noteViewModel.dismissSheet() },
                 onTitleChange = { noteViewModel.updateCreateNoteTitle(title = it) },
-                onCreate = {
-                    when (val result = noteViewModel.submitCreateNote()) {
-                        is ApiResult.Success -> {
-                            navBackStack.add(element = Route.Note(id = result.data.id))
-                            true
-                        }
-
-                        else -> false
-                    }
-                }
+                onCreate = { noteViewModel.submitNote() }
             )
         }
     }
@@ -142,30 +124,17 @@ fun NotesView(
 @Composable
 fun CreateNoteSheet(
     form: CreateNoteFormState,
-    isLoading: Boolean,
     onDismiss: () -> Unit,
     onTitleChange: (String) -> Unit,
-    onCreate: suspend () -> Boolean
+    onCreate: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-
-    val sheetState = rememberModalBottomSheetState()
-
     AppBottomSheet(
         title = stringResource(id = R.string.create_note),
         onDismiss = onDismiss,
-        sheetState = sheetState,
         actions = {
             Button(
-                enabled = form.canSubmit && !isLoading,
-                onClick = {
-                    scope.launch {
-                        if (onCreate()) {
-                            sheetState.hide()
-                            onDismiss()
-                        }
-                    }
-                }
+                enabled = form.canSubmit,
+                onClick = onCreate
             ) {
                 Text(text = stringResource(id = R.string.create))
             }

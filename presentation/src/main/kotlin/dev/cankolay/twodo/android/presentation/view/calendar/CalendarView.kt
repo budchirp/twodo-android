@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,12 +43,11 @@ import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
-import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
-import dev.cankolay.twodo.android.presentation.composition.LocalSnackbarHostState
+import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.viewmodel.CalendarSheet
-import dev.cankolay.twodo.android.presentation.viewmodel.CalendarViewModel
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
+import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarSheet
+import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarViewModel
+import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -61,25 +59,14 @@ fun CalendarView(
     userViewModel: UserViewModel = hiltViewModel(),
     calendarViewModel: CalendarViewModel = hiltViewModel()
 ) {
-    LocalNavBackStack.current
-    val snackbarHostState = LocalSnackbarHostState.current
-
     val userState by userViewModel.uiState.collectAsStateWithLifecycle()
     val isFemale = userState.user?.gender == Gender.FEMALE
 
     val uiState by calendarViewModel.uiState.collectAsStateWithLifecycle()
     val entries = uiState.entries
-    val selectedEntries = entries.orEmpty().filter { it.date == uiState.selectedDate }
+    val selectedEntries = uiState.selectedEntries
 
-    LaunchedEffect(key1 = Unit) {
-        calendarViewModel.fetchCalendar()
-    }
-
-    LaunchedEffect(key1 = uiState.error) {
-        uiState.error?.let { message ->
-            snackbarHostState.showSnackbar(message = message)
-        }
-    }
+    HandleEvents(viewModel = calendarViewModel)
 
     AppLayout(route = Route.Calendar, topBar = { context ->
         AppTopAppBar(context = context, trailingContent = {
@@ -87,7 +74,7 @@ fun CalendarView(
                 Icon(icon = Icons.Default.AutoAwesome)
             }
 
-            IconButton(onClick = { calendarViewModel.openCreateEntryForm() }) {
+            IconButton(onClick = { calendarViewModel.openCreateEntrySheet() }) {
                 Icon(icon = Icons.Default.Add)
             }
         })
@@ -95,7 +82,7 @@ fun CalendarView(
         PullToRefreshLazyColumn(
             isLoading = uiState.isLoading,
             onRefresh = {
-                calendarViewModel.fetchCalendar()
+                calendarViewModel.fetchEntries()
             }
         ) {
             item {
@@ -117,7 +104,7 @@ fun CalendarView(
                         ErrorCard(
                             title = stringResource(id = R.string.calendar_error),
                             error = uiState.error,
-                            onRefresh = { calendarViewModel.fetchCalendar() }
+                            onRefresh = { calendarViewModel.fetchEntries() }
                         )
                     }
                 }
@@ -130,7 +117,7 @@ fun CalendarView(
                             date = uiState.selectedDate,
                             entries = selectedEntries,
                             isFemale = isFemale,
-                            onEntryClick = { calendarViewModel.openEditEntryForm(entry = it) }
+                            onEntryClick = { calendarViewModel.openEditEntrySheet(entry = it) }
                         )
                     }
                 }
@@ -141,7 +128,7 @@ fun CalendarView(
             is CalendarSheet.PredictionSummary -> {
                 PredictionSummarySheet(
                     summary = uiState.predictionSummary,
-                    onDismiss = { calendarViewModel.dismissPredictionSheet() }
+                    onDismiss = { calendarViewModel.dismissSheet() }
                 )
             }
 
@@ -149,11 +136,9 @@ fun CalendarView(
                 CalendarEntrySheet(
                     form = sheet.form,
                     isFemale = isFemale,
-                    isSaving = uiState.isLoading,
-                    onDismiss = { calendarViewModel.dismissEntryForm() },
+                    onDismiss = { calendarViewModel.dismissSheet() },
                     onDelete = { calendarViewModel.requestDeleteEntry() },
-                    onSave = { calendarViewModel.submitEntryForm(isFemale = isFemale) },
-                    onDateChange = { calendarViewModel.updateEntryDate(date = it) },
+                    onSave = { calendarViewModel.submitEntry(isFemale = isFemale) },
                     onTypeChange = { calendarViewModel.updateEntryType(type = it) },
                     onNotesChange = { calendarViewModel.updateEntryNotes(notes = it) },
                     onPeriodEventChange = { calendarViewModel.updatePeriodEvent(event = it) },
@@ -171,9 +156,8 @@ fun CalendarView(
 
             is CalendarSheet.DeleteConfirmation -> {
                 DeleteCalendarEntrySheet(
-                    isLoading = uiState.isLoading,
-                    onDismiss = { calendarViewModel.dismissDeleteEntry() },
-                    onDelete = { calendarViewModel.deleteSelectedEntry(isFemale = isFemale) }
+                    onDismiss = { calendarViewModel.dismissSheet() },
+                    onDelete = { calendarViewModel.confirmDeleteEntry() }
                 )
             }
 
@@ -205,7 +189,7 @@ private fun MonthCalendarCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(onClick = onPreviousMonth) {
-                Icon(icon = Icons.Default.ArrowBack)
+                Icon(icon = Icons.AutoMirrored.Filled.ArrowBack)
             }
 
             Text(
@@ -218,7 +202,7 @@ private fun MonthCalendarCard(
             )
 
             IconButton(onClick = onNextMonth) {
-                Icon(icon = Icons.Default.ArrowForward)
+                Icon(icon = Icons.AutoMirrored.Filled.ArrowForward)
             }
         }
 

@@ -50,6 +50,17 @@ fun <T, R> ApiResult<T>.map(transform: (T) -> R): ApiResult<R> = when (this) {
     is ApiResult.Loading -> ApiResult.Loading
 }
 
+inline fun <T, R> ApiResult<T>.fold(
+    onLoading: () -> R,
+    onSuccess: (T) -> R,
+    onError: (message: String, code: String?) -> R
+): R = when (this) {
+    is ApiResult.Loading -> onLoading()
+    is ApiResult.Success -> onSuccess(data)
+    is ApiResult.Error -> onError(message, code)
+    is ApiResult.Fatal -> onError(exception.messageOrDefault(), null)
+}
+
 inline fun <T> ApiResult<T>.onSuccess(action: (data: T) -> Unit): ApiResult<T> {
     if (this is ApiResult.Success) action(data)
     return this
@@ -74,15 +85,10 @@ inline fun <T> ApiResult<T>.onLoading(action: () -> Unit): ApiResult<T> {
     return this
 }
 
-fun <T> ApiResult<T>.getOrNull(): T? = dataOrNull
-
 fun <T> ApiResult<T>.getOrDefault(default: T): T = dataOrNull ?: default
+
+fun <T> successResult(data: T, message: String = "success"): ApiResult.Success<T> =
+    ApiResult.Success(message = message, data = data)
 
 fun Throwable.messageOrDefault(): String =
     localizedMessage ?: message ?: "Unexpected error"
-
-fun validationError(message: String): ApiResult<Nothing> = ApiResult.Error(
-    message = message,
-    reason = ErrorReason.CLIENT,
-    code = "validation_error"
-)

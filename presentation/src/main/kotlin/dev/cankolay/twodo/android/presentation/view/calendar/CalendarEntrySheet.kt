@@ -4,18 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -26,22 +22,21 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
 import dev.cankolay.twodo.android.domain.model.api.calendar.ProtectionMethod
 import dev.cankolay.twodo.android.presentation.R
+import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
-import dev.cankolay.twodo.android.presentation.viewmodel.CalendarEntryFormState
-import kotlinx.coroutines.launch
+import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
+import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CalendarEntrySheet(
     form: CalendarEntryFormState,
     isFemale: Boolean,
-    isSaving: Boolean,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null,
     onSave: () -> Unit,
-    onDateChange: (String) -> Unit,
     onTypeChange: (CalendarEntryType) -> Unit,
     onNotesChange: (String) -> Unit,
     onPeriodEventChange: (PeriodEvent) -> Unit,
@@ -51,43 +46,28 @@ internal fun CalendarEntrySheet(
     onProtectionMethodChange: (ProtectionMethod) -> Unit,
     onEjaculationLocationChange: (EjaculationLocation) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState()
-
     AppBottomSheet(
         title = stringResource(
             id = if (form.isEditing) R.string.edit_calendar_entry else R.string.create_calendar_entry
         ),
         onDismiss = onDismiss,
-        sheetState = sheetState,
         actions = {
             if (form.isEditing && onDelete != null) {
                 TextButton(
-                    onClick = {
-                        scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            onDelete()
-                        }
-                    }
+                    onClick = onDelete
                 ) {
                     Text(text = stringResource(id = R.string.delete))
                 }
             }
 
             TextButton(
-                onClick = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        onDismiss()
-                    }
-                }
+                onClick = onDismiss
             ) {
                 Text(text = stringResource(id = R.string.cancel))
             }
 
             Button(
-                enabled = !isSaving,
-                onClick = {
-                    onSave()
-                }
+                onClick = onSave
             ) {
                 Text(text = stringResource(id = R.string.save))
             }
@@ -146,20 +126,11 @@ private fun EntryTypeSelector(
                 (type != CalendarEntryType.PERIOD || isFemale)
     }
 
-    CardStackList(
-        items = types.map { type ->
-            val onClick = { onSelected(type) }
-            CardStackListItem(
-                title = type.label(),
-                onClick = onClick,
-                leadingContent = {
-                    RadioButton(
-                        selected = selected == type,
-                        onClick = onClick
-                    )
-                }
-            )
-        }
+    CardRadioList(
+        items = types,
+        selected = selected,
+        label = { it.label() },
+        onSelected = onSelected
     )
 }
 
@@ -282,20 +253,11 @@ private fun <T> EnumRadioList(
             style = MaterialTheme.typography.titleMedium
         )
 
-        CardStackList(
-            items = values.map { value ->
-                val onClick = { onSelected(value) }
-                CardStackListItem(
-                    title = label(value),
-                    onClick = onClick,
-                    leadingContent = {
-                        RadioButton(
-                            selected = selected == value,
-                            onClick = onClick
-                        )
-                    }
-                )
-            }
+        CardRadioList(
+            items = values,
+            selected = selected,
+            label = label,
+            onSelected = onSelected
         )
     }
 }
@@ -303,41 +265,14 @@ private fun <T> EnumRadioList(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DeleteCalendarEntrySheet(
-    isLoading: Boolean,
     onDismiss: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState()
-
-    AppBottomSheet(
+    DestructiveConfirmationSheet(
         title = stringResource(id = R.string.delete_calendar_entry),
         description = stringResource(id = R.string.delete_calendar_entry_desc),
+        confirmText = stringResource(id = R.string.delete),
         onDismiss = onDismiss,
-        sheetState = sheetState,
-        actions = {
-            TextButton(
-                onClick = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        onDismiss()
-                    }
-                }
-            ) {
-                Text(text = stringResource(id = R.string.cancel))
-            }
-
-            Button(
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                ),
-                onClick = {
-                    onDelete()
-                }
-            ) {
-                Text(text = stringResource(id = R.string.delete))
-            }
-        }
+        onConfirm = onDelete
     )
 }

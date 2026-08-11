@@ -23,8 +23,8 @@ import dev.cankolay.twodo.android.presentation.view.settings.SettingsView
 import dev.cankolay.twodo.android.presentation.view.settings.appearance.AppearanceView
 import dev.cankolay.twodo.android.presentation.view.settings.appearance.MaterialYouView
 import dev.cankolay.twodo.android.presentation.view.settings.appearance.ThemeView
-import dev.cankolay.twodo.android.presentation.viewmodel.UserViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.application.AuthViewModel
+import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
 
 @Composable
 fun AppNavigation(
@@ -57,8 +57,7 @@ fun AppNavigation(
 
             entry<Route.ProfileSetup>(metadata = navigationTransition()) {
                 ProfileSetupView(
-                    userViewModel = userViewModel,
-                    authViewModel = authViewModel
+                    userViewModel = userViewModel
                 )
             }
 

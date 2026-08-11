@@ -38,7 +38,6 @@ fun AppTopAppBar(
     context: AppLayoutContext,
     title: (@Composable () -> Unit)? = null,
     onBackClick: (() -> Unit)? = null,
-    leadingContent: @Composable () -> Unit = {},
     trailingContent: @Composable () -> Unit = {},
 ) {
     val navBackStack = LocalNavBackStack.current
@@ -57,8 +56,6 @@ fun AppTopAppBar(
     }
 
     val navigationIcon = @Composable {
-        leadingContent()
-
         if (!routes.any {
                 it == context.route
             }) {

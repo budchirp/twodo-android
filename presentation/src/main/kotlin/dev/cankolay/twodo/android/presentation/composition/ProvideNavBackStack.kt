@@ -7,6 +7,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
+import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
 val LocalNavBackStack =
@@ -18,10 +19,7 @@ fun ProvideNavBackStack(startRoute: Route, content: @Composable () -> Unit) {
 
     LaunchedEffect(key1 = startRoute) {
         if (navBackStack.lastOrNull().shouldReplaceWith(route = startRoute)) {
-            navBackStack.add(element = startRoute)
-            while (navBackStack.size > 1) {
-                navBackStack.removeAt(0)
-            }
+            navBackStack.resetTo(startRoute)
         }
     }
 

@@ -40,7 +40,6 @@ fun AppLayout(
         )
     },
     bottomBar: @Composable () -> Unit = {},
-    floatingActionButton: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     val context = context(
@@ -65,7 +64,6 @@ fun AppLayout(
             topBar(context)
         },
         bottomBar = { bottomBar() },
-        floatingActionButton = { floatingActionButton() },
         contentWindowInsets = WindowInsets.systemBars.only(sides = WindowInsetsSides.Top),
         containerColor = context.background,
     ) { innerPadding ->

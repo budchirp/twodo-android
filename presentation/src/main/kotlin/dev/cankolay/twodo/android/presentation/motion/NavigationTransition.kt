@@ -43,7 +43,7 @@ fun navigationTransition(type: TransitionType = TransitionType.SLIDE): Map<Strin
             fadeIn togetherWith fadeOut
         } + NavDisplay.popTransitionSpec {
             fadeIn togetherWith fadeOut
-        } + NavDisplay.popTransitionSpec {
+        } + NavDisplay.predictivePopTransitionSpec {
             fadeIn togetherWith fadeOut
         }
     }

@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,19 +22,16 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ListItem(
     modifier: Modifier = Modifier,
-    containerModifier: Modifier = Modifier.fillMaxWidth(),
     title: String,
     description: String? = null,
-    overline: String? = null,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = onClick != null,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     contentPadding: PaddingValues? = null,
-    separator: Boolean = false,
     contentSize: Dp? = 24.dp
 ) {
-    Column(modifier = containerModifier) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =
                 modifier
@@ -44,8 +40,7 @@ fun ListItem(
                         paddingValues = contentPadding ?: PaddingValues(
                             vertical = if (description == null) 24.dp else 16.dp
                         )
-                    )
-                    .then(other = modifier),
+                    ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             leadingContent?.let {
@@ -75,14 +70,6 @@ fun ListItem(
                         .weight(weight = 1f),
                 verticalArrangement = Arrangement.Center
             ) {
-                if (!overline.isNullOrEmpty()) {
-                    Text(
-                        text = overline,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline
-                    )
-                }
-
                 Text(text = title, style = MaterialTheme.typography.titleMedium, maxLines = 2)
 
                 if (!description.isNullOrEmpty()) {
@@ -109,8 +96,5 @@ fun ListItem(
             }
         }
 
-        if (separator) {
-            HorizontalDivider()
-        }
     }
 }
