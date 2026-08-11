@@ -40,11 +40,11 @@ import dev.cankolay.twodo.android.domain.model.api.invite.InviteStatus
 import dev.cankolay.twodo.android.domain.model.api.invite.InviteType
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
+import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
-import dev.cankolay.twodo.android.presentation.composable.app.layout.OnboardingLayout
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.InvitePartnerFormState
 import dev.cankolay.twodo.android.presentation.viewmodel.InviteViewModel

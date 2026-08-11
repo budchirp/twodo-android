@@ -33,7 +33,7 @@ class InviteService @Inject constructor(private val client: KtorClient) {
         }
     }
 
-    suspend fun handleInvite(id: String, action: InviteAction) = request(no_return = true) {
+    suspend fun handleInvite(id: String, action: InviteAction) = request(noReturn = true) {
         client().patch {
             url {
                 path(ApiConstants.Endpoints.INVITES, id)

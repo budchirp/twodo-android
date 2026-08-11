@@ -16,7 +16,6 @@ import dev.cankolay.twodo.android.presentation.form.FormField
 import dev.cankolay.twodo.android.presentation.form.update
 import dev.cankolay.twodo.android.presentation.form.validateRequired
 import dev.cankolay.twodo.android.presentation.state.UiStatus
-import dev.cankolay.twodo.android.presentation.state.errorCode
 import dev.cankolay.twodo.android.presentation.state.errorMessage
 import dev.cankolay.twodo.android.presentation.state.isLoading
 import dev.cankolay.twodo.android.presentation.state.onError
@@ -52,10 +51,6 @@ data class NoteUiState(
 ) {
     val isLoading: Boolean get() = status.isLoading
     val error: String? get() = status.errorMessage
-    val errorCode: String? get() = status.errorCode
-    val createNoteForm: CreateNoteFormState? get() = (activeSheet as? NoteSheet.CreateNote)?.form
-    val isNoteActionsSheetVisible: Boolean get() = activeSheet is NoteSheet.NoteActions
-    val isDeleteNoteSheetVisible: Boolean get() = activeSheet is NoteSheet.DeleteConfirmation
 }
 
 @HiltViewModel
@@ -66,13 +61,12 @@ class NoteViewModel @Inject constructor(
     private val updateNoteUseCase: UpdateNoteUseCase,
     private val deleteNoteUseCase: DeleteNoteUseCase
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(value = NoteUiState())
+    private val _uiState = MutableStateFlow(NoteUiState())
     val uiState = _uiState.asStateFlow()
-
     private var saveNoteDraftJob: Job? = null
 
     fun openCreateNoteSheet() {
-        _uiState.update { it.copy(activeSheet = NoteSheet.CreateNote(form = CreateNoteFormState())) }
+        _uiState.update { it.copy(activeSheet = NoteSheet.CreateNote(CreateNoteFormState())) }
     }
 
     fun dismissCreateNoteSheet() {
@@ -172,7 +166,7 @@ class NoteViewModel @Inject constructor(
                     }
                 }
                 .onError { msg, code ->
-                    _uiState.update { it.copy(status = UiStatus.Error(message = msg, code)) }
+                    _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
                 }
         }
     }
@@ -238,7 +232,7 @@ class NoteViewModel @Inject constructor(
                 }
             }
             .onError { msg, code ->
-                _uiState.update { it.copy(status = UiStatus.Error(message = msg, code)) }
+                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
             }
 
         return result
@@ -258,33 +252,10 @@ class NoteViewModel @Inject constructor(
         viewModelScope.launch {
             deleteNoteUseCase(id = id)
                 .onError { msg, code ->
-                    _uiState.update { it.copy(status = UiStatus.Error(message = msg, code)) }
+                    _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
                     fetchNotes()
                 }
         }
-    }
-
-    suspend fun deleteNote(id: String): ApiResult<Nothing?> {
-        saveNoteDraftJob?.cancel()
-        _uiState.update { it.copy(status = UiStatus.Loading) }
-
-        val result = deleteNoteUseCase(id = id)
-            .onSuccess {
-                _uiState.update { state ->
-                    state.copy(
-                        notes = state.notes?.filterNot { it.id == id },
-                        note = null,
-                        noteDraft = null,
-                        activeSheet = NoteSheet.None,
-                        status = UiStatus.Idle
-                    )
-                }
-            }
-            .onError { msg, code ->
-                _uiState.update { it.copy(status = UiStatus.Error(msg, code)) }
-            }
-
-        return result
     }
 
     fun flushDraftSave(content: String? = null) {

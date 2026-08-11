@@ -65,7 +65,7 @@ fun BoxScope.AppToolbar() {
             }
 
             AppBarRow {
-                appRowRoutes.map { route ->
+                appRowRoutes.forEach { route ->
                     val isSelected =
                         navBackStack.lastOrNull() == route.instance
 

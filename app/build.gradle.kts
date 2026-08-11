@@ -54,7 +54,6 @@ android {
 
         getByName("debug") {
             isMinifyEnabled = false
-            isShrinkResources = false
             isDebuggable = true
 
             signingConfig = signingConfigs.getByName("debug")

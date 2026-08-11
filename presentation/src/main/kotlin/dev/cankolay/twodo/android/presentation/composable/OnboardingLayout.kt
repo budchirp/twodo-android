@@ -1,4 +1,4 @@
-package dev.cankolay.twodo.android.presentation.composable.app.layout
+package dev.cankolay.twodo.android.presentation.composable
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
+import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
 @Composable

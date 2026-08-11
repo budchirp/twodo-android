@@ -19,10 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.cankolay.twodo.android.domain.model.api.AuthApiConstants
 import dev.cankolay.twodo.android.presentation.R
+import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.layout.OnboardingLayout
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)

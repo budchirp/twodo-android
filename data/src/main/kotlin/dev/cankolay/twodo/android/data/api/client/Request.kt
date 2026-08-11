@@ -97,7 +97,7 @@ suspend inline fun <reified T : @Serializable Any> requestNullable(
 }
 
 suspend fun request(
-    no_return: Boolean,
+    noReturn: Boolean,
     block: suspend () -> HttpResponse
 ): ApiResult<Nothing?> {
     return try {

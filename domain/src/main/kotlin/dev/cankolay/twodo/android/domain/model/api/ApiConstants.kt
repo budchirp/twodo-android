@@ -5,7 +5,6 @@ object ApiConstants {
     const val API_PORT = 8081
 
     object Endpoints {
-        const val SERVER_HEALTH = "server/health"
         const val SERVER_VERSION = "server/version"
 
         const val USERS = "users"

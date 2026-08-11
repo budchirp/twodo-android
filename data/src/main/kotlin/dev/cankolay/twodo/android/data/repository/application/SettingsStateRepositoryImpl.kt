@@ -50,7 +50,7 @@ constructor(
 
     override val state = dataStore.data.catch { exception ->
         if (exception is IOException) {
-            emit(emptyPreferences())
+            emit(value = emptyPreferences())
         } else {
             throw exception
         }

@@ -24,5 +24,5 @@ data class SettingsState(
     val theme: Theme = Theme.SYSTEM,
     val isAmoled: Boolean = false,
 
-    val materialYou: MaterialYou = MaterialYou.OFF
+    val materialYou: MaterialYou = MaterialYou.WALLPAPER
 )

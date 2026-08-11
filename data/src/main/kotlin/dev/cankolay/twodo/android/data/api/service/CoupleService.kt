@@ -19,7 +19,7 @@ class CoupleService @Inject constructor(private val client: KtorClient) {
         }
     }
 
-    suspend fun leave() = request(no_return = true) {
+    suspend fun leave() = request(noReturn = true) {
         client().post {
             url {
                 path(ApiConstants.Endpoints.COUPLE_LEAVE)

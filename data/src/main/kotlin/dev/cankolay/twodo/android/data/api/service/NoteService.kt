@@ -53,7 +53,7 @@ constructor(private val client: KtorClient) {
         }
     }
 
-    suspend fun delete(id: String) = request(no_return = true) {
+    suspend fun delete(id: String) = request(noReturn = true) {
         client().delete {
             url {
                 path(ApiConstants.Endpoints.NOTES, id)
