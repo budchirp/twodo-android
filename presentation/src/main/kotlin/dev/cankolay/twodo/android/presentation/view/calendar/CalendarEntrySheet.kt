@@ -7,7 +7,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -16,11 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
-import dev.cankolay.twodo.android.domain.model.api.calendar.EjaculationLocation
 import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
-import dev.cankolay.twodo.android.domain.model.api.calendar.ProtectionMethod
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
@@ -41,10 +38,7 @@ internal fun CalendarEntrySheet(
     onNotesChange: (String) -> Unit,
     onPeriodEventChange: (PeriodEvent) -> Unit,
     onFlowLevelChange: (FlowLevel) -> Unit,
-    onSymptomsChange: (Set<PeriodSymptom>) -> Unit,
-    onSexOccurredChange: (Boolean) -> Unit,
-    onProtectionMethodChange: (ProtectionMethod) -> Unit,
-    onEjaculationLocationChange: (EjaculationLocation) -> Unit
+    onSymptomsChange: (Set<PeriodSymptom>) -> Unit
 ) {
     AppBottomSheet(
         title = stringResource(
@@ -100,15 +94,6 @@ internal fun CalendarEntrySheet(
                 onFlowLevelChange = onFlowLevelChange,
                 symptoms = form.symptoms,
                 onSymptomsChange = onSymptomsChange
-            )
-
-            CalendarEntryType.SEXUAL_ACTIVITY -> sexualActivityFields(
-                sexOccurred = form.sexOccurred,
-                onSexOccurredChange = onSexOccurredChange,
-                protectionMethod = form.protectionMethod,
-                onProtectionMethodChange = onProtectionMethodChange,
-                ejaculationLocation = form.ejaculationLocation,
-                onEjaculationLocationChange = onEjaculationLocationChange
             )
         }
     }
@@ -189,52 +174,6 @@ private fun androidx.compose.foundation.lazy.LazyListScope.periodFields(
                     }
                 )
             }
-        )
-    }
-}
-
-private fun androidx.compose.foundation.lazy.LazyListScope.sexualActivityFields(
-    sexOccurred: Boolean,
-    onSexOccurredChange: (Boolean) -> Unit,
-    protectionMethod: ProtectionMethod,
-    onProtectionMethodChange: (ProtectionMethod) -> Unit,
-    ejaculationLocation: EjaculationLocation,
-    onEjaculationLocationChange: (EjaculationLocation) -> Unit
-) {
-    item {
-        CardStackList(
-            items = listOf(
-                CardStackListItem(
-                    title = stringResource(id = R.string.sex_occurred),
-                    onClick = { onSexOccurredChange(!sexOccurred) },
-                    trailingContent = {
-                        Switch(
-                            checked = sexOccurred,
-                            onCheckedChange = onSexOccurredChange
-                        )
-                    }
-                )
-            )
-        )
-    }
-
-    item {
-        EnumRadioList(
-            title = stringResource(id = R.string.protection_method),
-            values = ProtectionMethod.entries,
-            selected = protectionMethod,
-            label = { it.label() },
-            onSelected = onProtectionMethodChange
-        )
-    }
-
-    item {
-        EnumRadioList(
-            title = stringResource(id = R.string.ejaculation_location),
-            values = EjaculationLocation.entries,
-            selected = ejaculationLocation,
-            label = { it.label() },
-            onSelected = onEjaculationLocationChange
         )
     }
 }

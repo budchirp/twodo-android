@@ -2,84 +2,58 @@ package dev.cankolay.twodo.android.domain.model.api.calendar
 
 import java.time.LocalDate
 
-enum class ConceptionRiskLevel(val value: String) {
-    NONE("none"),
-    LOW("low"),
-    MODERATE("moderate"),
-    HIGH("high"),
-    UNKNOWN("unknown");
-
-    companion object {
-        fun fromValue(value: String): ConceptionRiskLevel =
-            entries.firstOrNull { it.value.equals(value, ignoreCase = true) } ?: UNKNOWN
-    }
-}
-
-enum class PregnancyAssessmentStatus(val value: String) {
-    NOT_DUE("not_due"),
-    PERIOD_DUE("period_due"),
-    PERIOD_LATE("period_late"),
-    POSSIBLE_PREGNANCY("possible_pregnancy"),
-    UNKNOWN("unknown");
-
-    companion object {
-        fun fromValue(value: String): PregnancyAssessmentStatus =
-            entries.firstOrNull { it.value.equals(value, ignoreCase = true) } ?: UNKNOWN
-    }
-}
-
 enum class PeriodPredictionReliability(val value: String) {
-    LOW("low"),
+    HIGH("high"),
     MEDIUM("medium"),
-    HIGH("high");
+    LOW("low"),
+    INSUFFICIENT_DATA("insufficient_data"),
+    UNKNOWN("unknown");
 
     companion object {
         fun fromValue(value: String): PeriodPredictionReliability =
-            entries.firstOrNull { it.value.equals(value, ignoreCase = true) } ?: LOW
+            entries.firstOrNull { it.value.equals(value, ignoreCase = true) } ?: UNKNOWN
     }
 }
 
+data class DateWindow(
+    val startDate: LocalDate,
+    val endDate: LocalDate
+)
+
+data class CycleRange(
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val durationDays: Int,
+    val isComplete: Boolean = true,
+    val flowLevels: List<FlowLevel> = emptyList(),
+    val symptoms: List<PeriodSymptom> = emptyList()
+)
+
+data class CycleHistory(
+    val periodStartDate: LocalDate,
+    val periodEndDate: LocalDate,
+    val periodDurationDays: Int,
+    val cycleLengthDays: Int
+)
+
 data class PeriodPrediction(
+    val hasEnoughData: Boolean = false,
+    val reliability: PeriodPredictionReliability = PeriodPredictionReliability.UNKNOWN,
+    val nextPeriodWindow: DateWindow? = null,
+    val ovulationWindow: DateWindow? = null,
     val expectedPeriodStartDate: LocalDate? = null,
     val expectedPeriodEndDate: LocalDate? = null,
-    val averageCycleLengthDays: Int? = null,
-    val averagePeriodLengthDays: Int? = null,
-    val confidence: String? = null,
-    val reliability: PeriodPredictionReliability? = null,
+    val cycleLengthDays: Int? = null,
+    val periodDurationDays: Int? = null,
+    val cycleLengthVariabilityDays: Double? = null,
+    val predictionUncertaintyDays: Int? = null,
+    val recentIrregularity: Boolean = false,
+    val basis: String? = null,
     val disclaimer: String? = null
-)
-
-data class FertilityWindowEstimate(
-    val ovulationDate: LocalDate? = null,
-    val fertileWindowStartDate: LocalDate? = null,
-    val fertileWindowEndDate: LocalDate? = null,
-    val uncertaintyDays: Int = 0,
-    val reliability: PeriodPredictionReliability = PeriodPredictionReliability.LOW,
-    val hasEnoughData: Boolean = false,
-    val explanation: String = ""
-)
-
-data class ConceptionRiskAssessment(
-    val level: ConceptionRiskLevel = ConceptionRiskLevel.UNKNOWN,
-    val confidence: String = "low",
-    val relevantEvents: List<LocalDate> = emptyList(),
-    val fertileWindowOverlap: Boolean = false,
-    val explanation: String = ""
-)
-
-data class PregnancyAssessment(
-    val status: PregnancyAssessmentStatus = PregnancyAssessmentStatus.UNKNOWN,
-    val confidence: String = "low",
-    val expectedPeriodDate: LocalDate? = null,
-    val daysLate: Int = 0,
-    val conceptionRisk: ConceptionRiskAssessment = ConceptionRiskAssessment(),
-    val needsPregnancyTest: Boolean = false,
-    val explanation: String = ""
 )
 
 data class CalendarPredictionSummary(
     val cyclePrediction: PeriodPrediction? = null,
-    val fertilityWindow: FertilityWindowEstimate = FertilityWindowEstimate(),
-    val conceptionRisk: ConceptionRiskAssessment = ConceptionRiskAssessment(),
-    val pregnancyAssessment: PregnancyAssessment = PregnancyAssessment()
+    val ranges: List<CycleRange> = emptyList(),
+    val cycles: List<CycleHistory> = emptyList()
 )

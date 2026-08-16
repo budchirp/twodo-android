@@ -1,110 +1,115 @@
 package dev.cankolay.twodo.android.data.api.model.response.calendar
 
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarPredictionSummary
-import dev.cankolay.twodo.android.domain.model.api.calendar.ConceptionRiskAssessment
-import dev.cankolay.twodo.android.domain.model.api.calendar.ConceptionRiskLevel
-import dev.cankolay.twodo.android.domain.model.api.calendar.FertilityWindowEstimate
+import dev.cankolay.twodo.android.domain.model.api.calendar.CycleHistory
+import dev.cankolay.twodo.android.domain.model.api.calendar.CycleRange
+import dev.cankolay.twodo.android.domain.model.api.calendar.DateWindow
+import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodPrediction
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodPredictionReliability
-import dev.cankolay.twodo.android.domain.model.api.calendar.PregnancyAssessment
-import dev.cankolay.twodo.android.domain.model.api.calendar.PregnancyAssessmentStatus
+import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
 @Serializable
+data class DateWindowDto(
+    val startDate: String,
+    val endDate: String
+)
+
+@Serializable
 data class PeriodPredictionDto(
+    val hasEnoughData: Boolean = false,
+    val reliability: String? = null,
+    val nextPeriodWindow: DateWindowDto? = null,
+    val ovulationWindow: DateWindowDto? = null,
     val expectedPeriodStartDate: String? = null,
     val expectedPeriodEndDate: String? = null,
-    val averageCycleLengthDays: Int? = null,
-    val averagePeriodLengthDays: Int? = null,
-    val confidence: String? = null,
-    val reliability: String? = null,
+    val cycleLengthDays: Int? = null,
+    val periodDurationDays: Int? = null,
+    val cycleLengthVariabilityDays: Double? = null,
+    val predictionUncertaintyDays: Int? = null,
+    val recentIrregularity: Boolean = false,
+    val basis: String? = null,
     val disclaimer: String? = null
 )
 
 @Serializable
-data class FertilityWindowEstimateDto(
-    val ovulationDate: String? = null,
-    val fertileWindowStartDate: String? = null,
-    val fertileWindowEndDate: String? = null,
-    val uncertaintyDays: Int = 0,
-    val reliability: String? = null,
-    val hasEnoughData: Boolean = false,
-    val explanation: String = ""
+data class CycleRangeDto(
+    val startDate: String,
+    val endDate: String,
+    val durationDays: Int,
+    val isComplete: Boolean = true,
+    val flowLevels: List<String> = emptyList(),
+    val symptoms: List<String> = emptyList()
 )
 
 @Serializable
-data class ConceptionRiskAssessmentDto(
-    val level: String = "unknown",
-    val confidence: String = "low",
-    val relevantEvents: List<String> = emptyList(),
-    val fertileWindowOverlap: Boolean = false,
-    val explanation: String = ""
-)
-
-@Serializable
-data class PregnancyAssessmentDto(
-    val status: String = "unknown",
-    val confidence: String = "low",
-    val expectedPeriodDate: String? = null,
-    val daysLate: Int = 0,
-    val conceptionRisk: ConceptionRiskAssessmentDto? = null,
-    val needsPregnancyTest: Boolean = false,
-    val explanation: String = ""
+data class CycleHistoryDto(
+    val periodStartDate: String,
+    val periodEndDate: String,
+    val periodDurationDays: Int,
+    val cycleLengthDays: Int
 )
 
 @Serializable
 data class CalendarPredictionSummaryDto(
     val cyclePrediction: PeriodPredictionDto? = null,
-    val fertilityWindow: FertilityWindowEstimateDto? = null,
-    val conceptionRisk: ConceptionRiskAssessmentDto? = null,
-    val pregnancyAssessment: PregnancyAssessmentDto? = null
+    val ranges: List<CycleRangeDto> = emptyList(),
+    val cycles: List<CycleHistoryDto> = emptyList()
 )
 
+fun DateWindowDto.toDomain(): DateWindow? {
+    val start = parseLocalDateSafe(startDate) ?: return null
+    val end = parseLocalDateSafe(endDate) ?: return null
+    return DateWindow(startDate = start, endDate = end)
+}
+
 fun PeriodPredictionDto.toDomain() = PeriodPrediction(
+    hasEnoughData = hasEnoughData,
+    reliability = reliability?.let { PeriodPredictionReliability.fromValue(it) }
+        ?: PeriodPredictionReliability.UNKNOWN,
+    nextPeriodWindow = nextPeriodWindow?.toDomain(),
+    ovulationWindow = ovulationWindow?.toDomain(),
     expectedPeriodStartDate = expectedPeriodStartDate?.let { parseLocalDateSafe(it) },
     expectedPeriodEndDate = expectedPeriodEndDate?.let { parseLocalDateSafe(it) },
-    averageCycleLengthDays = averageCycleLengthDays,
-    averagePeriodLengthDays = averagePeriodLengthDays,
-    confidence = confidence,
-    reliability = reliability?.let { PeriodPredictionReliability.fromValue(it) },
+    cycleLengthDays = cycleLengthDays,
+    periodDurationDays = periodDurationDays,
+    cycleLengthVariabilityDays = cycleLengthVariabilityDays,
+    predictionUncertaintyDays = predictionUncertaintyDays,
+    recentIrregularity = recentIrregularity,
+    basis = basis,
     disclaimer = disclaimer
 )
 
-fun FertilityWindowEstimateDto.toDomain() = FertilityWindowEstimate(
-    ovulationDate = ovulationDate?.let { parseLocalDateSafe(it) },
-    fertileWindowStartDate = fertileWindowStartDate?.let { parseLocalDateSafe(it) },
-    fertileWindowEndDate = fertileWindowEndDate?.let { parseLocalDateSafe(it) },
-    uncertaintyDays = uncertaintyDays,
-    reliability = reliability?.let { PeriodPredictionReliability.fromValue(it) }
-        ?: PeriodPredictionReliability.LOW,
-    hasEnoughData = hasEnoughData,
-    explanation = explanation
-)
+fun CycleRangeDto.toDomain(): CycleRange? {
+    val start = parseLocalDateSafe(startDate) ?: return null
+    val end = parseLocalDateSafe(endDate) ?: return null
+    return CycleRange(
+        startDate = start,
+        endDate = end,
+        durationDays = durationDays,
+        isComplete = isComplete,
+        flowLevels = flowLevels.map { FlowLevel.fromValue(it) },
+        symptoms = symptoms.map { PeriodSymptom.fromValue(it) }
+    )
+}
 
-fun ConceptionRiskAssessmentDto.toDomain() = ConceptionRiskAssessment(
-    level = ConceptionRiskLevel.fromValue(level),
-    confidence = confidence,
-    relevantEvents = relevantEvents.mapNotNull { parseLocalDateSafe(it) },
-    fertileWindowOverlap = fertileWindowOverlap,
-    explanation = explanation
-)
-
-fun PregnancyAssessmentDto.toDomain() = PregnancyAssessment(
-    status = PregnancyAssessmentStatus.fromValue(status),
-    confidence = confidence,
-    expectedPeriodDate = expectedPeriodDate?.let { parseLocalDateSafe(it) },
-    daysLate = daysLate,
-    conceptionRisk = conceptionRisk?.toDomain() ?: ConceptionRiskAssessment(),
-    needsPregnancyTest = needsPregnancyTest,
-    explanation = explanation
-)
+fun CycleHistoryDto.toDomain(): CycleHistory? {
+    val start = parseLocalDateSafe(periodStartDate) ?: return null
+    val end = parseLocalDateSafe(periodEndDate) ?: return null
+    return CycleHistory(
+        periodStartDate = start,
+        periodEndDate = end,
+        periodDurationDays = periodDurationDays,
+        cycleLengthDays = cycleLengthDays
+    )
+}
 
 fun CalendarPredictionSummaryDto.toDomain() = CalendarPredictionSummary(
     cyclePrediction = cyclePrediction?.toDomain(),
-    fertilityWindow = fertilityWindow?.toDomain() ?: FertilityWindowEstimate(),
-    conceptionRisk = conceptionRisk?.toDomain() ?: ConceptionRiskAssessment(),
-    pregnancyAssessment = pregnancyAssessment?.toDomain() ?: PregnancyAssessment()
+    ranges = ranges.mapNotNull { it.toDomain() },
+    cycles = cycles.mapNotNull { it.toDomain() }
 )
 
 private fun parseLocalDateSafe(text: String): LocalDate? {

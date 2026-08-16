@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -21,16 +20,6 @@ internal fun CalendarEntry.description(): String {
             period?.flowLevel?.label(),
             period?.symptoms?.takeIf { it.isNotEmpty() }?.map { symptom -> symptom.label() }
                 ?.joinToString(),
-            notes
-        ).joinToString(separator = " · ")
-
-        CalendarEntryType.SEXUAL_ACTIVITY -> listOfNotNull(
-            sexualActivity?.let {
-                stringResource(
-                    id = if (it.sexOccurred) R.string.sex_occurred else R.string.sex_did_not_occur
-                )
-            },
-            sexualActivity?.protectionMethod?.label(),
             notes
         ).joinToString(separator = " · ")
 
@@ -52,6 +41,5 @@ internal fun CalendarEntryType.icon(): ImageVector = when (this) {
     CalendarEntryType.NOTE -> Icons.Default.Edit
     CalendarEntryType.PERIOD -> Icons.Default.CalendarMonth
     CalendarEntryType.PERIOD_PREDICTION -> Icons.Default.CalendarMonth
-    CalendarEntryType.SEXUAL_ACTIVITY -> Icons.Default.Favorite
     CalendarEntryType.OVULATION -> Icons.Default.AutoAwesome
 }

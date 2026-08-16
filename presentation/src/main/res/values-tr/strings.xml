@@ -134,7 +134,6 @@
 
     <string name="calendar_type_note">Not</string>
     <string name="calendar_type_period">Regl</string>
-    <string name="calendar_type_sexual_activity">Cinsel aktivite</string>
     <string name="calendar_type_ovulation">Yumurtlama</string>
 
     <string name="period_tracker">Regl takibi</string>
@@ -160,7 +159,7 @@
     <string name="period_tip_symptoms">Belirtileri takip edin</string>
     <string name="period_tip_symptoms_desc">Belirtiler ve akış, son döngüleri eskileriyle karşılaştırmaya yardımcı olur.</string>
     <string name="period_tip_not_medical">Tahminleri yaklaşık kabul edin</string>
-    <string name="period_tip_not_medical_desc">Sunucu tahminlerini tanı veya korunma tavsiyesi değil, planlama ipucu olarak kullanın.</string>
+    <string name="period_tip_not_medical_desc">Sunucu tahminlerini tıbbi tanı değil, planlama ipucu olarak kullanın.</string>
 
     <string name="selected_day">%1$s kayıtları</string>
     <string name="calendar_day_empty_title">Bu günde kayıt yok</string>
@@ -186,41 +185,9 @@
     <string name="symptom_mood_changes">Duygu değişimleri</string>
     <string name="symptom_nausea">Bulantı</string>
 
-    <string name="sex_occurred">Cinsel aktivite oldu</string>
-    <string name="sex_did_not_occur">Cinsel aktivite olmadı</string>
-    <string name="contraception_used">Doğum kontrolü kullanıldı</string>
-    <string name="condom_used">Prezervatif kullanıldı</string>
-    <string name="withdrawal">Geri çekilme</string>
-    <string name="emergency_contraception">Acil korunma</string>
-    <string name="protection_method">Korunma yöntemi</string>
-    <string name="protection_none">Yok</string>
-    <string name="protection_condom">Prezervatif</string>
-    <string name="protection_diaphragm">Diyafram</string>
-    <string name="protection_emergency_contraception">Acil korunma</string>
-    <string name="protection_fertility_awareness">Doğurganlık farkındalığı</string>
-    <string name="protection_hormonal">Hormonal</string>
-    <string name="protection_implant">İmplant</string>
-    <string name="protection_injection">Enjeksiyon</string>
-    <string name="protection_iud">Spiral</string>
-    <string name="protection_patch">Bant</string>
-    <string name="protection_pill">Hap</string>
-    <string name="protection_ring">Halka</string>
-    <string name="protection_withdrawal">Geri çekilme</string>
-    <string name="ejaculation_location">Boşalma yeri</string>
-    <string name="ejaculation_none">Yok</string>
-    <string name="ejaculation_condom">Prezervatif</string>
-    <string name="ejaculation_inside_vagina">Vajina içine</string>
-    <string name="ejaculation_outside_vagina">Vajina dışına</string>
-    <string name="ejaculation_anal">Anal</string>
-    <string name="ejaculation_oral">Oral</string>
-    <string name="ejaculation_other_body">Vücudun başka yeri</string>
-
-    <string name="pregnancy_test_recommended">Evde gebelik testi önerilir</string>
-    <string name="period_late_days">Regl %1$d gün gecikti</string>
-    <string name="fertile_window_title">Doğurganlık ve Gebe Kalma Aralığı</string>
+    <string name="fertile_window_title">Döngü Tahminleri</string>
     <string name="days_uncertainty">gün belirsizlik</string>
     <string name="estimated_ovulation">Tahmini Yumurtlama</string>
     <string name="fertile_window">Doğurganlık Penceresi</string>
-    <string name="conception_risk">Gebe Kalma Riski</string>
-    <string name="default_medical_disclaimer">Tahminler geçmiş kayıtlarınıza dayalı yaklaşık değerlerdir; tıbbi tavsiye veya doğum kontrolü yerine kullanılmamalıdır.</string>
+    <string name="default_medical_disclaimer">Tahminler geçmiş kayıtlarınıza dayalı yaklaşık değerlerdir; tıbbi tavsiye yerine kullanılmamalıdır.</string>
 </resources>

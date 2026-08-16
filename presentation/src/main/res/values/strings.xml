@@ -163,7 +163,6 @@
 
     <string name="calendar_type_note">Note</string>
     <string name="calendar_type_period">Period</string>
-    <string name="calendar_type_sexual_activity">Sexual activity</string>
     <string name="calendar_type_ovulation">Ovulation</string>
 
     <string name="period_tracker">Period tracker</string>
@@ -189,7 +188,7 @@
     <string name="period_tip_symptoms">Track symptoms</string>
     <string name="period_tip_symptoms_desc">Symptoms and flow help you compare recent cycles with older ones.</string>
     <string name="period_tip_not_medical">Treat predictions as estimates</string>
-    <string name="period_tip_not_medical_desc">Use backend predictions as planning hints, not diagnosis or contraception advice.</string>
+    <string name="period_tip_not_medical_desc">Use backend predictions as planning hints, not medical diagnosis.</string>
 
     <string name="selected_day">%1$s entries</string>
     <string name="calendar_day_empty_title">Nothing on this day</string>
@@ -215,41 +214,9 @@
     <string name="symptom_mood_changes">Mood changes</string>
     <string name="symptom_nausea">Nausea</string>
 
-    <string name="sex_occurred">Sex occurred</string>
-    <string name="sex_did_not_occur">Sex did not occur</string>
-    <string name="contraception_used">Contraception used</string>
-    <string name="condom_used">Condom used</string>
-    <string name="withdrawal">Withdrawal</string>
-    <string name="emergency_contraception">Emergency contraception</string>
-    <string name="protection_method">Protection method</string>
-    <string name="protection_none">None</string>
-    <string name="protection_condom">Condom</string>
-    <string name="protection_diaphragm">Diaphragm</string>
-    <string name="protection_emergency_contraception">Emergency contraception</string>
-    <string name="protection_fertility_awareness">Fertility awareness</string>
-    <string name="protection_hormonal">Hormonal</string>
-    <string name="protection_implant">Implant</string>
-    <string name="protection_injection">Injection</string>
-    <string name="protection_iud">IUD</string>
-    <string name="protection_patch">Patch</string>
-    <string name="protection_pill">Pill</string>
-    <string name="protection_ring">Ring</string>
-    <string name="protection_withdrawal">Withdrawal</string>
-    <string name="ejaculation_location">Ejaculation location</string>
-    <string name="ejaculation_none">None</string>
-    <string name="ejaculation_condom">Condom</string>
-    <string name="ejaculation_inside_vagina">Inside vagina</string>
-    <string name="ejaculation_outside_vagina">Outside vagina</string>
-    <string name="ejaculation_anal">Anal</string>
-    <string name="ejaculation_oral">Oral</string>
-    <string name="ejaculation_other_body">Other body</string>
-
-    <string name="pregnancy_test_recommended">Home pregnancy test recommended</string>
-    <string name="period_late_days">Period is %1$d day(s) late</string>
-    <string name="fertile_window_title">Fertility &amp; Conception Window</string>
+    <string name="fertile_window_title">Cycle Predictions</string>
     <string name="days_uncertainty">days uncertainty</string>
     <string name="estimated_ovulation">Estimated Ovulation</string>
     <string name="fertile_window">Fertile Window</string>
-    <string name="conception_risk">Conception Risk</string>
-    <string name="default_medical_disclaimer">Predictions are estimates based on your logged history and should not be used as medical advice or contraception.</string>
+    <string name="default_medical_disclaimer">Predictions are estimates based on your logged history and should not be used as medical advice.</string>
 </resources>

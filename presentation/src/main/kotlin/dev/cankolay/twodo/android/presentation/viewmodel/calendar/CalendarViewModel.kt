@@ -6,13 +6,10 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryInput
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarPredictionSummary
-import dev.cankolay.twodo.android.domain.model.api.calendar.EjaculationLocation
 import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodInput
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
-import dev.cankolay.twodo.android.domain.model.api.calendar.ProtectionMethod
-import dev.cankolay.twodo.android.domain.model.api.calendar.SexualActivityInput
 import dev.cankolay.twodo.android.domain.model.api.onError
 import dev.cankolay.twodo.android.domain.model.api.onSuccess
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.CreateCalendarEntryUseCase
@@ -36,10 +33,7 @@ data class CalendarEntryFormState(
     val notes: String = "",
     val periodEvent: PeriodEvent = PeriodEvent.DAY,
     val flowLevel: FlowLevel = FlowLevel.MEDIUM,
-    val symptoms: Set<PeriodSymptom> = emptySet(),
-    val sexOccurred: Boolean = true,
-    val protectionMethod: ProtectionMethod = ProtectionMethod.NONE,
-    val ejaculationLocation: EjaculationLocation = EjaculationLocation.NONE
+    val symptoms: Set<PeriodSymptom> = emptySet()
 ) {
     val isEditing = entry != null
 
@@ -53,11 +47,7 @@ data class CalendarEntryFormState(
             notes = entry.notes.orEmpty(),
             periodEvent = entry.period?.event ?: PeriodEvent.DAY,
             flowLevel = entry.period?.flowLevel ?: FlowLevel.MEDIUM,
-            symptoms = entry.period?.symptoms.orEmpty().toSet(),
-            sexOccurred = entry.sexualActivity?.sexOccurred ?: true,
-            protectionMethod = entry.sexualActivity?.protectionMethod ?: ProtectionMethod.NONE,
-            ejaculationLocation = entry.sexualActivity?.ejaculationLocation
-                ?: EjaculationLocation.NONE
+            symptoms = entry.period?.symptoms.orEmpty().toSet()
         )
     }
 }
@@ -133,14 +123,6 @@ class CalendarViewModel @Inject constructor(
     fun updateFlowLevel(flowLevel: FlowLevel) = updateForm { copy(flowLevel = flowLevel) }
 
     fun updateSymptoms(symptoms: Set<PeriodSymptom>) = updateForm { copy(symptoms = symptoms) }
-
-    fun updateSexOccurred(sexOccurred: Boolean) = updateForm { copy(sexOccurred = sexOccurred) }
-
-    fun updateProtectionMethod(protectionMethod: ProtectionMethod) =
-        updateForm { copy(protectionMethod = protectionMethod) }
-
-    fun updateEjaculationLocation(ejaculationLocation: EjaculationLocation) =
-        updateForm { copy(ejaculationLocation = ejaculationLocation) }
 
     fun requestDeleteEntry() {
         val form = (uiState.value.activeSheet as? CalendarSheet.EntryForm)?.form ?: return
@@ -244,18 +226,12 @@ class CalendarViewModel @Inject constructor(
         } else {
             null
         }
-        val sexualActivityInput = if (form.type == CalendarEntryType.SEXUAL_ACTIVITY) {
-            SexualActivityInput(form.sexOccurred, form.protectionMethod, form.ejaculationLocation)
-        } else {
-            null
-        }
 
         return CalendarEntryInput(
             date = date,
             type = form.type,
             notes = form.notes.ifBlank { null },
-            period = periodInput,
-            sexualActivity = sexualActivityInput
+            period = periodInput
         )
     }
 }

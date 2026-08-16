@@ -8,22 +8,15 @@ data class CalendarEntryRequestDto(
     val date: String,
     val type: String,
     val notes: String? = null,
-    val period: PeriodRequestDto? = null,
-    val sexualActivity: SexualActivityRequestDto? = null
+    val period: PeriodRequestDto? = null
 )
 
 @Serializable
 data class PeriodRequestDto(
     val event: String,
     val flowLevel: String,
-    val symptoms: List<String>
-)
-
-@Serializable
-data class SexualActivityRequestDto(
-    val sexOccurred: Boolean,
-    val protectionMethod: String,
-    val ejaculationLocation: String
+    val symptoms: List<String>,
+    val endDate: String? = null
 )
 
 fun CalendarEntryInput.toDto() = CalendarEntryRequestDto(
@@ -35,13 +28,6 @@ fun CalendarEntryInput.toDto() = CalendarEntryRequestDto(
             event = period.event.value,
             flowLevel = period.flowLevel.value,
             symptoms = period.symptoms.map { it.value }
-        )
-    },
-    sexualActivity = sexualActivity?.let { sexualActivity ->
-        SexualActivityRequestDto(
-            sexOccurred = sexualActivity.sexOccurred,
-            protectionMethod = sexualActivity.protectionMethod.value,
-            ejaculationLocation = sexualActivity.ejaculationLocation.value
         )
     }
 )

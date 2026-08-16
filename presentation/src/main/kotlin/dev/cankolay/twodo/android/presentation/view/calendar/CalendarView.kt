@@ -105,8 +105,6 @@ fun CalendarView(
                                 visibleMonth = uiState.visibleMonth,
                                 selectedDate = uiState.selectedDate,
                                 entries = entries.orEmpty(),
-                                conceptionRiskEvents = uiState.predictionSummary?.conceptionRisk?.relevantEvents.orEmpty()
-                                    .toSet(),
                                 onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
                                 onNextMonth = { calendarViewModel.moveMonth(months = 1) },
                                 onDateClick = { calendarViewModel.selectDate(date = it) },
@@ -134,8 +132,6 @@ fun CalendarView(
                         visibleMonth = uiState.visibleMonth,
                         selectedDate = uiState.selectedDate,
                         entries = entries.orEmpty(),
-                        conceptionRiskEvents = uiState.predictionSummary?.conceptionRisk?.relevantEvents.orEmpty()
-                            .toSet(),
                         onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
                         onNextMonth = { calendarViewModel.moveMonth(months = 1) },
                         onDateClick = { calendarViewModel.selectDate(date = it) }
@@ -175,14 +171,7 @@ fun CalendarView(
                     onNotesChange = { calendarViewModel.updateEntryNotes(notes = it) },
                     onPeriodEventChange = { calendarViewModel.updatePeriodEvent(event = it) },
                     onFlowLevelChange = { calendarViewModel.updateFlowLevel(flowLevel = it) },
-                    onSymptomsChange = { calendarViewModel.updateSymptoms(symptoms = it) },
-                    onSexOccurredChange = { calendarViewModel.updateSexOccurred(sexOccurred = it) },
-                    onProtectionMethodChange = {
-                        calendarViewModel.updateProtectionMethod(protectionMethod = it)
-                    },
-                    onEjaculationLocationChange = {
-                        calendarViewModel.updateEjaculationLocation(ejaculationLocation = it)
-                    }
+                    onSymptomsChange = { calendarViewModel.updateSymptoms(symptoms = it) }
                 )
             }
 
@@ -203,7 +192,6 @@ private fun MonthCalendarCard(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entries: List<CalendarEntry>,
-    conceptionRiskEvents: Set<LocalDate>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDateClick: (LocalDate) -> Unit,
@@ -244,7 +232,6 @@ private fun MonthCalendarCard(
             visibleMonth = visibleMonth,
             selectedDate = selectedDate,
             entriesByDate = entriesByDate,
-            conceptionRiskEvents = conceptionRiskEvents,
             onDateClick = onDateClick
         )
     }
@@ -272,7 +259,6 @@ private fun CalendarMonthGrid(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entriesByDate: Map<LocalDate, List<CalendarEntry>>,
-    conceptionRiskEvents: Set<LocalDate>,
     onDateClick: (LocalDate) -> Unit
 ) {
     val firstDay = visibleMonth.atDay(1)
@@ -297,13 +283,12 @@ private fun CalendarMonthGrid(
                             dateEntries.any { it.type == CalendarEntryType.OVULATION }
                         val hasPeriodPrediction =
                             dateEntries.any { it.type == CalendarEntryType.PERIOD_PREDICTION }
-                        val isConceptionRiskEvent = date in conceptionRiskEvents
                         CalendarDayCell(
                             modifier = Modifier.weight(weight = 1f),
                             date = date,
                             selected = date == selectedDate,
                             entryCount = dateEntries.size,
-                            isPredictedPeriod = hasPeriodPrediction || isConceptionRiskEvent,
+                            isPredictedPeriod = hasPeriodPrediction,
                             hasOvulation = hasOvulation,
                             onClick = { onDateClick(date) }
                         )
