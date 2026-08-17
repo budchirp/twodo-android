@@ -1,16 +1,12 @@
 package dev.cankolay.twodo.android.presentation.view.note
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,13 +21,11 @@ import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.viewmodel.note.CreateNoteFormState
 import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteViewModel
 
@@ -121,41 +115,6 @@ fun NotesView(
                 onDismiss = { noteViewModel.dismissSheet() },
                 onTitleChange = { noteViewModel.updateCreateNoteTitle(title = it) },
                 onCreate = { noteViewModel.submitNote() }
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CreateNoteSheet(
-    form: CreateNoteFormState,
-    onDismiss: () -> Unit,
-    onTitleChange: (String) -> Unit,
-    onCreate: () -> Unit
-) {
-    AppBottomSheet(
-        title = stringResource(id = R.string.create_note),
-        onDismiss = onDismiss,
-        actions = {
-            Button(
-                enabled = form.canSubmit,
-                onClick = onCreate
-            ) {
-                Text(text = stringResource(id = R.string.create))
-            }
-        }
-    ) {
-        item {
-            TextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = form.title.value,
-                onValueChange = onTitleChange,
-                label = { Text(text = stringResource(id = R.string.title)) },
-                isError = form.title.error != null,
-                supportingText = form.title.error?.let { error ->
-                    { Text(text = stringResource(id = error)) }
-                }
             )
         }
     }

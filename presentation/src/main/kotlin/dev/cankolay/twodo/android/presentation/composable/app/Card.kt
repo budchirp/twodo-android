@@ -99,6 +99,8 @@ fun CardStackList(
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
     items: List<CardStackListItem>
 ) {
+    if (items.isEmpty()) return
+
     CardStack(
         modifier = modifier,
         shape = shape,

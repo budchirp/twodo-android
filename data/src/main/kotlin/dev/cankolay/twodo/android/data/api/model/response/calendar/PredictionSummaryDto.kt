@@ -48,8 +48,8 @@ data class CycleRangeDto(
 data class CycleHistoryDto(
     val periodStartDate: String,
     val periodEndDate: String,
-    val periodDurationDays: Int,
-    val cycleLengthDays: Int
+    val periodDurationDays: Int = 0,
+    val cycleLengthDays: Int? = null
 )
 
 @Serializable

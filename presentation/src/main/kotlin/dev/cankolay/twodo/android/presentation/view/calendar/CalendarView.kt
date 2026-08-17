@@ -14,13 +14,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,20 +34,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.window.core.layout.WindowSizeClass
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
+import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
+import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
+import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
 import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.MarkdownEditor
 import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
+import dev.cankolay.twodo.android.presentation.util.DateUtils
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
@@ -70,10 +75,6 @@ fun CalendarView(
 
     HandleEvents(viewModel = calendarViewModel)
 
-    val isWideScreen = currentWindowAdaptiveInfoV2().windowSizeClass.isWidthAtLeastBreakpoint(
-        widthDpBreakpoint = WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND
-    )
-
     AppLayout(route = Route.Calendar, topBar = { context ->
         AppTopAppBar(context = context, trailingContent = {
             IconButton(onClick = { calendarViewModel.openPredictionSheet() }) {
@@ -91,64 +92,27 @@ fun CalendarView(
                 calendarViewModel.fetchEntries()
             }
         ) {
-            if (isWideScreen) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Box(modifier = Modifier.weight(weight = 1f)) {
-                            MonthCalendarCard(
-                                visibleMonth = uiState.visibleMonth,
-                                selectedDate = uiState.selectedDate,
-                                entries = entries.orEmpty(),
-                                onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
-                                onNextMonth = { calendarViewModel.moveMonth(months = 1) },
-                                onDateClick = { calendarViewModel.selectDate(date = it) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+            item {
+                Calendar(
+                    visibleMonth = uiState.visibleMonth,
+                    selectedDate = uiState.selectedDate,
+                    entries = entries.orEmpty(),
+                    onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
+                    onNextMonth = { calendarViewModel.moveMonth(months = 1) },
+                    onDateClick = { calendarViewModel.selectDate(date = it) }
+                )
+            }
 
-                        Box(modifier = Modifier.weight(weight = 1f)) {
-                            CalendarEntriesContent(
-                                date = uiState.selectedDate,
-                                entries = entries,
-                                selectedEntries = selectedEntries,
-                                error = uiState.error,
-                                isFemale = isFemale,
-                                onEntryClick = { calendarViewModel.openEditEntrySheet(entry = it) },
-                                onRefresh = { calendarViewModel.fetchEntries() },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                }
-            } else {
-                item {
-                    MonthCalendarCard(
-                        visibleMonth = uiState.visibleMonth,
-                        selectedDate = uiState.selectedDate,
-                        entries = entries.orEmpty(),
-                        onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
-                        onNextMonth = { calendarViewModel.moveMonth(months = 1) },
-                        onDateClick = { calendarViewModel.selectDate(date = it) }
-                    )
-                }
-
-                item {
-                    CalendarEntriesContent(
-                        date = uiState.selectedDate,
-                        entries = entries,
-                        selectedEntries = selectedEntries,
-                        error = uiState.error,
-                        isFemale = isFemale,
-                        onEntryClick = { calendarViewModel.openEditEntrySheet(entry = it) },
-                        onRefresh = { calendarViewModel.fetchEntries() }
-                    )
-                }
+            item {
+                Entries(
+                    date = uiState.selectedDate,
+                    entries = entries,
+                    selected = selectedEntries,
+                    error = uiState.error,
+                    isFemale = isFemale,
+                    onClick = { calendarViewModel.openEditEntrySheet(entry = it) },
+                    onRefresh = { calendarViewModel.fetchEntries() }
+                )
             }
         }
 
@@ -188,20 +152,19 @@ fun CalendarView(
 }
 
 @Composable
-private fun MonthCalendarCard(
+private fun Calendar(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entries: List<CalendarEntry>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDateClick: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier.padding(horizontal = 16.dp)
 ) {
     val entriesByDate = entries.groupBy { it.date }
     val locale = LocalLocale.current.platformLocale
 
     Column(
-        modifier = modifier,
+        modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(space = 12.dp)
     ) {
         Row(
@@ -227,8 +190,19 @@ private fun MonthCalendarCard(
             }
         }
 
-        CalendarWeekHeader()
-        CalendarMonthGrid(
+        Row(modifier = Modifier.fillMaxWidth()) {
+            DayOfWeek.entries.forEach { day ->
+                Text(
+                    modifier = Modifier.weight(weight = 1f),
+                    text = day.getDisplayName(TextStyle.SHORT, locale),
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+        }
+
+        MonthGrid(
             visibleMonth = visibleMonth,
             selectedDate = selectedDate,
             entriesByDate = entriesByDate,
@@ -238,33 +212,16 @@ private fun MonthCalendarCard(
 }
 
 @Composable
-private fun CalendarWeekHeader() {
-    val locale = LocalLocale.current.platformLocale
-
-    Row(modifier = Modifier.fillMaxWidth()) {
-        DayOfWeek.entries.forEach { day ->
-            Text(
-                modifier = Modifier.weight(weight = 1f),
-                text = day.getDisplayName(TextStyle.SHORT, locale),
-                style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.outline
-            )
-        }
-    }
-}
-
-@Composable
-private fun CalendarMonthGrid(
+private fun MonthGrid(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entriesByDate: Map<LocalDate, List<CalendarEntry>>,
     onDateClick: (LocalDate) -> Unit
 ) {
     val firstDay = visibleMonth.atDay(1)
-    val leadingBlankDays = firstDay.dayOfWeek.value - 1
-    val days = List(size = leadingBlankDays) { null } +
+    val days = List(size = firstDay.dayOfWeek.value - 1) { null } +
             (1..visibleMonth.lengthOfMonth()).map { day -> visibleMonth.atDay(day) }
+
     val rows = days.chunked(size = 7)
 
     Column(verticalArrangement = Arrangement.spacedBy(space = 4.dp)) {
@@ -283,12 +240,12 @@ private fun CalendarMonthGrid(
                             dateEntries.any { it.type == CalendarEntryType.OVULATION }
                         val hasPeriodPrediction =
                             dateEntries.any { it.type == CalendarEntryType.PERIOD_PREDICTION }
-                        CalendarDayCell(
+                        DayCell(
                             modifier = Modifier.weight(weight = 1f),
                             date = date,
                             selected = date == selectedDate,
                             entryCount = dateEntries.size,
-                            isPredictedPeriod = hasPeriodPrediction,
+                            hasPeriod = hasPeriodPrediction,
                             hasOvulation = hasOvulation,
                             onClick = { onDateClick(date) }
                         )
@@ -308,12 +265,12 @@ private fun CalendarMonthGrid(
 }
 
 @Composable
-private fun CalendarDayCell(
+private fun DayCell(
     modifier: Modifier,
     date: LocalDate,
     selected: Boolean,
     entryCount: Int,
-    isPredictedPeriod: Boolean,
+    hasPeriod: Boolean,
     hasOvulation: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -322,7 +279,7 @@ private fun CalendarDayCell(
     val containerColor = when {
         selected -> MaterialTheme.colorScheme.primaryContainer
         hasOvulation -> MaterialTheme.colorScheme.secondaryContainer
-        isPredictedPeriod -> MaterialTheme.colorScheme.tertiaryContainer
+        hasPeriod -> MaterialTheme.colorScheme.tertiaryContainer
         entryCount > 0 -> MaterialTheme.colorScheme.surfaceContainerHighest
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
@@ -331,7 +288,7 @@ private fun CalendarDayCell(
         selected -> MaterialTheme.colorScheme.onPrimaryContainer
         isToday -> MaterialTheme.colorScheme.primary
         hasOvulation -> MaterialTheme.colorScheme.onSecondaryContainer
-        isPredictedPeriod -> MaterialTheme.colorScheme.onTertiaryContainer
+        hasPeriod -> MaterialTheme.colorScheme.onTertiaryContainer
         else -> MaterialTheme.colorScheme.onSurface
     }
 
@@ -374,20 +331,19 @@ private fun CalendarDayCell(
 }
 
 @Composable
-private fun CalendarEntriesContent(
+private fun Entries(
     date: LocalDate,
     entries: List<CalendarEntry>?,
-    selectedEntries: List<CalendarEntry>,
+    selected: List<CalendarEntry>,
     error: String?,
     isFemale: Boolean,
-    onEntryClick: (CalendarEntry) -> Unit,
+    onClick: (CalendarEntry) -> Unit,
     onRefresh: () -> Unit,
-    modifier: Modifier = Modifier.padding(horizontal = 16.dp)
 ) {
     when {
         error != null && entries == null -> {
             ErrorCard(
-                modifier = modifier,
+                modifier = Modifier.padding(horizontal = 16.dp),
                 title = stringResource(id = R.string.calendar_error),
                 error = error,
                 onRefresh = onRefresh
@@ -397,51 +353,175 @@ private fun CalendarEntriesContent(
         entries == null -> Unit
 
         else -> {
-            SelectedDayEntries(
-                modifier = modifier,
-                date = date,
-                entries = selectedEntries,
-                isFemale = isFemale,
-                onEntryClick = onEntryClick
+            Column(
+                verticalArrangement = Arrangement.spacedBy(space = 16.dp)
+            ) {
+                EntriesCard(
+                    date = date,
+                    entries = selected.filterNot { it.type == CalendarEntryType.NOTE },
+                    isFemale = isFemale,
+                    onClick = onClick
+                )
+                Notes(
+                    entries = selected.filter { it.type == CalendarEntryType.NOTE },
+                    onClick = onClick
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EntriesCard(
+    date: LocalDate,
+    entries: List<CalendarEntry>,
+    isFemale: Boolean,
+    onClick: (CalendarEntry) -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(space = 8.dp)
+    ) {
+        Text(
+            text = stringResource(
+                id = R.string.selected_day,
+                DateUtils.format(
+                    date = date,
+                    pattern = stringResource(id = R.string.calendar_date_pattern)
+                )
+            ),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+        )
+
+        if (entries.isEmpty()) {
+            CardStackList(
+                items = listOf(
+                    CardStackListItem(
+                        title = stringResource(id = R.string.calendar_day_empty_title),
+                        description = stringResource(id = R.string.calendar_day_empty_desc),
+                        leadingContent = { Icon(icon = Icons.Default.CalendarMonth) }
+                    )
+                )
+            )
+        } else {
+            CardStackList(
+                items = entries.map { entry ->
+                    val title = stringResource(
+                        id = when (entry.type) {
+                            CalendarEntryType.NOTE -> R.string.calendar_type_note
+                            CalendarEntryType.PERIOD -> R.string.calendar_type_period
+                            CalendarEntryType.PERIOD_PREDICTION -> R.string.expected_period
+                            CalendarEntryType.OVULATION -> R.string.calendar_type_ovulation
+                        }
+                    )
+
+                    val description = when (entry.type) {
+                        CalendarEntryType.NOTE -> entry.notes.orEmpty()
+                        CalendarEntryType.PERIOD -> listOfNotNull(
+                            entry.period?.event?.let { event ->
+                                stringResource(
+                                    id = when (event) {
+                                        PeriodEvent.START -> R.string.period_event_start
+                                        PeriodEvent.DAY -> R.string.period_event_day
+                                        PeriodEvent.END -> R.string.period_event_end
+                                    }
+                                )
+                            },
+                            entry.period?.flowLevel?.let { flowLevel ->
+                                stringResource(
+                                    id = when (flowLevel) {
+                                        FlowLevel.SPOTTING -> R.string.flow_spotting
+                                        FlowLevel.LIGHT -> R.string.flow_light
+                                        FlowLevel.MEDIUM -> R.string.flow_medium
+                                        FlowLevel.HEAVY -> R.string.flow_heavy
+                                    }
+                                )
+                            },
+                            entry.period?.symptoms
+                                ?.takeIf { it.isNotEmpty() }
+                                ?.map { symptom ->
+                                    stringResource(
+                                        id = when (symptom) {
+                                            PeriodSymptom.ACNE -> R.string.symptom_acne
+                                            PeriodSymptom.BACK_PAIN -> R.string.symptom_back_pain
+                                            PeriodSymptom.BLOATING -> R.string.symptom_bloating
+                                            PeriodSymptom.BREAST_TENDERNESS -> R.string.symptom_breast_tenderness
+                                            PeriodSymptom.CRAMPS -> R.string.symptom_cramps
+                                            PeriodSymptom.FATIGUE -> R.string.symptom_fatigue
+                                            PeriodSymptom.HEADACHE -> R.string.symptom_headache
+                                            PeriodSymptom.MOOD_CHANGES -> R.string.symptom_mood_changes
+                                            PeriodSymptom.NAUSEA -> R.string.symptom_nausea
+                                        }
+                                    )
+                                }
+                                ?.joinToString(),
+                            entry.notes
+                        ).joinToString(separator = " · ")
+
+                        CalendarEntryType.OVULATION,
+                        CalendarEntryType.PERIOD_PREDICTION -> entry.notes.orEmpty()
+                    }.ifBlank { stringResource(id = R.string.no_notes) }
+
+                    val icon = when (entry.type) {
+                        CalendarEntryType.NOTE -> Icons.Default.Edit
+                        CalendarEntryType.PERIOD,
+                        CalendarEntryType.PERIOD_PREDICTION -> Icons.Default.CalendarMonth
+
+                        CalendarEntryType.OVULATION -> Icons.Default.AutoAwesome
+                    }
+
+                    val canManage = entry.createdBy != null &&
+                            entry.type != CalendarEntryType.OVULATION &&
+                            entry.type != CalendarEntryType.PERIOD_PREDICTION &&
+                            (entry.type != CalendarEntryType.PERIOD || isFemale)
+
+                    CardStackListItem(
+                        title = title,
+                        description = description,
+                        leadingContent = { Icon(icon = icon) },
+                        onClick = if (canManage) {
+                            { onClick(entry) }
+                        } else null
+                    )
+                }
             )
         }
     }
 }
 
 @Composable
-private fun SelectedDayEntries(
-    date: LocalDate,
+private fun Notes(
     entries: List<CalendarEntry>,
-    isFemale: Boolean,
-    onEntryClick: (CalendarEntry) -> Unit,
-    modifier: Modifier = Modifier.padding(horizontal = 16.dp)
+    onClick: (CalendarEntry) -> Unit
 ) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(space = 8.dp)
-    ) {
-        Text(
-            text = stringResource(id = R.string.selected_day, formatDate(date)),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-        )
+    if (entries.isEmpty()) return
 
-        CardStackList(
-            items = if (entries.isEmpty()) listOf(
-                CardStackListItem(
-                    title = stringResource(id = R.string.calendar_day_empty_title),
-                    description = stringResource(id = R.string.calendar_day_empty_desc),
-                    leadingContent = { Icon(icon = Icons.Default.CalendarMonth) }
+    Column {
+        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
+
+        entries.forEachIndexed { index, entry ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClick(entry) }
+                    .padding(all = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(space = 4.dp)
+            ) {
+                Text(
+                    text = DateUtils.format(value = entry.createdAt, DateUtils.TIME_PATTERN),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.outline
                 )
-            ) else entries.map { entry ->
-                CardStackListItem(
-                    title = entry.type.label(),
-                    description = entry.description(),
-                    leadingContent = { Icon(icon = entry.type.icon()) },
-                    onClick = if (entry.canManage(isFemale = isFemale)) {
-                        { onEntryClick(entry) }
-                    } else null
+
+                MarkdownEditor(
+                    markdown = entry.notes.orEmpty(),
+                    readOnly = true
                 )
             }
-        )
+
+            if (index < entries.lastIndex) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
+            }
+        }
     }
 }

@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.LocalTextStyle
@@ -23,36 +21,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mohamedrejeb.richeditor.model.rememberRichTextState
-import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
+import dev.cankolay.twodo.android.presentation.composable.app.MarkdownEditor
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBarType
-import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.view.calendar.formatNoteDateTime
 import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteViewModel
-import kotlinx.coroutines.FlowPreview
 
-@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteView(
     id: String,
@@ -69,11 +61,10 @@ fun NoteView(
         noteViewModel.fetchNote(id = id)
     }
 
-    val richTextState = rememberRichTextState()
-    richTextState.config.linkColor = MaterialTheme.colorScheme.primary
+    var editorContent by remember(key1 = id) { mutableStateOf<String?>(null) }
 
     val performBackSave = {
-        noteViewModel.flushDraftSave(content = richTextState.toMarkdown())
+        noteViewModel.flushDraftSave(content = editorContent)
         if (navBackStack.size > 1) {
             navBackStack.removeLastOrNull()
         }
@@ -102,16 +93,6 @@ fun NoteView(
             onDispose {
                 noteViewModel.flushDraftSave()
             }
-        }
-
-        LaunchedEffect(key1 = id) {
-            val initialContent = noteDraft.content
-            richTextState.setMarkdown(markdown = initialContent)
-            richTextState.selection = TextRange(index = initialContent.length)
-            snapshotFlow { richTextState.toMarkdown() }
-                .collect { content ->
-                    noteViewModel.updateNoteDraftContent(content = content)
-                }
         }
 
         AppLayout(
@@ -148,11 +129,12 @@ fun NoteView(
                     .fillMaxSize()
                     .imePadding()
             ) {
-                BasicRichTextEditor(
-                    state = richTextState,
-                    textStyle = LocalTextStyle.current.copy(
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
+                MarkdownEditor(
+                    markdown = noteDraft.content,
+                    onContentChange = { content ->
+                        editorContent = content
+                        noteViewModel.updateNoteDraftContent(content = content)
+                    },
                     modifier = Modifier
                         .weight(weight = 1f)
                         .fillMaxSize()
@@ -188,38 +170,12 @@ fun NoteView(
 
             when (val sheet = uiState.activeSheet) {
                 is NoteSheet.NoteActions -> {
-                    val sheetTitle =
-                        noteDraft.title.ifBlank { stringResource(id = R.string.notes) }
-
-                    AppBottomSheet(
-                        title = sheetTitle,
-                        onDismiss = { noteViewModel.dismissSheet() }
-                    ) {
-                        item {
-                            CardStackList(
-                                items = listOf(
-                                    CardStackListItem(
-                                        title = stringResource(
-                                            id = R.string.edited_at,
-                                            formatNoteDateTime(noteDraft.updatedAt)
-                                        ),
-                                        leadingContent = {
-                                            Icon(icon = Icons.Default.Update)
-                                        }
-                                    ),
-                                    CardStackListItem(
-                                        title = stringResource(id = R.string.delete),
-                                        onClick = {
-                                            noteViewModel.requestDeleteNote()
-                                        },
-                                        leadingContent = {
-                                            Icon(icon = Icons.Default.Delete)
-                                        }
-                                    )
-                                )
-                            )
-                        }
-                    }
+                    NoteActionsSheet(
+                        title = noteDraft.title.ifBlank { stringResource(id = R.string.notes) },
+                        updatedAt = noteDraft.updatedAt,
+                        onDismiss = { noteViewModel.dismissSheet() },
+                        onDelete = { noteViewModel.requestDeleteNote() }
+                    )
                 }
 
                 is NoteSheet.DeleteConfirmation -> {
@@ -235,18 +191,4 @@ fun NoteView(
             }
         }
     }
-}
-
-@Composable
-fun DeleteNoteSheet(
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit
-) {
-    DestructiveConfirmationSheet(
-        title = stringResource(id = R.string.delete_note),
-        description = stringResource(id = R.string.delete_note_desc),
-        confirmText = stringResource(id = R.string.delete),
-        onDismiss = onDismiss,
-        onConfirm = onDelete
-    )
 }

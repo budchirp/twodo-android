@@ -41,15 +41,13 @@ import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
-import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
+import dev.cankolay.twodo.android.presentation.util.DateUtils
 import dev.cankolay.twodo.android.presentation.viewmodel.user.UserSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
-import java.time.OffsetDateTime
-import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,12 +151,7 @@ fun CoupleView(userViewModel: UserViewModel = hiltViewModel()) {
                                     )
                                 )
 
-                                val daysTogether = runCatching {
-                                    ChronoUnit.DAYS.between(
-                                        OffsetDateTime.parse(couple.createdAt),
-                                        OffsetDateTime.now()
-                                    ).toString()
-                                }.getOrDefault(defaultValue = "0")
+                                val daysTogether = DateUtils.daysSince(couple.createdAt).toString()
 
                                 Surface(
                                     color = MaterialTheme.colorScheme.primary,
@@ -245,18 +238,4 @@ fun CoupleView(userViewModel: UserViewModel = hiltViewModel()) {
             )
         }
     }
-}
-
-@Composable
-fun BreakupPartnerSheet(
-    onDismiss: () -> Unit,
-    onLeave: () -> Unit
-) {
-    DestructiveConfirmationSheet(
-        title = stringResource(id = R.string.break_up),
-        description = stringResource(id = R.string.break_up_desc),
-        confirmText = stringResource(id = R.string.break_up),
-        onDismiss = onDismiss,
-        onConfirm = onLeave
-    )
 }

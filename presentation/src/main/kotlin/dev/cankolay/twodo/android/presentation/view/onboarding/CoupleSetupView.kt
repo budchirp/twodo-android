@@ -13,13 +13,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -37,11 +35,9 @@ import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.application.AuthViewModel
-import dev.cankolay.twodo.android.presentation.viewmodel.invite.InvitePartnerFormState
 import dev.cankolay.twodo.android.presentation.viewmodel.invite.InviteSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.invite.InviteViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
@@ -227,42 +223,6 @@ fun CoupleSetupView(
                 onDismiss = { inviteViewModel.dismissSheet() },
                 onUsernameChange = { inviteViewModel.updateInviteUsername(username = it) },
                 onInvite = inviteViewModel::submitInvite
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun InvitePartnerSheet(
-    form: InvitePartnerFormState,
-    onDismiss: () -> Unit,
-    onUsernameChange: (String) -> Unit,
-    onInvite: () -> Unit
-) {
-    AppBottomSheet(
-        title = stringResource(id = R.string.invite_partner),
-        onDismiss = onDismiss,
-        actions = {
-            Button(
-                enabled = form.canSubmit,
-                onClick = onInvite
-            ) {
-                Text(text = stringResource(id = R.string.invite))
-            }
-        }
-    ) {
-        item {
-            TextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = form.username.value,
-                onValueChange = onUsernameChange,
-                singleLine = true,
-                label = { Text(text = stringResource(id = R.string.username)) },
-                isError = form.username.error != null,
-                supportingText = form.username.error?.let { error ->
-                    { Text(text = stringResource(id = error)) }
-                }
             )
         }
     }

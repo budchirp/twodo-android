@@ -23,7 +23,6 @@ import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
-import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,22 +46,16 @@ internal fun CalendarEntrySheet(
         onDismiss = onDismiss,
         actions = {
             if (form.isEditing && onDelete != null) {
-                TextButton(
-                    onClick = onDelete
-                ) {
+                TextButton(onClick = onDelete) {
                     Text(text = stringResource(id = R.string.delete))
                 }
             }
 
-            TextButton(
-                onClick = onDismiss
-            ) {
+            TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.cancel))
             }
 
-            Button(
-                onClick = onSave
-            ) {
+            Button(onClick = onSave) {
                 Text(text = stringResource(id = R.string.save))
             }
         }
@@ -86,7 +79,10 @@ internal fun CalendarEntrySheet(
         }
 
         when (form.type) {
-            CalendarEntryType.NOTE, CalendarEntryType.OVULATION, CalendarEntryType.PERIOD_PREDICTION -> Unit
+            CalendarEntryType.NOTE,
+            CalendarEntryType.OVULATION,
+            CalendarEntryType.PERIOD_PREDICTION -> Unit
+
             CalendarEntryType.PERIOD -> periodFields(
                 periodEvent = form.periodEvent,
                 onPeriodEventChange = onPeriodEventChange,
@@ -114,7 +110,16 @@ private fun EntryTypeSelector(
     CardRadioList(
         items = types,
         selected = selected,
-        label = { it.label() },
+        label = { type ->
+            stringResource(
+                id = when (type) {
+                    CalendarEntryType.NOTE -> R.string.calendar_type_note
+                    CalendarEntryType.PERIOD -> R.string.calendar_type_period
+                    CalendarEntryType.PERIOD_PREDICTION -> R.string.expected_period
+                    CalendarEntryType.OVULATION -> R.string.calendar_type_ovulation
+                }
+            )
+        },
         onSelected = onSelected
     )
 }
@@ -132,7 +137,15 @@ private fun androidx.compose.foundation.lazy.LazyListScope.periodFields(
             title = stringResource(id = R.string.period_event),
             values = PeriodEvent.entries,
             selected = periodEvent,
-            label = { it.label() },
+            label = { event ->
+                stringResource(
+                    id = when (event) {
+                        PeriodEvent.START -> R.string.period_event_start
+                        PeriodEvent.DAY -> R.string.period_event_day
+                        PeriodEvent.END -> R.string.period_event_end
+                    }
+                )
+            },
             onSelected = onPeriodEventChange
         )
     }
@@ -142,7 +155,16 @@ private fun androidx.compose.foundation.lazy.LazyListScope.periodFields(
             title = stringResource(id = R.string.flow_level),
             values = FlowLevel.entries,
             selected = flowLevel,
-            label = { it.label() },
+            label = { flowLevel ->
+                stringResource(
+                    id = when (flowLevel) {
+                        FlowLevel.SPOTTING -> R.string.flow_spotting
+                        FlowLevel.LIGHT -> R.string.flow_light
+                        FlowLevel.MEDIUM -> R.string.flow_medium
+                        FlowLevel.HEAVY -> R.string.flow_heavy
+                    }
+                )
+            },
             onSelected = onFlowLevelChange
         )
     }
@@ -164,7 +186,19 @@ private fun androidx.compose.foundation.lazy.LazyListScope.periodFields(
                     )
                 }
                 CardStackListItem(
-                    title = symptom.label(),
+                    title = stringResource(
+                        id = when (symptom) {
+                            PeriodSymptom.ACNE -> R.string.symptom_acne
+                            PeriodSymptom.BACK_PAIN -> R.string.symptom_back_pain
+                            PeriodSymptom.BLOATING -> R.string.symptom_bloating
+                            PeriodSymptom.BREAST_TENDERNESS -> R.string.symptom_breast_tenderness
+                            PeriodSymptom.CRAMPS -> R.string.symptom_cramps
+                            PeriodSymptom.FATIGUE -> R.string.symptom_fatigue
+                            PeriodSymptom.HEADACHE -> R.string.symptom_headache
+                            PeriodSymptom.MOOD_CHANGES -> R.string.symptom_mood_changes
+                            PeriodSymptom.NAUSEA -> R.string.symptom_nausea
+                        }
+                    ),
                     onClick = onClick,
                     leadingContent = {
                         Checkbox(
@@ -199,19 +233,4 @@ private fun <T> EnumRadioList(
             onSelected = onSelected
         )
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun DeleteCalendarEntrySheet(
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit
-) {
-    DestructiveConfirmationSheet(
-        title = stringResource(id = R.string.delete_calendar_entry),
-        description = stringResource(id = R.string.delete_calendar_entry_desc),
-        confirmText = stringResource(id = R.string.delete),
-        onDismiss = onDismiss,
-        onConfirm = onDelete
-    )
 }

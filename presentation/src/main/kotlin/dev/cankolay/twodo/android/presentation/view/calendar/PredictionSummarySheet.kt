@@ -10,10 +10,11 @@ import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
+import dev.cankolay.twodo.android.presentation.util.DateUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PredictionSummarySheet(
+internal fun PredictionSummarySheet(
     summary: CalendarPredictionSummary?,
     onDismiss: () -> Unit
 ) {
@@ -57,28 +58,38 @@ fun PredictionSummarySheet(
                         when {
                             periodWindow != null -> {
                                 CardStackListItem(
-                                    title = stringResource(
-                                        id = R.string.next_period_window
-                                    ),
+                                    title = stringResource(id = R.string.next_period_window),
                                     description = "${
-                                        formatSummaryDate(periodWindow.startDate)
+                                        DateUtils.format(
+                                            periodWindow.startDate,
+                                            DateUtils.SUMMARY_DATE_PATTERN
+                                        )
                                     } – ${
-                                        formatSummaryDate(periodWindow.endDate)
+                                        DateUtils.format(
+                                            periodWindow.endDate,
+                                            DateUtils.SUMMARY_DATE_PATTERN
+                                        )
                                     }"
                                 )
                             }
 
                             start != null -> {
                                 CardStackListItem(
-                                    title = stringResource(
-                                        id = R.string.next_period_window
-                                    ),
+                                    title = stringResource(id = R.string.next_period_window),
                                     description = if (end != null) {
-                                        "${formatSummaryDate(start)} – ${
-                                            formatSummaryDate(end)
+                                        "${
+                                            DateUtils.format(
+                                                start,
+                                                DateUtils.SUMMARY_DATE_PATTERN
+                                            )
+                                        } – ${
+                                            DateUtils.format(
+                                                end,
+                                                DateUtils.SUMMARY_DATE_PATTERN
+                                            )
                                         }"
                                     } else {
-                                        formatSummaryDate(start)
+                                        DateUtils.format(start, DateUtils.SUMMARY_DATE_PATTERN)
                                     }
                                 )
                             }
@@ -88,54 +99,47 @@ fun PredictionSummarySheet(
 
                         cycle.ovulationWindow?.let { window ->
                             CardStackListItem(
-                                title = stringResource(
-                                    id = R.string.ovulation_window
-                                ),
+                                title = stringResource(id = R.string.ovulation_window),
                                 description = "${
-                                    formatSummaryDate(window.startDate)
+                                    DateUtils.format(
+                                        window.startDate,
+                                        DateUtils.SUMMARY_DATE_PATTERN
+                                    )
                                 } – ${
-                                    formatSummaryDate(window.endDate)
+                                    DateUtils.format(
+                                        window.endDate,
+                                        DateUtils.SUMMARY_DATE_PATTERN
+                                    )
                                 }"
                             )
                         },
 
                         averagesText?.let {
                             CardStackListItem(
-                                title = stringResource(
-                                    id = R.string.period_tracker_desc
-                                ),
+                                title = stringResource(id = R.string.period_tracker_desc),
                                 description = it
                             )
                         },
 
                         cycle.basis?.takeIf { it.isNotBlank() }?.let {
                             CardStackListItem(
-                                title = stringResource(
-                                    id = R.string.period_tips_title
-                                ),
+                                title = stringResource(id = R.string.period_tips_title),
                                 description = it
                             )
                         }
                     )
                 }
 
-                CardStackList(
-                    items = items
-                )
+                CardStackList(items = items)
             }
 
             item {
-                val defaultDisclaimer = stringResource(
-                    id = R.string.default_medical_disclaimer
-                )
+                val defaultDisclaimer = stringResource(id = R.string.default_medical_disclaimer)
 
                 Text(
-                    text = cycle?.disclaimer?.takeIf { it.isNotBlank() }
-                        ?: defaultDisclaimer,
+                    text = cycle?.disclaimer?.takeIf { it.isNotBlank() } ?: defaultDisclaimer,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                        alpha = 0.6f
-                    )
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )
             }
         }

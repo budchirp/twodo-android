@@ -33,7 +33,7 @@ data class CycleHistory(
     val periodStartDate: LocalDate,
     val periodEndDate: LocalDate,
     val periodDurationDays: Int,
-    val cycleLengthDays: Int
+    val cycleLengthDays: Int? = null
 )
 
 data class PeriodPrediction(
