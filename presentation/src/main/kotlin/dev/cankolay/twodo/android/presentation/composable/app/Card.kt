@@ -146,7 +146,7 @@ fun CardList(
                 leadingContent = leadingContent,
                 trailingContent = trailingContent,
                 contentPadding = contentPadding,
-                contentSize = null
+                contentSize = 24.dp
             )
         )
     )

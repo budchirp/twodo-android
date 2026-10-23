@@ -22,5 +22,5 @@ object ApiConstants {
 }
 
 object AuthApiConstants {
-    const val APPLICATION_ID = "cbdbb973-95d6-41a4-b2aa-11050ce7a111"
+    const val APPLICATION_ID = "8e364c21-9337-4fa7-9820-86f7551bbfc9"
 }

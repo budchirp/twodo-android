@@ -43,8 +43,6 @@ import dev.cankolay.twodo.android.domain.model.application.SettingsState
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.Card
 import dev.cankolay.twodo.android.presentation.composable.app.CardList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
@@ -63,121 +61,116 @@ fun MaterialYouView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     AppLayout(route = Route.MaterialYou) {
         val state = uiState.settingsState
         AppLazyColumn {
-                item {
-                    val onClick = { materialYou: Boolean ->
-                        settingsViewModel.updateSettings(
-                            state.copy(
-                                materialYou = if (materialYou) MaterialYou.SEED(color = ColorList.first()) else MaterialYou.OFF
-                            )
-                        )
-                    }
-
-                    CardStackList(
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        items = listOf(
-                            CardStackListItem(
-                                title = stringResource(id = R.string.material_you),
-                                onClick = { onClick(state.materialYou == MaterialYou.OFF) },
-                                trailingContent = {
-                                    Switch(
-                                        checked = state.materialYou != MaterialYou.OFF,
-                                        onCheckedChange = onClick
-                                    )
-                                },
-                            )
+            item {
+                val onClick = { materialYou: Boolean ->
+                    settingsViewModel.updateSettings(
+                        state.copy(
+                            materialYou = if (materialYou) MaterialYou.SEED(color = ColorList.first()) else MaterialYou.OFF
                         )
                     )
                 }
 
-                item {
-                    val colorsPerPage = 4
-                    val pagerState =
-                        rememberPagerState { (ColorList.size + colorsPerPage - 1) / colorsPerPage }
+                CardList(
+                    modifier =
+                        Modifier
+                            .padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    title = stringResource(id = R.string.material_you),
+                    onClick = { onClick(state.materialYou == MaterialYou.OFF) },
+                    trailingContent = {
+                        Switch(
+                            checked = state.materialYou != MaterialYou.OFF,
+                            onCheckedChange = onClick
+                        )
+                    },
+                )
+            }
 
-                    HorizontalPager(
-                        state = pagerState,
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        pageSpacing = 16.dp
-                    ) { page ->
-                        val start = page * colorsPerPage
-                        val end = minOf(start + colorsPerPage, ColorList.size)
+            item {
+                val colorsPerPage = 4
+                val pagerState =
+                    rememberPagerState { (ColorList.size + colorsPerPage - 1) / colorsPerPage }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(
-                                8.dp,
-                                alignment = Alignment.CenterHorizontally
-                            )
-                        ) {
-                            for (index in start until end) {
-                                ColorButton(
-                                    state = state,
-                                    selected = state.materialYou is MaterialYou.SEED && ColorList.indexOf(
-                                        element = state.materialYou.color
-                                    ) == index,
-                                    color = ColorList[index],
-                                    onClick = {
-                                        settingsViewModel.updateSettings(
-                                            state.copy(
-                                                materialYou = MaterialYou.SEED(
-                                                    color = ColorList[index]
-                                                )
+                HorizontalPager(
+                    state = pagerState,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    pageSpacing = 16.dp
+                ) { page ->
+                    val start = page * colorsPerPage
+                    val end = minOf(start + colorsPerPage, ColorList.size)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(
+                            8.dp,
+                            alignment = Alignment.CenterHorizontally
+                        )
+                    ) {
+                        for (index in start until end) {
+                            ColorButton(
+                                state = state,
+                                selected = state.materialYou is MaterialYou.SEED && ColorList.indexOf(
+                                    element = state.materialYou.color
+                                ) == index,
+                                color = ColorList[index],
+                                onClick = {
+                                    settingsViewModel.updateSettings(
+                                        state.copy(
+                                            materialYou = MaterialYou.SEED(
+                                                color = ColorList[index]
                                             )
                                         )
-                                    }
-                                )
-                            }
-
-                            repeat(times = colorsPerPage - (end - start)) {
-                                Surface(
-                                    modifier = Modifier
-                                        .sizeIn(maxWidth = 96.dp, maxHeight = 96.dp)
-                                ) {
-                                    Spacer(
-                                        modifier = Modifier
-                                            .weight(weight = 1f)
-                                            .height(height = 1.dp)
                                     )
                                 }
+                            )
+                        }
+
+                        repeat(times = colorsPerPage - (end - start)) {
+                            Surface(
+                                modifier = Modifier
+                                    .sizeIn(maxWidth = 96.dp, maxHeight = 96.dp)
+                            ) {
+                                Spacer(
+                                    modifier = Modifier
+                                        .weight(weight = 1f)
+                                        .height(height = 1.dp)
+                                )
                             }
                         }
                     }
                 }
+            }
 
-                item {
-                    val onClick = { useWallpaperColors: Boolean ->
-                        settingsViewModel.updateSettings(
-                            state.copy(
-                                materialYou = if (useWallpaperColors) MaterialYou.WALLPAPER else MaterialYou.SEED(
-                                    color = ColorList.first()
-                                )
+            item {
+                val onClick = { useWallpaperColors: Boolean ->
+                    settingsViewModel.updateSettings(
+                        state.copy(
+                            materialYou = if (useWallpaperColors) MaterialYou.WALLPAPER else MaterialYou.SEED(
+                                color = ColorList.first()
                             )
                         )
-                    }
-
-                    val isEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-
-                    CardList(
-
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 16.dp),
-                        title = stringResource(id = R.string.wallpaper_colors),
-                        description = if (!isEnabled) stringResource(id = R.string.material_you_desc_unsupported) else null,
-                        enabled = isEnabled,
-                        onClick = { onClick(state.materialYou !is MaterialYou.WALLPAPER) },
-                        trailingContent = {
-                            Switch(
-                                checked = isEnabled && state.materialYou is MaterialYou.WALLPAPER,
-                                enabled = isEnabled,
-                                onCheckedChange = onClick,
-                            )
-                        },
                     )
                 }
+
+                val isEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+                CardList(
+                    modifier =
+                        Modifier
+                            .padding(horizontal = 16.dp),
+                    title = stringResource(id = R.string.wallpaper_colors),
+                    description = if (!isEnabled) stringResource(id = R.string.material_you_desc_unsupported) else null,
+                    enabled = isEnabled,
+                    onClick = { onClick(state.materialYou !is MaterialYou.WALLPAPER) },
+                    trailingContent = {
+                        Switch(
+                            checked = isEnabled && state.materialYou is MaterialYou.WALLPAPER,
+                            enabled = isEnabled,
+                            onCheckedChange = onClick,
+                        )
+                    },
+                )
+            }
         }
     }
 }
