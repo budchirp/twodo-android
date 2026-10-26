@@ -18,12 +18,16 @@ import dev.cankolay.twodo.android.presentation.navigation.route.Route
 @Composable
 fun LanguagesView() {
     val currentLanguage =
-        AppCompatDelegate.getApplicationLocales().toLanguageTags().ifEmpty { "en" }
+        AppCompatDelegate.getApplicationLocales().toLanguageTags().ifEmpty { "system" }
 
     AppLayout(route = Route.Languages) {
         AppLazyColumn {
             item {
-                val languages = mapOf("en" to R.string.en, "tr" to R.string.tr)
+                val languages = mapOf(
+                    "system" to R.string.system,
+                    "en" to R.string.en,
+                    "tr" to R.string.tr
+                )
 
                 CardRadioList(
                     modifier =
@@ -36,7 +40,11 @@ fun LanguagesView() {
                     label = { language -> stringResource(id = languages.getValue(language)) },
                     onSelected = { language ->
                         AppCompatDelegate.setApplicationLocales(
-                            LocaleListCompat.forLanguageTags(language)
+                            if (language == "system") {
+                                LocaleListCompat.getEmptyLocaleList()
+                            } else {
+                                LocaleListCompat.forLanguageTags(language)
+                            }
                         )
                     }
                 )

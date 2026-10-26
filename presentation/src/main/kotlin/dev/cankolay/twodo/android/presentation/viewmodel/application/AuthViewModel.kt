@@ -1,14 +1,17 @@
 package dev.cankolay.twodo.android.presentation.viewmodel.application
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.cankolay.twodo.android.domain.model.api.onError
 import dev.cankolay.twodo.android.domain.model.application.AuthState
 import dev.cankolay.twodo.android.domain.usecase.api.user.InitializeUserUseCase
 import dev.cankolay.twodo.android.domain.usecase.application.auth.GetAuthStateUseCase
 import dev.cankolay.twodo.android.domain.usecase.application.auth.UpdateAuthStateUseCase
 import dev.cankolay.twodo.android.domain.usecase.application.environment.GetEnvironmentConfigUseCase
+import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
 import dev.cankolay.twodo.android.presentation.core.UiEvent
 import kotlinx.coroutines.flow.catch
@@ -24,6 +27,7 @@ data class AuthUiState(
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     getAuthStateUseCase: GetAuthStateUseCase,
     private val updateAuthStateUseCase: UpdateAuthStateUseCase,
     private val initializeUserUseCase: InitializeUserUseCase,
@@ -44,7 +48,11 @@ class AuthViewModel @Inject constructor(
     fun authenticate(uri: Uri) {
         val token = uri.getQueryParameter("token")
         if (token.isNullOrBlank()) {
-            sendEvent(UiEvent.ShowSnackbar("Authentication callback is missing a token"))
+            sendEvent(
+                UiEvent.ShowSnackbar(
+                    context.getString(R.string.auth_missing_token)
+                )
+            )
             return
         }
         if (token == handledToken) return

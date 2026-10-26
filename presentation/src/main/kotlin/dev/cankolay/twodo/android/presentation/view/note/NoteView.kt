@@ -2,6 +2,7 @@ package dev.cankolay.twodo.android.presentation.view.note
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,13 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,37 +64,41 @@ fun NoteView(
 
     var editorContent by remember(key1 = id) { mutableStateOf<String?>(null) }
 
-    val performBackSave = {
-        noteViewModel.flushDraftSave(content = editorContent)
-        if (navBackStack.size > 1) {
-            navBackStack.removeLastOrNull()
+    val onBack = {
+        noteViewModel.save(content = editorContent) {
+            if (navBackStack.size > 1) {
+                navBackStack.removeLastOrNull()
+            }
         }
     }
 
     BackHandler {
-        performBackSave()
+        onBack()
     }
 
     if (note == null) {
         AppLayout(route = Route.Note(id = id)) {
-            uiState.error?.let { message ->
-                ErrorCard(
-                    title = stringResource(id = R.string.notes_error),
-                    error = message,
-                    onRefresh = { noteViewModel.fetchNote(id) }
-                )
+            if (uiState.noteResult.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                uiState.error?.let { message ->
+                    ErrorCard(
+                        title = stringResource(id = R.string.notes_error),
+                        error = message,
+                        onRefresh = { noteViewModel.fetchNote(id) }
+                    )
+                }
             }
         }
     }
 
     note?.let {
         val noteDraft = uiState.noteDraft ?: return@let
-
-        DisposableEffect(key1 = id) {
-            onDispose {
-                noteViewModel.flushDraftSave()
-            }
-        }
 
         AppLayout(
             route = Route.Note(id = id),
@@ -106,7 +111,7 @@ fun NoteView(
                 AppTopAppBar(
                     type = AppTopAppBarType.Default,
                     context = context,
-                    onBackClick = { performBackSave() },
+                    onBackClick = { onBack() },
                     title = {
                         BasicTextField(
                             value = noteDraft.title,
@@ -151,16 +156,9 @@ fun NoteView(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier,
-                            horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                        }
-
                         FilledIconButton(onClick = { noteViewModel.openNoteActionsSheet() }) {
                             Icon(icon = Icons.Default.MoreVert)
                         }

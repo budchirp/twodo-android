@@ -10,6 +10,7 @@ import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.RedirectResponseException
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.statement.HttpResponse
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.Serializable
 
 @PublishedApi
@@ -27,6 +28,8 @@ internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Er
             reason = reason,
             code = body.code
         )
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         ApiResult.Error(message = e.message ?: "Unexpected error", reason = reason)
     }
@@ -51,6 +54,8 @@ internal suspend inline fun <R> executeRequest(
         e.response.errorResult(reason = ErrorReason.CLIENT)
     } catch (e: ServerResponseException) {
         e.response.errorResult(reason = ErrorReason.SERVER)
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         ApiResult.Fatal(exception = e)
     }

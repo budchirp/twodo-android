@@ -75,18 +75,6 @@ inline fun <T> ApiResult<T>.onError(action: (message: String, code: String?) -> 
     return this
 }
 
-inline fun <T> ApiResult<T>.onFatal(action: (exception: Throwable) -> Unit): ApiResult<T> {
-    if (this is ApiResult.Fatal) action(exception)
-    return this
-}
-
-inline fun <T> ApiResult<T>.onLoading(action: () -> Unit): ApiResult<T> {
-    if (this is ApiResult.Loading) action()
-    return this
-}
-
-fun <T> ApiResult<T>.getOrDefault(default: T): T = dataOrNull ?: default
-
 fun <T> successResult(data: T, message: String = "success"): ApiResult.Success<T> =
     ApiResult.Success(message = message, data = data)
 

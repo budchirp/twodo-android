@@ -167,6 +167,8 @@ class NoteViewModel @Inject constructor(
 
     fun confirmDeleteNote(id: String) {
         dismissSheet()
+        cancelJob(DRAFT_SAVE_JOB)
+        cancelJob(SAVE_JOB)
 
         launchOnce("delete-note:$id") {
             val result = deleteNoteUseCase(id)
@@ -178,35 +180,48 @@ class NoteViewModel @Inject constructor(
         }
     }
 
-    fun flushDraftSave(content: String? = null) {
-        cancelJob("draft-save")
-        val currentDraft = uiState.value.noteDraft ?: return
-        val draft = if (content != null && currentDraft.content != content) {
-            currentDraft.copy(content = content, updatedAt = OffsetDateTime.now().toString())
-        } else {
-            currentDraft
+    fun save(content: String? = null, onSaved: () -> Unit = {}) {
+        cancelJob(DRAFT_SAVE_JOB)
+
+        val current = uiState.value.noteDraft
+        if (current == null) {
+            onSaved()
+            return
         }
 
-        if (draft != currentDraft) updateStateWithDraft(draft)
-        launchLatest("draft-save") { saveDraft(draft) }
+        val draft = if (content != null && content != current.content) {
+            current.copy(content = content, updatedAt = OffsetDateTime.now().toString())
+        } else {
+            current
+        }
+
+        if (draft != current) updateStateWithDraft(draft)
+
+        launchLatest(SAVE_JOB) {
+            if (saveDraft(draft)) onSaved()
+        }
     }
 
     private fun updateDraft(transform: Note.() -> Note) {
-        val draft = uiState.value.noteDraft ?: uiState.value.note ?: return
-        val updatedDraft = draft.transform().copy(updatedAt = OffsetDateTime.now().toString())
-        if (updatedDraft == draft) return
+        val draft = uiState.value.noteDraft ?: return
+        val updated = draft.transform()
+        if (updated == draft) return
+
+        val updatedDraft = updated.copy(updatedAt = OffsetDateTime.now().toString())
         updateStateWithDraft(updatedDraft)
-        launchLatest("draft-save") {
-            delay(100)
+        launchLatest(DRAFT_SAVE_JOB) {
+            delay(SAVE_DEBOUNCE_MS)
             val latestDraft = uiState.value.noteDraft ?: return@launchLatest
             saveDraft(latestDraft)
         }
     }
 
-    private suspend fun saveDraft(draft: Note) {
-        updateNoteUseCase(id = draft.id, note = draft)
+    private suspend fun saveDraft(draft: Note): Boolean {
+        val result = updateNoteUseCase(id = draft.id, note = draft)
+        result
             .onSuccess { updatedNote -> updateStateWithDraft(updatedNote) }
             .onError { message, _ -> sendEvent(UiEvent.ShowSnackbar(message)) }
+        return result.isSuccess
     }
 
     private fun updateStateWithDraft(draft: Note) {
@@ -218,3 +233,7 @@ class NoteViewModel @Inject constructor(
         }
     }
 }
+
+private const val SAVE_DEBOUNCE_MS = 300L
+private const val SAVE_JOB = "note-save"
+private const val DRAFT_SAVE_JOB = "note-draft-save"

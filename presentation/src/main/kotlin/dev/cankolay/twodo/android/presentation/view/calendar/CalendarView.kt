@@ -1,5 +1,6 @@
 package dev.cankolay.twodo.android.presentation.view.calendar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -27,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -59,6 +63,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
+import java.time.temporal.WeekFields
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -97,6 +102,7 @@ fun CalendarView(
                     visibleMonth = uiState.visibleMonth,
                     selectedDate = uiState.selectedDate,
                     entries = entries.orEmpty(),
+                    isFemale = isFemale,
                     onPreviousMonth = { calendarViewModel.moveMonth(months = -1) },
                     onNextMonth = { calendarViewModel.moveMonth(months = 1) },
                     onDateClick = { calendarViewModel.selectDate(date = it) }
@@ -119,8 +125,9 @@ fun CalendarView(
         when (val sheet = uiState.activeSheet) {
             is CalendarSheet.PredictionSummary -> {
                 PredictionSummarySheet(
-                    summary = uiState.predictionSummary,
-                    onDismiss = { calendarViewModel.dismissSheet() }
+                    result = uiState.predictionResult,
+                    onDismiss = { calendarViewModel.dismissSheet() },
+                    onRefresh = { calendarViewModel.openPredictionSheet() }
                 )
             }
 
@@ -156,12 +163,18 @@ private fun Calendar(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entries: List<CalendarEntry>,
+    isFemale: Boolean,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDateClick: (LocalDate) -> Unit,
 ) {
     val entriesByDate = entries.groupBy { it.date }
     val locale = LocalLocale.current.platformLocale
+    val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
+    val weekDays = DayOfWeek.entries.let { days ->
+        val start = days.indexOf(element = firstDayOfWeek)
+        days.drop(n = start) + days.take(n = start)
+    }
 
     Column(
         modifier = Modifier.padding(horizontal = 16.dp),
@@ -191,7 +204,7 @@ private fun Calendar(
         }
 
         Row(modifier = Modifier.fillMaxWidth()) {
-            DayOfWeek.entries.forEach { day ->
+            weekDays.forEach { day ->
                 Text(
                     modifier = Modifier.weight(weight = 1f),
                     text = day.getDisplayName(TextStyle.SHORT, locale),
@@ -206,8 +219,13 @@ private fun Calendar(
             visibleMonth = visibleMonth,
             selectedDate = selectedDate,
             entriesByDate = entriesByDate,
+            firstDayOfWeek = firstDayOfWeek,
             onDateClick = onDateClick
         )
+
+        if (isFemale) {
+            Legend()
+        }
     }
 }
 
@@ -216,10 +234,12 @@ private fun MonthGrid(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entriesByDate: Map<LocalDate, List<CalendarEntry>>,
+    firstDayOfWeek: DayOfWeek,
     onDateClick: (LocalDate) -> Unit
 ) {
-    val firstDay = visibleMonth.atDay(1)
-    val days = List(size = firstDay.dayOfWeek.value - 1) { null } +
+    val start = visibleMonth.atDay(1)
+    val offset = (start.dayOfWeek.value - firstDayOfWeek.value + 7) % 7
+    val days = List(size = offset) { null } +
             (1..visibleMonth.lengthOfMonth()).map { day -> visibleMonth.atDay(day) }
 
     val rows = days.chunked(size = 7)
@@ -238,14 +258,17 @@ private fun MonthGrid(
                         val dateEntries = entriesByDate[date].orEmpty()
                         val hasOvulation =
                             dateEntries.any { it.type == CalendarEntryType.OVULATION }
-                        val hasPeriodPrediction =
+                        val hasPeriod =
+                            dateEntries.any { it.type == CalendarEntryType.PERIOD }
+                        val hasPrediction =
                             dateEntries.any { it.type == CalendarEntryType.PERIOD_PREDICTION }
                         DayCell(
                             modifier = Modifier.weight(weight = 1f),
                             date = date,
                             selected = date == selectedDate,
                             entryCount = dateEntries.size,
-                            hasPeriod = hasPeriodPrediction,
+                            hasPeriod = hasPeriod,
+                            hasPrediction = hasPrediction,
                             hasOvulation = hasOvulation,
                             onClick = { onDateClick(date) }
                         )
@@ -265,12 +288,50 @@ private fun MonthGrid(
 }
 
 @Composable
+private fun Legend() {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        LegendItem(
+            color = MaterialTheme.colorScheme.tertiaryContainer,
+            label = stringResource(id = R.string.calendar_type_period)
+        )
+        LegendItem(
+            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+            label = stringResource(id = R.string.expected_period)
+        )
+    }
+}
+
+@Composable
+private fun LegendItem(color: Color, label: String) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(space = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(size = 10.dp)
+                .clip(shape = CircleShape)
+                .background(color = color)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline
+        )
+    }
+}
+
+@Composable
 private fun DayCell(
     modifier: Modifier,
     date: LocalDate,
     selected: Boolean,
     entryCount: Int,
     hasPeriod: Boolean,
+    hasPrediction: Boolean,
     hasOvulation: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -280,6 +341,7 @@ private fun DayCell(
         selected -> MaterialTheme.colorScheme.primaryContainer
         hasOvulation -> MaterialTheme.colorScheme.secondaryContainer
         hasPeriod -> MaterialTheme.colorScheme.tertiaryContainer
+        hasPrediction -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
         entryCount > 0 -> MaterialTheme.colorScheme.surfaceContainerHighest
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
@@ -288,7 +350,7 @@ private fun DayCell(
         selected -> MaterialTheme.colorScheme.onPrimaryContainer
         isToday -> MaterialTheme.colorScheme.primary
         hasOvulation -> MaterialTheme.colorScheme.onSecondaryContainer
-        hasPeriod -> MaterialTheme.colorScheme.onTertiaryContainer
+        hasPeriod || hasPrediction -> MaterialTheme.colorScheme.onTertiaryContainer
         else -> MaterialTheme.colorScheme.onSurface
     }
 

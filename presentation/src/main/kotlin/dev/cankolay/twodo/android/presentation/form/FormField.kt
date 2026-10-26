@@ -1,7 +1,6 @@
 package dev.cankolay.twodo.android.presentation.form
 
 import androidx.annotation.StringRes
-import java.time.LocalDate
 
 data class FormField<T>(
     val value: T,
@@ -15,8 +14,3 @@ fun FormField<String>.validateRequired(@StringRes error: Int) =
 
 fun <T> FormField<T?>.validatePresent(@StringRes error: Int) =
     if (value == null) copy(error = error) else copy(error = null)
-
-fun FormField<String>.parseLocalDate(@StringRes error: Int): Pair<FormField<String>, LocalDate?> {
-    val date = runCatching { LocalDate.parse(value.trim()) }.getOrNull()
-    return if (date == null) copy(error = error) to null else copy(error = null) to date
-}

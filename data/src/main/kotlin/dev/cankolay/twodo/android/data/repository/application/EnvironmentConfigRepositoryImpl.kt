@@ -17,7 +17,7 @@ class EnvironmentConfigRepositoryImpl @Inject constructor(
 
     private val config: EnvironmentConfig by lazy {
         val isDebuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-        val type = if (isDebuggable) EnvironmentType.DEBUG else EnvironmentType.RELEASE
+        val type = if (!isDebuggable) EnvironmentType.DEBUG else EnvironmentType.RELEASE
 
         val apiUrl = when (type) {
             EnvironmentType.DEBUG -> "http://192.168.1.13:8081"

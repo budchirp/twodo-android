@@ -12,7 +12,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextRange
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.BasicRichTextEditor
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 @Composable
 fun MarkdownEditor(
@@ -39,8 +40,10 @@ fun MarkdownEditor(
     LaunchedEffect(state, readOnly, onContentChange != null) {
         if (readOnly || onContentChange == null) return@LaunchedEffect
 
-        snapshotFlow { state.toMarkdown() }
-            .collectLatest { content ->
+        snapshotFlow { state.annotatedString }
+            .map { state.toMarkdown() }
+            .distinctUntilChanged()
+            .collect { content ->
                 latestOnContentChange?.invoke(content)
             }
     }

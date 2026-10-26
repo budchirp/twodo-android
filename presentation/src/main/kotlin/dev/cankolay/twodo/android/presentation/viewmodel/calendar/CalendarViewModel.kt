@@ -17,18 +17,15 @@ import dev.cankolay.twodo.android.domain.usecase.api.calendar.DeleteCalendarEntr
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarEntriesUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarPredictionSummaryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.UpdateCalendarEntryUseCase
-import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
 import dev.cankolay.twodo.android.presentation.core.UiEvent
-import dev.cankolay.twodo.android.presentation.form.FormField
-import dev.cankolay.twodo.android.presentation.form.parseLocalDate
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
 data class CalendarEntryFormState(
     val entry: CalendarEntry? = null,
-    val date: FormField<String>,
+    val date: LocalDate,
     val type: CalendarEntryType = CalendarEntryType.NOTE,
     val notes: String = "",
     val periodEvent: PeriodEvent = PeriodEvent.DAY,
@@ -38,11 +35,11 @@ data class CalendarEntryFormState(
     val isEditing = entry != null
 
     companion object {
-        fun create(date: LocalDate) = CalendarEntryFormState(date = FormField(date.toString()))
+        fun create(date: LocalDate) = CalendarEntryFormState(date = date)
 
         fun edit(entry: CalendarEntry) = CalendarEntryFormState(
             entry = entry,
-            date = FormField(value = entry.date.toString()),
+            date = entry.date,
             type = entry.type,
             notes = entry.notes.orEmpty(),
             periodEvent = entry.period?.event ?: PeriodEvent.DAY,
@@ -62,7 +59,7 @@ sealed interface CalendarSheet {
 data class CalendarUiState(
     val entriesResult: ApiResult<List<CalendarEntry>> = ApiResult.Loading,
     val cachedEntries: List<CalendarEntry>? = null,
-    val predictionSummary: CalendarPredictionSummary? = null,
+    val predictionResult: ApiResult<CalendarPredictionSummary> = ApiResult.Loading,
     val visibleMonth: YearMonth = YearMonth.now(),
     val selectedDate: LocalDate = LocalDate.now(),
     val activeSheet: CalendarSheet = CalendarSheet.None
@@ -89,7 +86,7 @@ class CalendarViewModel @Inject constructor(
 
     fun openPredictionSheet() {
         updateState { copy(activeSheet = CalendarSheet.PredictionSummary) }
-        loadPredictionSummary(showError = true)
+        loadPredictionSummary()
     }
 
     fun openCreateEntrySheet(date: LocalDate = uiState.value.selectedDate) {
@@ -155,19 +152,13 @@ class CalendarViewModel @Inject constructor(
                     cachedEntries = result.dataOrNull ?: cachedEntries
                 )
             }
-            loadPredictionSummary(showError = false)
+            loadPredictionSummary()
         }
     }
 
     fun submitEntry(isFemale: Boolean) {
         val form = (uiState.value.activeSheet as? CalendarSheet.EntryForm)?.form ?: return
-        val (dateField, date) = form.date.parseLocalDate(error = R.string.invalid_date)
-        if (dateField.error != null || date == null) {
-            updateState { copy(activeSheet = CalendarSheet.EntryForm(form.copy(date = dateField))) }
-            return
-        }
-
-        val input = buildInput(form, date, isFemale)
+        val input = buildInput(form, form.date, isFemale)
         dismissSheet()
         launchOnce("save-entry") {
             val result = if (form.isEditing && form.entry != null) {
@@ -199,13 +190,11 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    private fun loadPredictionSummary(showError: Boolean) {
+    private fun loadPredictionSummary() {
         launchLatest("prediction") {
-            getCalendarPredictionSummaryUseCase()
-                .onSuccess { summary -> updateState { copy(predictionSummary = summary) } }
-                .onError { message, _ ->
-                    if (showError) sendEvent(UiEvent.ShowSnackbar(message))
-                }
+            updateState { copy(predictionResult = ApiResult.Loading) }
+            val result = getCalendarPredictionSummaryUseCase()
+            updateState { copy(predictionResult = result) }
         }
     }
 

@@ -7,6 +7,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -20,6 +23,7 @@ import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
+import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.core.HandleEvents
 import dev.cankolay.twodo.android.presentation.navigation.resetTo
@@ -42,14 +46,13 @@ fun SettingsView(
 
     val isLoading = userState.isLoading
     val error = userState.error
+    var showLogout by remember { mutableStateOf(value = false) }
 
     AppLayout(route = Route.Settings) {
         AppLazyColumn {
             item {
                 ProfileCard(user = user, isLoading = isLoading, error = error, onLogout = {
-                    authViewModel.logout()
-
-                    navBackStack.resetTo(Route.Welcome)
+                    showLogout = true
                 })
             }
 
@@ -100,6 +103,20 @@ fun SettingsView(
                     }
                 )
             }
+        }
+
+        if (showLogout) {
+            DestructiveConfirmationSheet(
+                title = stringResource(id = R.string.sign_out),
+                description = stringResource(id = R.string.sign_out_desc),
+                confirmText = stringResource(id = R.string.sign_out),
+                onDismiss = { showLogout = false },
+                onConfirm = {
+                    showLogout = false
+                    authViewModel.logout()
+                    navBackStack.resetTo(Route.Welcome)
+                }
+            )
         }
     }
 }

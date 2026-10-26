@@ -1,6 +1,7 @@
 package dev.cankolay.twodo.android.data.api.client
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.cankolay.twodo.android.domain.repository.application.EnvironmentConfigRepository
@@ -12,17 +13,21 @@ import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.cache.storage.FileStorage
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
-import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class KtorClient
 @Inject
 constructor(
@@ -30,52 +35,75 @@ constructor(
     private val getAuthStateUseCase: GetAuthStateUseCase,
     private val environmentConfigRepository: EnvironmentConfigRepository
 ) {
-    suspend operator fun invoke(): HttpClient {
-        val authState = getAuthStateUseCase().first()
+    private val mutex = Mutex()
+    private var client: HttpClient? = null
+    private var token: String? = null
 
-        val client = HttpClient(engineFactory = OkHttp) {
-            defaultRequest {
-                url(urlString = environmentConfigRepository.get().apiUrl)
+    private val isDebug =
+        (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
-                if (authState.token.isNotBlank()) {
-                    headers.append(name = "Authorization", value = "Bearer ${authState.token}")
-                }
+    suspend operator fun invoke(): HttpClient = mutex.withLock {
+        val current = getAuthStateUseCase().first().token
+        val cached = client
 
-                contentType(type = ContentType.Application.Json)
-            }
+        if (cached != null && token == current) {
+            return cached
+        }
 
-            install(plugin = HttpTimeout) {
-                requestTimeoutMillis = 10 * 1000
-            }
+        cached?.close()
 
-            install(plugin = HttpCache) {
-                publicStorage(storage = FileStorage(directory = context.cacheDir))
-            }
+        return build(token = current).also {
+            client = it
+            token = current
+        }
+    }
 
-            install(plugin = ContentNegotiation) {
-                json(
-                    json =
-                        Json {
-                            ignoreUnknownKeys = true
-                            coerceInputValues = true
-                            prettyPrint = true
-                        },
+    private fun build(token: String): HttpClient = HttpClient(engineFactory = OkHttp) {
+        defaultRequest {
+            url(urlString = environmentConfigRepository.get().apiUrl)
+
+            if (token.isNotBlank()) {
+                headers.append(
+                    name = HttpHeaders.Authorization,
+                    value = "Bearer $token"
                 )
             }
 
+            contentType(type = ContentType.Application.Json)
+        }
+
+        install(plugin = HttpTimeout) {
+            requestTimeoutMillis = 15 * 1000
+            connectTimeoutMillis = 10 * 1000
+            socketTimeoutMillis = 15 * 1000
+        }
+
+        install(plugin = HttpCache) {
+            publicStorage(storage = FileStorage(directory = context.cacheDir))
+        }
+
+        install(plugin = ContentNegotiation) {
+            json(
+                json =
+                    Json {
+                        ignoreUnknownKeys = true
+                        coerceInputValues = true
+                        prettyPrint = isDebug
+                    },
+            )
+        }
+
+        if (isDebug) {
             install(plugin = Logging) {
-                logger = Logger.DEFAULT
                 level = LogLevel.ALL
                 logger =
                     object : Logger {
                         override fun log(message: String) {
-                            Log.i("KtorClient", message)
+                            Log.d("KtorClient", message)
                         }
                     }
+                sanitizeHeader { header -> header == HttpHeaders.Authorization }
             }
-
         }
-
-        return client
     }
 }

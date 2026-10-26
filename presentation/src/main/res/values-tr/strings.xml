@@ -2,7 +2,6 @@
 <resources>
     <string name="dev">Geliştirici</string>
     <string name="back">Geri</string>
-    <string name="apply">Uygula</string>
     <string name="close">Kapat</string>
     <string name="save">Kaydet</string>
 
@@ -36,12 +35,14 @@
     <string name="about_view_on">%1$s\'da gör</string>
     <string name="about_view_on_desc">Projeyi %1$s\'da gör</string>
 
-    <string name="notes">Ana sayfa</string>
+    <string name="notes">Notlar</string>
     <string name="try_again">Tekrar deneyin</string>
     <string name="refresh">Yenile</string>
     <string name="sign_out">Çıkış yap</string>
+    <string name="sign_out_desc">Tekrar Trash ile giriş yapmanız gerekecek.</string>
     <string name="api_error">Veriler alınırken bir hata oluştu.</string>
     <string name="continue_with_trash">Trash ile devam edin</string>
+    <string name="auth_missing_token">Kimlik doğrulama yanıtında token yok</string>
     <string name="sent">Gönderilen</string>
     <string name="received">Alınan</string>
     <string name="accept">Onayla</string>
@@ -58,7 +59,7 @@
     <string name="since">%1$s tarihinden beri</string>
     <string name="username">Kullanıcı adı</string>
     <string name="invite">Davet et</string>
-    <string name="welcome">TwoDo\'ya Hoşgeldiniz</string>
+    <string name="welcome">TwoDo\'ya Hoş geldiniz</string>
     <string name="welcome_desc">Birlikte taşımak istediğiniz notlar için küçük bir ortak alan.</string>
     <string name="loading">Yükleniyor</string>
     <string name="feature_1">Çift olarak planlayın</string>
@@ -126,9 +127,6 @@
     <string name="edit_calendar_entry">Takvim kaydını düzenle</string>
     <string name="delete_calendar_entry">Takvim kaydı silinsin mi?</string>
     <string name="delete_calendar_entry_desc">Bu takvim kaydı kalıcı olarak silinecek.</string>
-    <string name="date">Tarih</string>
-    <string name="date_format_hint">YYYY-MM-DD kullanın.</string>
-    <string name="invalid_date">YYYY-MM-DD biçiminde geçerli bir tarih girin.</string>
     <string name="notes_field">Notlar</string>
     <string name="no_notes">Not yok</string>
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">TwoDo</string>
-    <string name="app_github" translatable="false">https://github.com/budchirp/twwodo</string>
+    <string name="app_github" translatable="false">https://github.com/budchirp/twodo</string>
 
     <string name="dev_name" translatable="false">Can Kolay</string>
     <string name="dev_username" translatable="false">budchirp</string>
@@ -14,10 +14,10 @@
     <string name="tr" translatable="false">Türkçe</string>
 
     <string name="back">Back</string>
-    <string name="apply">Apply</string>
     <string name="close">Close</string>
     <string name="save">Save</string>
     <string name="continue_with_trash">Continue with Trash</string>
+    <string name="auth_missing_token">Authentication callback is missing a token</string>
     <string name="sent">Sent</string>
     <string name="received">Received</string>
     <string name="accept">Accept</string>
@@ -33,6 +33,7 @@
     <string name="try_again">Try again</string>
     <string name="refresh">Refresh</string>
     <string name="sign_out">Sign out</string>
+    <string name="sign_out_desc">You will need to sign in with Trash again.</string>
     <string name="days_together">%1$s days together</string>
     <string name="edited_at">Edited at: %1$s</string>
     <string name="since">since %1$s</string>
@@ -155,9 +156,6 @@
     <string name="edit_calendar_entry">Edit calendar entry</string>
     <string name="delete_calendar_entry">Delete calendar entry?</string>
     <string name="delete_calendar_entry_desc">This calendar entry will be permanently deleted.</string>
-    <string name="date">Date</string>
-    <string name="date_format_hint">Use YYYY-MM-DD.</string>
-    <string name="invalid_date">Enter a valid date as YYYY-MM-DD.</string>
     <string name="notes_field">Notes</string>
     <string name="no_notes">No notes</string>
 

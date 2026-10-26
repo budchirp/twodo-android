@@ -81,6 +81,9 @@ fun NotesView(
                                 CardStackListItem(
                                     title = stringResource(id = R.string.notes_empty_title),
                                     description = stringResource(id = R.string.notes_empty_desc),
+                                    onClick = {
+                                        noteViewModel.openCreateNoteSheet()
+                                    },
                                     leadingContent = {
                                         Icon(
                                             icon = Icons.Default.Edit,

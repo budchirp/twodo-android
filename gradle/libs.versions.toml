@@ -71,7 +71,6 @@ datastore = { group = "androidx.datastore", name = "datastore-preferences", vers
 
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 
-ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktor" }
@@ -123,7 +122,7 @@ hilt = [
     "hilt-navigation"
 ]
 
-ktor = ["ktor-client-android", "ktor-client-core", "ktor-client-okhttp", "ktor-client-logging", "ktor-client-content-negotiation", "ktor-serialization-kotlinx-json"]
+ktor = ["ktor-client-core", "ktor-client-okhttp", "ktor-client-logging", "ktor-client-content-negotiation", "ktor-serialization-kotlinx-json"]
 
 coil = ["coil-compose", "coil-network"]
 
