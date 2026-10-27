@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -42,8 +41,8 @@ import dev.cankolay.twodo.android.domain.model.application.MaterialYou
 import dev.cankolay.twodo.android.domain.model.application.SettingsState
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.Card
-import dev.cankolay.twodo.android.presentation.composable.app.CardList
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.SwitchCard
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
@@ -53,82 +52,80 @@ import dev.cankolay.twodo.android.presentation.viewmodel.application.SettingsVie
 private val ColorList =
     ((4..10) + (1..3)).map { it * 35.0 }.map { Color(Hct.from(it, 40.0, 40.0).toInt()) }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MaterialYouView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
+    MaterialYouContent(state = uiState.settings, onChange = settingsViewModel::update)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -> Unit) {
     AppLayout(route = Route.MaterialYou) {
-        val state = uiState.settingsState
         AppLazyColumn {
             item {
                 val onClick = { materialYou: Boolean ->
-                    settingsViewModel.updateSettings(
+                    onChange(
                         state.copy(
-                            materialYou = if (materialYou) MaterialYou.SEED(color = ColorList.first()) else MaterialYou.OFF
+                            materialYou =
+                                if (materialYou) MaterialYou.SEED(color = ColorList.first())
+                                else MaterialYou.OFF
                         )
                     )
                 }
 
-                CardList(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 16.dp),
+                SwitchCard(
+                    modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     title = stringResource(id = R.string.material_you),
-                    onClick = { onClick(state.materialYou == MaterialYou.OFF) },
-                    trailingContent = {
-                        Switch(
-                            checked = state.materialYou != MaterialYou.OFF,
-                            onCheckedChange = onClick
-                        )
-                    },
+                    checked = state.materialYou != MaterialYou.OFF,
+                    onCheckedChange = onClick,
                 )
             }
 
             item {
                 val colorsPerPage = 4
-                val pagerState =
-                    rememberPagerState { (ColorList.size + colorsPerPage - 1) / colorsPerPage }
+                val pagerState = rememberPagerState {
+                    (ColorList.size + colorsPerPage - 1) / colorsPerPage
+                }
 
                 HorizontalPager(
                     state = pagerState,
                     contentPadding = PaddingValues(horizontal = 16.dp),
-                    pageSpacing = 16.dp
+                    pageSpacing = 16.dp,
                 ) { page ->
                     val start = page * colorsPerPage
                     val end = minOf(start + colorsPerPage, ColorList.size)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(
-                            8.dp,
-                            alignment = Alignment.CenterHorizontally
-                        )
+                        horizontalArrangement =
+                            Arrangement.spacedBy(
+                                8.dp,
+                                alignment = Alignment.CenterHorizontally,
+                            ),
                     ) {
                         for (index in start until end) {
                             ColorButton(
                                 state = state,
-                                selected = state.materialYou is MaterialYou.SEED && ColorList.indexOf(
-                                    element = state.materialYou.color
-                                ) == index,
+                                selected =
+                                    state.materialYou is MaterialYou.SEED &&
+                                            state.materialYou.color == ColorList[index],
                                 color = ColorList[index],
                                 onClick = {
-                                    settingsViewModel.updateSettings(
+                                    onChange(
                                         state.copy(
-                                            materialYou = MaterialYou.SEED(
-                                                color = ColorList[index]
-                                            )
+                                            materialYou = MaterialYou.SEED(color = ColorList[index])
                                         )
                                     )
-                                }
+                                },
                             )
                         }
 
                         repeat(times = colorsPerPage - (end - start)) {
                             Surface(
-                                modifier = Modifier
-                                    .sizeIn(maxWidth = 96.dp, maxHeight = 96.dp)
+                                modifier = Modifier.sizeIn(maxWidth = 96.dp, maxHeight = 96.dp)
                             ) {
                                 Spacer(
                                     modifier = Modifier
@@ -143,32 +140,26 @@ fun MaterialYouView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
 
             item {
                 val onClick = { useWallpaperColors: Boolean ->
-                    settingsViewModel.updateSettings(
+                    onChange(
                         state.copy(
-                            materialYou = if (useWallpaperColors) MaterialYou.WALLPAPER else MaterialYou.SEED(
-                                color = ColorList.first()
-                            )
+                            materialYou =
+                                if (useWallpaperColors) MaterialYou.WALLPAPER
+                                else MaterialYou.SEED(color = ColorList.first())
                         )
                     )
                 }
 
                 val isEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-                CardList(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 16.dp),
+                SwitchCard(
+                    modifier = Modifier.padding(horizontal = 16.dp),
                     title = stringResource(id = R.string.wallpaper_colors),
-                    description = if (!isEnabled) stringResource(id = R.string.material_you_desc_unsupported) else null,
+                    description =
+                        if (!isEnabled) stringResource(id = R.string.material_you_desc_unsupported)
+                        else null,
                     enabled = isEnabled,
-                    onClick = { onClick(state.materialYou !is MaterialYou.WALLPAPER) },
-                    trailingContent = {
-                        Switch(
-                            checked = isEnabled && state.materialYou is MaterialYou.WALLPAPER,
-                            enabled = isEnabled,
-                            onCheckedChange = onClick,
-                        )
-                    },
+                    checked = isEnabled && state.materialYou is MaterialYou.WALLPAPER,
+                    onCheckedChange = onClick,
                 )
             }
         }
@@ -182,10 +173,7 @@ private fun RowScope.ColorButton(
     color: Color,
     onClick: (Color) -> Unit = {},
 ) {
-    Surface(
-        modifier = Modifier
-            .sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)
-    ) {
+    Surface(modifier = Modifier.sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)) {
         Card(
             modifier = Modifier
                 .weight(weight = 1f)
@@ -195,35 +183,32 @@ private fun RowScope.ColorButton(
             shape = MaterialTheme.shapes.medium,
             onClick = {
                 onClick(color)
-            }
+            },
         ) {
             val colorScheme =
                 rememberDynamicColorScheme(seedColor = color, isDark = isDark(state = state))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()
                         .align(alignment = Alignment.Center),
                     color = colorScheme.primaryContainer,
-                    shape = CircleShape
+                    shape = CircleShape,
                 ) {
                     Row {
                         Surface(
                             modifier = Modifier
                                 .weight(weight = 1f)
                                 .aspectRatio(ratio = 1f),
-                            color = colorScheme.onSecondaryContainer
+                            color = colorScheme.onSecondaryContainer,
                         ) {}
 
                         Surface(
                             modifier = Modifier
                                 .weight(weight = 1f)
                                 .aspectRatio(ratio = 1f),
-                            color = colorScheme.primary
+                            color = colorScheme.primary,
                         ) {}
                     }
                 }
@@ -238,12 +223,12 @@ private fun RowScope.ColorButton(
                         AnimatedVisibility(
                             visible = selected,
                             enter = fadeIn() + scaleIn(),
-                            exit = scaleOut() + fadeOut()
+                            exit = scaleOut() + fadeOut(),
                         ) {
                             Surface(
                                 modifier = Modifier.fillMaxSize(),
                                 color = MaterialTheme.colorScheme.surface,
-                                shape = CircleShape
+                                shape = CircleShape,
                             ) {
                                 Icon(icon = Icons.Default.Check)
                             }

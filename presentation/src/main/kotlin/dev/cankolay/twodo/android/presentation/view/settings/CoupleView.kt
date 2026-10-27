@@ -1,8 +1,5 @@
 package dev.cankolay.twodo.android.presentation.view.settings
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.HeartBroken
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,208 +29,163 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
+import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.Avatar
-import dev.cankolay.twodo.android.presentation.composable.app.Card
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
-import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
-import dev.cankolay.twodo.android.presentation.core.HandleEvents
-import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.util.DateUtils
-import dev.cankolay.twodo.android.presentation.viewmodel.user.UserSheet
-import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
+import dev.cankolay.twodo.android.presentation.viewmodel.user.CoupleUiState
+import dev.cankolay.twodo.android.presentation.viewmodel.user.CoupleViewModel
+
+@Composable
+fun CoupleView(viewModel: CoupleViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    CoupleContent(
+        userState = state,
+        onRefresh = viewModel::refresh,
+        onRequestLeave = viewModel::confirm,
+        onDismissSheet = viewModel::dismiss,
+        onLeave = viewModel::leave,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CoupleView(userViewModel: UserViewModel = hiltViewModel()) {
-    val navBackStack = LocalNavBackStack.current
-
-    val userState by userViewModel.uiState.collectAsStateWithLifecycle()
-    val user = userState.user
-    HandleEvents(viewModel = userViewModel)
-
-    val isLoading = userState.isLoading
-    val error = userState.error
-
+private fun CoupleContent(
+    userState: CoupleUiState,
+    onRefresh: () -> Unit,
+    onRequestLeave: () -> Unit,
+    onDismissSheet: () -> Unit,
+    onLeave: () -> Unit,
+) {
     AppLayout(route = Route.Couple) {
-        if (user == null) {
-            AppLazyColumn(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (isLoading && error == null) {
-                    item {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        )
-                    }
-                } else {
-                    error?.let { message ->
+        when (val user = userState.user) {
+            ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+
+            is ApiResult.Failure -> ErrorCard(error = user.error.message, onRefresh = onRefresh)
+
+            is ApiResult.Success -> {
+                user.data.couple?.let { couple ->
+                    AppLazyColumn {
                         item {
-                            Card(modifier = Modifier.padding(horizontal = 16.dp)) {
-                                Column(verticalArrangement = Arrangement.spacedBy(space = 12.dp)) {
-                                    Text(
-                                        text = message,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.error
+                            val first = couple.users.firstOrNull()
+                            val second = couple.users.drop(n = 1).firstOrNull()
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(space = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Box(modifier = Modifier.width(width = 128.dp)) {
+                                    Avatar(
+                                        modifier =
+                                            Modifier
+                                                .align(Alignment.CenterStart)
+                                                .zIndex(zIndex = 1f),
+                                        picture = first?.picture,
+                                        color = MaterialTheme.colorScheme.surfaceContainer,
+                                        size = 80.dp,
                                     )
 
-                                    Button(onClick = {
-                                        userViewModel.fetchUser()
-                                    }) {
-                                        Text(text = stringResource(id = R.string.try_again))
+                                    Avatar(
+                                        modifier = Modifier.align(Alignment.CenterEnd),
+                                        picture = second?.picture,
+                                        color = MaterialTheme.colorScheme.surfaceContainer,
+                                        size = 80.dp,
+                                    )
+                                }
+
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                ) {
+                                    Text(
+                                        text =
+                                            couple.users.joinToString(separator = " & ") {
+                                                it.name
+                                            },
+                                        textAlign = TextAlign.Center,
+                                        style =
+                                            MaterialTheme.typography.titleLarge.copy(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                fontWeight = FontWeight.SemiBold,
+                                            ),
+                                    )
+
+                                    val daysTogether =
+                                        DateUtils.daysSince(couple.createdAt).toString()
+
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = MaterialTheme.shapes.extraLarge,
+                                    ) {
+                                        Text(
+                                            modifier =
+                                                Modifier.padding(
+                                                    horizontal = 16.dp,
+                                                    vertical = 4.dp,
+                                                ),
+                                            style =
+                                                LocalTextStyle.current.copy(
+                                                    fontWeight = FontWeight.Medium
+                                                ),
+                                            text =
+                                                stringResource(
+                                                    id = R.string.days_together,
+                                                    daysTogether,
+                                                ),
+                                        )
                                     }
                                 }
                             }
                         }
-                    }
-                }
-            }
-        }
 
-        val couple = user?.couple
-        AnimatedVisibility(
-            visible = couple != null,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            if (couple != null) {
-                AppLazyColumn {
-                    item {
-                        val first = couple.users.firstOrNull()
-                        val second = couple.users.drop(n = 1).firstOrNull()
+                        item {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
+                        }
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(space = 16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier.width(width = 128.dp)
-                            ) {
-                                Avatar(
-                                    modifier = Modifier
-                                        .align(Alignment.CenterStart)
-                                        .zIndex(zIndex = 1f),
-                                    picture = first?.picture,
-                                    color = MaterialTheme.colorScheme.surfaceContainer,
-                                    size = 80.dp
-                                )
-
-                                Avatar(
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd),
-                                    picture = second?.picture,
-                                    color = MaterialTheme.colorScheme.surfaceContainer,
-                                    size = 80.dp
-                                )
-                            }
-
-                            Column(
+                        item {
+                            Button(
                                 modifier = Modifier
+                                    .padding(horizontal = 16.dp)
                                     .fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(space = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        contentColor = MaterialTheme.colorScheme.onError,
+                                    ),
+                                enabled = userState.result != ApiResult.Loading,
+                                onClick = onRequestLeave,
                             ) {
-                                Text(
-                                    text = couple.users.joinToString(separator = " & ") { it.name },
-                                    textAlign = TextAlign.Center,
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                )
-
-                                val daysTogether = DateUtils.daysSince(couple.createdAt).toString()
-
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = MaterialTheme.shapes.extraLarge
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Text(
-                                        modifier = Modifier.padding(
-                                            horizontal = 16.dp,
-                                            vertical = 4.dp
-                                        ),
-                                        style = LocalTextStyle.current.copy(fontWeight = FontWeight.Medium),
-                                        text = stringResource(
-                                            id = R.string.days_together,
-                                            daysTogether,
-                                        )
-                                    )
+                                    Icon(icon = Icons.Default.HeartBroken)
+
+                                    Text(text = stringResource(id = R.string.break_up))
                                 }
-                            }
-                        }
-                    }
-
-                    item {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
-                    }
-
-                    item {
-                        Button(
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            ),
-                            onClick = {
-                                userViewModel.openLeaveCoupleSheet()
-                            }) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(icon = Icons.Default.HeartBroken)
-
-                                Text(
-                                    text = stringResource(id = R.string.break_up)
-                                )
                             }
                         }
                     }
                 }
             }
+
+            null -> Unit
         }
 
-        AnimatedVisibility(
-            visible = user != null && user.couple == null,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            AppLazyColumn {
-                item {
-                    CardStackList(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        items = listOf(
-                            CardStackListItem(
-                                title = stringResource(id = R.string.couple_setup),
-                                description = stringResource(id = R.string.couple_setup_desc),
-                                leadingContent = {
-                                    Icon(icon = Icons.Default.PersonAdd)
-                                },
-                                onClick = {
-                                    navBackStack.resetTo(Route.CoupleSetup)
-                                }
-                            )
-                        )
-                    )
-                }
-            }
-        }
-
-        if (userState.activeSheet is UserSheet.LeaveCouple) {
+        if (userState.showLeave) {
             BreakupPartnerSheet(
-                onDismiss = { userViewModel.dismissSheet() },
-                onLeave = userViewModel::leaveCouple
+                result = userState.result,
+                onDismiss = onDismissSheet,
+                onLeave = onLeave,
             )
         }
     }

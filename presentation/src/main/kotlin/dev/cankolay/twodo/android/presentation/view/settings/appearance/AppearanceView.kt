@@ -10,44 +10,44 @@ import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
-import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 
+@Composable
+fun AppearanceView(onNavigate: (Route) -> Unit) {
+    AppearanceContent(onNavigate = onNavigate)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppearanceView() {
-    val navBackStack = LocalNavBackStack.current
-
+private fun AppearanceContent(onNavigate: (Route) -> Unit) {
     AppLayout(route = Route.Appearance) {
         AppLazyColumn {
             item {
-                val routes = listOf(
-                    Route.Theme, Route.MaterialYou
-                )
+                val routes =
+                    listOf(
+                        Route.Theme,
+                        Route.MaterialYou,
+                    )
 
                 CardStackList(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 16.dp),
-                    items = routes.map { route ->
-                        val details = route.getDetails()
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    items =
+                        routes.map { route ->
+                            val details = route.getDetails()
 
-                        CardStackListItem(
-                            title = details.title,
-                            description = details.description,
-                            onClick = {
-                                navBackStack.add(element = route)
-                            },
-                            leadingContent = {
-                                Icon(
-                                    icon = details.icon.default,
-                                )
-                            },
-                        )
-                    })
-
+                            CardStackListItem(
+                                title = details.title,
+                                description = details.description,
+                                onClick = {
+                                    onNavigate(route)
+                                },
+                                leadingContent = {
+                                    Icon(icon = details.icon.default)
+                                },
+                            )
+                        },
+                )
             }
         }
     }

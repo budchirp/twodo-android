@@ -2,6 +2,7 @@ package dev.cankolay.twodo.android.data.api.service
 
 import dev.cankolay.twodo.android.data.api.client.KtorClient
 import dev.cankolay.twodo.android.data.api.client.request
+import dev.cankolay.twodo.android.data.api.client.requestUnit
 import dev.cankolay.twodo.android.data.api.model.request.note.CreateNoteRequestDto
 import dev.cankolay.twodo.android.data.api.model.request.note.UpdateNoteRequestDto
 import dev.cankolay.twodo.android.data.api.model.response.note.NoteDto
@@ -53,7 +54,7 @@ constructor(private val client: KtorClient) {
         }
     }
 
-    suspend fun delete(id: String) = request(noReturn = true) {
+    suspend fun delete(id: String) = requestUnit {
         client().delete {
             url {
                 path(ApiConstants.Endpoints.NOTES, id)

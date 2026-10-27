@@ -1,8 +1,10 @@
 package dev.cankolay.twodo.android.presentation.view.calendar
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -13,7 +15,9 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
 import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
@@ -24,213 +28,199 @@ import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
 import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
+import dev.cankolay.twodo.android.presentation.viewmodel.calendar.canCreate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CalendarEntrySheet(
     form: CalendarEntryFormState,
-    isFemale: Boolean,
+    result: ApiResult<*>?,
+    canTrackPeriods: Boolean,
     onDismiss: () -> Unit,
-    onDelete: (() -> Unit)? = null,
+    onDelete: () -> Unit,
     onSave: () -> Unit,
-    onTypeChange: (CalendarEntryType) -> Unit,
-    onNotesChange: (String) -> Unit,
-    onPeriodEventChange: (PeriodEvent) -> Unit,
-    onFlowLevelChange: (FlowLevel) -> Unit,
-    onSymptomsChange: (Set<PeriodSymptom>) -> Unit
+    onFormChange: (CalendarEntryFormState) -> Unit,
 ) {
+    val isLoading = result == ApiResult.Loading
+
     AppBottomSheet(
-        title = stringResource(
-            id = if (form.isEditing) R.string.edit_calendar_entry else R.string.create_calendar_entry
-        ),
+        title =
+            stringResource(
+                id =
+                    if (form.editing) R.string.edit_calendar_entry
+                    else R.string.create_calendar_entry
+            ),
         onDismiss = onDismiss,
+        result = result,
+        showLoading = form.editing,
         actions = {
-            if (form.isEditing && onDelete != null) {
-                TextButton(onClick = onDelete) {
+            if (form.editing)
+                TextButton(onClick = onDelete, enabled = !isLoading) {
                     Text(text = stringResource(id = R.string.delete))
                 }
-            }
-
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
                 Text(text = stringResource(id = R.string.cancel))
             }
-
-            Button(onClick = onSave) {
+            Button(onClick = onSave, enabled = !isLoading) {
                 Text(text = stringResource(id = R.string.save))
             }
-        }
+        },
     ) {
         item {
-            EntryTypeSelector(
+            CardRadioList(
+                items =
+                    CalendarEntryType.entries.filter {
+                        it.canCreate(canTrackPeriods = canTrackPeriods)
+                    },
                 selected = form.type,
-                isFemale = isFemale,
-                onSelected = onTypeChange
+                enabled = !isLoading,
+                label = { stringResource(id = it.label) },
+                onSelected = { onFormChange(form.copy(type = it)) },
             )
         }
-
         item {
             TextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = form.notes,
-                onValueChange = onNotesChange,
+                enabled = !isLoading,
+                onValueChange = { onFormChange(form.copy(notes = it)) },
                 label = { Text(text = stringResource(id = R.string.notes_field)) },
-                minLines = 3
+                minLines = 3,
             )
         }
-
         when (form.type) {
-            CalendarEntryType.NOTE,
-            CalendarEntryType.OVULATION,
-            CalendarEntryType.PERIOD_PREDICTION -> Unit
-
-            CalendarEntryType.PERIOD -> periodFields(
-                periodEvent = form.periodEvent,
-                onPeriodEventChange = onPeriodEventChange,
-                flowLevel = form.flowLevel,
-                onFlowLevelChange = onFlowLevelChange,
-                symptoms = form.symptoms,
-                onSymptomsChange = onSymptomsChange
-            )
-        }
-    }
-}
-
-@Composable
-private fun EntryTypeSelector(
-    selected: CalendarEntryType,
-    isFemale: Boolean,
-    onSelected: (CalendarEntryType) -> Unit
-) {
-    val types = CalendarEntryType.entries.filter { type ->
-        type != CalendarEntryType.OVULATION &&
-                type != CalendarEntryType.PERIOD_PREDICTION &&
-                (type != CalendarEntryType.PERIOD || isFemale)
-    }
-
-    CardRadioList(
-        items = types,
-        selected = selected,
-        label = { type ->
-            stringResource(
-                id = when (type) {
-                    CalendarEntryType.NOTE -> R.string.calendar_type_note
-                    CalendarEntryType.PERIOD -> R.string.calendar_type_period
-                    CalendarEntryType.PERIOD_PREDICTION -> R.string.expected_period
-                    CalendarEntryType.OVULATION -> R.string.calendar_type_ovulation
-                }
-            )
-        },
-        onSelected = onSelected
-    )
-}
-
-private fun androidx.compose.foundation.lazy.LazyListScope.periodFields(
-    periodEvent: PeriodEvent,
-    onPeriodEventChange: (PeriodEvent) -> Unit,
-    flowLevel: FlowLevel,
-    onFlowLevelChange: (FlowLevel) -> Unit,
-    symptoms: Set<PeriodSymptom>,
-    onSymptomsChange: (Set<PeriodSymptom>) -> Unit
-) {
-    item {
-        EnumRadioList(
-            title = stringResource(id = R.string.period_event),
-            values = PeriodEvent.entries,
-            selected = periodEvent,
-            label = { event ->
-                stringResource(
-                    id = when (event) {
-                        PeriodEvent.START -> R.string.period_event_start
-                        PeriodEvent.DAY -> R.string.period_event_day
-                        PeriodEvent.END -> R.string.period_event_end
-                    }
-                )
-            },
-            onSelected = onPeriodEventChange
-        )
-    }
-
-    item {
-        EnumRadioList(
-            title = stringResource(id = R.string.flow_level),
-            values = FlowLevel.entries,
-            selected = flowLevel,
-            label = { flowLevel ->
-                stringResource(
-                    id = when (flowLevel) {
-                        FlowLevel.SPOTTING -> R.string.flow_spotting
-                        FlowLevel.LIGHT -> R.string.flow_light
-                        FlowLevel.MEDIUM -> R.string.flow_medium
-                        FlowLevel.HEAVY -> R.string.flow_heavy
-                    }
-                )
-            },
-            onSelected = onFlowLevelChange
-        )
-    }
-
-    item {
-        Text(
-            text = stringResource(id = R.string.symptoms),
-            style = MaterialTheme.typography.titleMedium
-        )
-    }
-
-    item {
-        CardStackList(
-            items = PeriodSymptom.entries.map { symptom ->
-                val checked = symptom in symptoms
-                val onClick = {
-                    onSymptomsChange(
-                        if (checked) symptoms - symptom else symptoms + symptom
-                    )
-                }
-                CardStackListItem(
-                    title = stringResource(
-                        id = when (symptom) {
-                            PeriodSymptom.ACNE -> R.string.symptom_acne
-                            PeriodSymptom.BACK_PAIN -> R.string.symptom_back_pain
-                            PeriodSymptom.BLOATING -> R.string.symptom_bloating
-                            PeriodSymptom.BREAST_TENDERNESS -> R.string.symptom_breast_tenderness
-                            PeriodSymptom.CRAMPS -> R.string.symptom_cramps
-                            PeriodSymptom.FATIGUE -> R.string.symptom_fatigue
-                            PeriodSymptom.HEADACHE -> R.string.symptom_headache
-                            PeriodSymptom.MOOD_CHANGES -> R.string.symptom_mood_changes
-                            PeriodSymptom.NAUSEA -> R.string.symptom_nausea
-                        }
-                    ),
-                    onClick = onClick,
-                    leadingContent = {
-                        Checkbox(
-                            checked = checked,
-                            onCheckedChange = { onClick() }
+            CalendarEntryType.PERIOD -> {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
+                        Text(
+                            text = stringResource(id = R.string.period_event),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        CardRadioList(
+                            items = PeriodEvent.entries,
+                            selected = form.periodEvent,
+                            enabled = !isLoading,
+                            label = { stringResource(id = it.label) },
+                            onSelected = { onFormChange(form.copy(periodEvent = it)) },
                         )
                     }
-                )
+                }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
+                        Text(
+                            text = stringResource(id = R.string.flow_level),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        CardRadioList(
+                            items = FlowLevel.entries,
+                            selected = form.flowLevel,
+                            enabled = !isLoading,
+                            label = { stringResource(id = it.label) },
+                            onSelected = { onFormChange(form.copy(flowLevel = it)) },
+                        )
+                    }
+                }
+                item {
+                    Text(
+                        text = stringResource(id = R.string.symptoms),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+                item {
+                    CardStackList(
+                        items =
+                            PeriodSymptom.entries.map { symptom ->
+                                val checked = symptom in form.symptoms
+                                CardStackListItem(
+                                    title = stringResource(id = symptom.label),
+                                    modifier =
+                                        Modifier.toggleable(
+                                            value = checked,
+                                            enabled = !isLoading,
+                                            role = Role.Checkbox,
+                                        ) { selected ->
+                                            onFormChange(
+                                                form.copy(
+                                                    symptoms =
+                                                        if (selected) form.symptoms + symptom
+                                                        else form.symptoms - symptom
+                                                )
+                                            )
+                                        },
+                                    leadingContent = {
+                                        Checkbox(
+                                            checked = checked,
+                                            onCheckedChange = null,
+                                            enabled = !isLoading,
+                                        )
+                                    },
+                                )
+                            }
+                    )
+                }
             }
-        )
+
+            else -> Unit
+        }
     }
 }
 
-@Composable
-private fun <T> EnumRadioList(
-    title: String,
-    values: List<T>,
-    selected: T,
-    label: @Composable (T) -> String,
-    onSelected: (T) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium
-        )
+@get:StringRes
+internal val CalendarEntryType.label: Int
+    get() =
+        when (this) {
+            CalendarEntryType.NOTE -> R.string.calendar_type_note
 
-        CardRadioList(
-            items = values,
-            selected = selected,
-            label = label,
-            onSelected = onSelected
-        )
-    }
-}
+            CalendarEntryType.PERIOD -> R.string.calendar_type_period
+
+            CalendarEntryType.PERIOD_PREDICTION -> R.string.expected_period
+
+            CalendarEntryType.OVULATION -> R.string.calendar_type_ovulation
+        }
+
+@get:StringRes
+internal val PeriodEvent.label: Int
+    get() =
+        when (this) {
+            PeriodEvent.START -> R.string.period_event_start
+
+            PeriodEvent.DAY -> R.string.period_event_day
+
+            PeriodEvent.END -> R.string.period_event_end
+        }
+
+@get:StringRes
+internal val FlowLevel.label: Int
+    get() =
+        when (this) {
+            FlowLevel.SPOTTING -> R.string.flow_spotting
+
+            FlowLevel.LIGHT -> R.string.flow_light
+
+            FlowLevel.MEDIUM -> R.string.flow_medium
+
+            FlowLevel.HEAVY -> R.string.flow_heavy
+        }
+
+@get:StringRes
+internal val PeriodSymptom.label: Int
+    get() =
+        when (this) {
+            PeriodSymptom.ACNE -> R.string.symptom_acne
+
+            PeriodSymptom.BACK_PAIN -> R.string.symptom_back_pain
+
+            PeriodSymptom.BLOATING -> R.string.symptom_bloating
+
+            PeriodSymptom.BREAST_TENDERNESS -> R.string.symptom_breast_tenderness
+
+            PeriodSymptom.CRAMPS -> R.string.symptom_cramps
+
+            PeriodSymptom.FATIGUE -> R.string.symptom_fatigue
+
+            PeriodSymptom.HEADACHE -> R.string.symptom_headache
+
+            PeriodSymptom.MOOD_CHANGES -> R.string.symptom_mood_changes
+
+            PeriodSymptom.NAUSEA -> R.string.symptom_nausea
+        }

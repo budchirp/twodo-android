@@ -21,7 +21,6 @@ import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.motion.slideInY
 import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.navigation.route.RouteDetail
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 import dev.cankolay.twodo.android.presentation.navigation.route.navigationRoutes
 
@@ -43,44 +42,26 @@ fun BoxScope.AppToolbar() {
                 .zIndex(1f),
         visible = isVisible,
         enter = fadeIn() + scaleIn() + slideInY(),
-        exit = fadeOut()
+        exit = fadeOut(),
     ) {
         HorizontalFloatingToolbar(
             colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(),
             expanded = false,
         ) {
-            data class AppRowRoute(
-                val instance: Route,
-                val details: RouteDetail
-            )
-
-            val appRowRoutes = mutableListOf<AppRowRoute>()
-
-            navigationRoutes.forEach { route ->
-                appRowRoutes.add(
-                    element = AppRowRoute(
-                        instance = route,
-                        details = route.getDetails()
-                    )
-                )
-            }
+            val appRowRoutes = navigationRoutes.map { it to it.getDetails() }
 
             AppBarRow {
-                appRowRoutes.forEach { route ->
-                    val isSelected =
-                        navBackStack.lastOrNull() == route.instance
+                appRowRoutes.forEach { (destination, details) ->
+                    val isSelected = navBackStack.lastOrNull() == destination
 
                     clickableItem(
-                        label = route.details.title,
+                        label = details.title,
                         icon = {
-                            Icon(
-                                icon = if (isSelected) route.details.icon.default else route.details.icon.outlined
-                                    ?: route.details.icon.default
-                            )
+                            Icon(icon = details.icon.forSelection(selected = isSelected))
                         },
                         onClick = {
                             if (!isSelected) {
-                                navBackStack.resetTo(route.instance)
+                                navBackStack.resetTo(route = destination)
                             }
                         },
                     )

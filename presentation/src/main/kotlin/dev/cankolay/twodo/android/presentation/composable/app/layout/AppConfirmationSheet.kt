@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -17,26 +18,32 @@ fun DestructiveConfirmationSheet(
     description: String,
     confirmText: String,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    result: ApiResult<*>? = null,
 ) {
+    val isLoading = result == ApiResult.Loading
+
     AppBottomSheet(
         title = title,
         description = description,
         onDismiss = onDismiss,
+        result = result,
         actions = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
                 Text(text = stringResource(id = R.string.cancel))
             }
 
             Button(
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                ),
-                onClick = onConfirm
+                enabled = !isLoading,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                onClick = onConfirm,
             ) {
                 Text(text = confirmText)
             }
-        }
+        },
     )
 }

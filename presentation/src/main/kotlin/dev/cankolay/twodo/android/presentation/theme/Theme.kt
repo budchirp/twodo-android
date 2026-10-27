@@ -10,6 +10,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
@@ -22,11 +23,12 @@ import dev.cankolay.twodo.android.domain.model.application.SettingsState
 import dev.cankolay.twodo.android.domain.model.application.Theme
 
 @Composable
-fun isDark(state: SettingsState) = when (state.theme) {
-    Theme.SYSTEM -> isSystemInDarkTheme()
-    Theme.DARK -> true
-    Theme.LIGHT -> false
-}
+fun isDark(state: SettingsState) =
+    when (state.theme) {
+        Theme.SYSTEM -> isSystemInDarkTheme()
+        Theme.DARK -> true
+        Theme.LIGHT -> false
+    }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -40,31 +42,36 @@ fun AppTheme(
     val view = LocalView.current
 
     val window = context.findWindow()
-    window?.let {
-        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
-        WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDark
+    SideEffect {
+        if (window != null) {
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDark
+        }
     }
 
-    val wallpaperColor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) colorResource(
-        id = android.R.color.system_accent1_500
-    ) else Colors.App
+    val wallpaperColor =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            colorResource(id = android.R.color.system_accent1_500)
+        else Colors.App
 
     MaterialExpressiveTheme(
-        colorScheme = rememberDynamicColorScheme(
-            isAmoled = settingsState.isAmoled,
-            isDark = isDark,
-            seedColor = when (settingsState.materialYou) {
-                is MaterialYou.WALLPAPER -> wallpaperColor
-                is MaterialYou.SEED -> settingsState.materialYou.color
+        colorScheme =
+            rememberDynamicColorScheme(
+                isAmoled = settingsState.isAmoled,
+                isDark = isDark,
+                seedColor =
+                    when (settingsState.materialYou) {
+                        is MaterialYou.WALLPAPER -> wallpaperColor
+                        is MaterialYou.SEED -> settingsState.materialYou.color
 
-                is MaterialYou.OFF -> Colors.App
-            },
-            style = PaletteStyle.Expressive,
-            specVersion = ColorSpec.SpecVersion.SPEC_2025
-        ),
+                        is MaterialYou.OFF -> Colors.App
+                    },
+                style = PaletteStyle.Expressive,
+                specVersion = ColorSpec.SpecVersion.SPEC_2025,
+            ),
         shapes = shapes,
         motionScheme = MotionScheme.expressive(),
-        content = content
+        content = content,
     )
 }
 

@@ -19,28 +19,30 @@ internal fun NoteActionsSheet(
     title: String,
     updatedAt: String,
     onDismiss: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     AppBottomSheet(
         title = title,
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
     ) {
         item {
             CardStackList(
-                items = listOf(
-                    CardStackListItem(
-                        title = stringResource(
-                            id = R.string.edited_at,
-                            DateUtils.format(updatedAt, DateUtils.DATE_TIME_PATTERN)
+                items =
+                    listOf(
+                        CardStackListItem(
+                            title =
+                                stringResource(
+                                    id = R.string.edited_at,
+                                    DateUtils.format(updatedAt, DateUtils.DATE_TIME_PATTERN),
+                                ),
+                            leadingContent = { Icon(icon = Icons.Default.Update) },
                         ),
-                        leadingContent = { Icon(icon = Icons.Default.Update) }
-                    ),
-                    CardStackListItem(
-                        title = stringResource(id = R.string.delete),
-                        onClick = onDelete,
-                        leadingContent = { Icon(icon = Icons.Default.Delete) }
+                        CardStackListItem(
+                            title = stringResource(id = R.string.delete),
+                            onClick = onDelete,
+                            leadingContent = { Icon(icon = Icons.Default.Delete) },
+                        ),
                     )
-                )
             )
         }
     }

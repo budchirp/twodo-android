@@ -13,7 +13,7 @@ class UserRepositoryImpl
 constructor(
     private val userService: UserService
 ) : UserRepository {
-    override suspend fun initialize() = userService.initialize().map { null }
+    override suspend fun initialize() = userService.initialize().map { it.toDomain() }
 
     override suspend fun get() = userService.get().map { it.toDomain() }
 

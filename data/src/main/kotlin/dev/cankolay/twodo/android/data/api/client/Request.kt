@@ -3,6 +3,7 @@ package dev.cankolay.twodo.android.data.api.client
 import dev.cankolay.twodo.android.data.api.model.response.EmptySuccessResponse
 import dev.cankolay.twodo.android.data.api.model.response.ErrorResponse
 import dev.cankolay.twodo.android.data.api.model.response.SuccessResponse
+import dev.cankolay.twodo.android.domain.model.api.ApiFailure
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.ErrorReason
 import io.ktor.client.call.body
@@ -11,27 +12,18 @@ import io.ktor.client.plugins.RedirectResponseException
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.statement.HttpResponse
 import kotlinx.coroutines.CancellationException
-import kotlinx.serialization.Serializable
 
 @PublishedApi
-internal fun reasonForStatus(statusCode: Int) = when (statusCode) {
-    in 400..499 -> ErrorReason.CLIENT
-    else -> ErrorReason.SERVER
-}
-
-@PublishedApi
-internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Error {
+internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Failure {
     return try {
         val body = body<ErrorResponse>()
-        ApiResult.Error(
-            message = body.message,
-            reason = reason,
-            code = body.code
+        ApiResult.Failure(
+            ApiFailure(message = body.message, reason = reason, code = body.code)
         )
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        ApiResult.Error(message = e.message ?: "Unexpected error", reason = reason)
+        ApiResult.Failure(ApiFailure(message = e.message ?: "Unexpected error", reason = reason))
     }
 }
 
@@ -46,7 +38,9 @@ internal suspend inline fun <R> executeRequest(
         if (statusCode in 200..299) {
             parseSuccess(response)
         } else {
-            response.errorResult(reason = reasonForStatus(statusCode))
+            response.errorResult(
+                reason = if (statusCode in 400..499) ErrorReason.CLIENT else ErrorReason.SERVER
+            )
         }
     } catch (e: RedirectResponseException) {
         e.response.errorResult(reason = ErrorReason.SERVER)
@@ -57,40 +51,40 @@ internal suspend inline fun <R> executeRequest(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        ApiResult.Fatal(exception = e)
+        ApiResult.Failure(ApiFailure(message = e.message ?: "Unexpected error"))
     }
 }
 
-suspend inline fun <reified T : @Serializable Any> request(
+suspend inline fun <reified T> request(
     noinline block: suspend () -> HttpResponse
 ): ApiResult<T> = executeRequest(block) { response ->
     val body = response.body<SuccessResponse<T>>()
     if (body.error) {
-        ApiResult.Error(message = body.message, reason = ErrorReason.CLIENT, code = body.code)
+        ApiResult.Failure(
+            ApiFailure(
+                message = body.message,
+                reason = ErrorReason.CLIENT,
+                code = body.code
+            )
+        )
     } else {
-        ApiResult.Success(message = body.message, data = body.data, code = body.code)
+        ApiResult.Success(data = body.data)
     }
 }
 
-suspend inline fun <reified T : @Serializable Any> requestNullable(
-    noinline block: suspend () -> HttpResponse
-): ApiResult<T?> = executeRequest(block) { response ->
-    val body = response.body<SuccessResponse<T?>>()
-    if (body.error) {
-        ApiResult.Error(message = body.message, reason = ErrorReason.CLIENT, code = body.code)
-    } else {
-        ApiResult.Success(message = body.message, data = body.data, code = body.code)
-    }
-}
-
-suspend fun request(
-    noReturn: Boolean,
+suspend fun requestUnit(
     block: suspend () -> HttpResponse
-): ApiResult<Nothing?> = executeRequest(block) { response ->
+): ApiResult<Unit> = executeRequest(block) { response ->
     val body = response.body<EmptySuccessResponse>()
     if (body.error) {
-        ApiResult.Error(message = body.message, reason = ErrorReason.CLIENT, code = body.code)
+        ApiResult.Failure(
+            ApiFailure(
+                message = body.message,
+                reason = ErrorReason.CLIENT,
+                code = body.code
+            )
+        )
     } else {
-        ApiResult.Success(message = body.message, data = null, code = body.code)
+        ApiResult.Success(data = Unit)
     }
 }

@@ -1,38 +1,35 @@
 package dev.cankolay.twodo.android.presentation.viewmodel.application
 
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.cankolay.twodo.android.domain.model.application.SettingsState
-import dev.cankolay.twodo.android.domain.usecase.application.settings.GetSettingsStateUseCase
-import dev.cankolay.twodo.android.domain.usecase.application.settings.UpdateSettingsStateUseCase
-import dev.cankolay.twodo.android.presentation.core.BaseViewModel
-import kotlinx.coroutines.flow.catch
+import dev.cankolay.twodo.android.domain.repository.application.SettingsStateRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val settingsState: SettingsState = SettingsState(),
-    val isInitialized: Boolean = false
+    val settings: SettingsState = SettingsState(),
+    val isLoading: Boolean = true,
 )
 
 @HiltViewModel
-class SettingsViewModel @Inject constructor(
-    getSettingsStateUseCase: GetSettingsStateUseCase,
-    private val updateSettingsStateUseCase: UpdateSettingsStateUseCase
-) : BaseViewModel<SettingsUiState>(SettingsUiState()) {
+class SettingsViewModel @Inject constructor(private val settings: SettingsStateRepository) :
+    ViewModel() {
+    private val _uiState = MutableStateFlow(SettingsUiState())
+    val uiState = _uiState.asStateFlow()
+
     init {
         viewModelScope.launch {
-            getSettingsStateUseCase()
-                .catch { emit(SettingsState()) }
-                .collect { settingsState ->
-                    updateState { copy(settingsState = settingsState, isInitialized = true) }
-                }
+            settings.state.collect { state ->
+                _uiState.value = SettingsUiState(settings = state, isLoading = false)
+            }
         }
     }
 
-    fun updateSettings(settingsState: SettingsState) {
-        viewModelScope.launch {
-            updateSettingsStateUseCase(settingsState)
-        }
+    fun update(state: SettingsState) {
+        viewModelScope.launch { settings.update(state = state) }
     }
 }

@@ -1,180 +1,69 @@
 package dev.cankolay.twodo.android.presentation
 
-import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.cankolay.twodo.android.domain.model.api.user.User
+import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppMainLayout
 import dev.cankolay.twodo.android.presentation.composition.ProvideNavBackStack
-import dev.cankolay.twodo.android.presentation.composition.ProvideSnackbarHostState
 import dev.cankolay.twodo.android.presentation.navigation.AppNavigation
-import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.theme.AppTheme
-import dev.cankolay.twodo.android.presentation.viewmodel.application.AuthViewModel
+import dev.cankolay.twodo.android.presentation.view.StartupErrorView
+import dev.cankolay.twodo.android.presentation.viewmodel.application.AppViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.application.SettingsViewModel
-import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
 
 @Composable
-fun AppUI(
-    uri: Uri?,
-    settingsViewModel: SettingsViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel(),
-    userViewModel: UserViewModel = hiltViewModel(),
-    onAuthIntentConsumed: () -> Unit = {}
-) {
-    val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
-    val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
-    val userUiState by userViewModel.uiState.collectAsStateWithLifecycle()
+fun AppUI(appViewModel: AppViewModel, settingsViewModel: SettingsViewModel) {
+    val state by appViewModel.uiState.collectAsStateWithLifecycle()
+    val settings by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
-    val settingsState = settingsUiState.settingsState
-    val authState = authUiState.authState
-    val user = userUiState.user
-    val isStartupInitialized =
-        settingsUiState.isInitialized && authUiState.isInitialized
-
-    HandleAuthUri(
-        authUri = uri,
-        authViewModel = authViewModel,
-        onAuthIntentConsumed = onAuthIntentConsumed
-    )
-
-    AppTheme(settingsState = settingsState) {
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            if (!isStartupInitialized) {
-                LoadingContent()
-            } else {
-                SyncUserState(
-                    token = authState.token,
-                    isAuthenticating = authUiState.isAuthenticating,
-                    userId = user?.id,
-                    isUserInitialized = userUiState.isInitialized,
-                    userViewModel = userViewModel
-                )
-
-                val startRoute = resolveStartRoute(
-                    token = authState.token,
-                    isAuthenticating = authUiState.isAuthenticating,
-                    user = user,
-                    userError = userUiState.error,
-                    userErrorCode = userUiState.errorCode
-                )
-
-                if (startRoute != null) {
-                    AppRoot(
-                        startRoute = startRoute,
-                        authViewModel = authViewModel,
-                        userViewModel = userViewModel
-                    )
-                } else {
-                    LoadingContent()
+    AppTheme(settingsState = settings.settings) {
+        Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+            val route = state.phase.route
+            if (settings.isLoading || route == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoadingContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun HandleAuthUri(
-    authUri: Uri?,
-    authViewModel: AuthViewModel,
-    onAuthIntentConsumed: () -> Unit
-) {
-    LaunchedEffect(authUri) {
-        authUri ?: return@LaunchedEffect
-
-        authViewModel.authenticate(uri = authUri)
-        onAuthIntentConsumed()
-    }
-}
-
-@Composable
-private fun SyncUserState(
-    token: String,
-    isAuthenticating: Boolean,
-    userId: String?,
-    isUserInitialized: Boolean,
-    userViewModel: UserViewModel
-) {
-    LaunchedEffect(
-        token,
-        isAuthenticating,
-        userId,
-        isUserInitialized
-    ) {
-        when {
-            token.isEmpty() -> userViewModel.clearUser()
-
-            !isAuthenticating &&
-                    userId == null &&
-                    !isUserInitialized -> {
-                userViewModel.fetchUser()
-            }
-        }
-    }
-}
-
-private fun resolveStartRoute(
-    token: String,
-    isAuthenticating: Boolean,
-    user: User?,
-    userError: String?,
-    userErrorCode: String?
-): Route? {
-    return when {
-        token.isEmpty() -> Route.Welcome
-        isAuthenticating -> null
-
-        userErrorCode == ERROR_PROFILE_REQUIRED -> Route.ProfileSetup
-
-        user == null && userError == null -> null
-        user == null && userError != null -> Route.StartupError
-
-        user?.profileCompleted == false -> Route.ProfileSetup
-        user?.couple != null -> Route.Notes
-
-        else -> Route.CoupleSetup
-    }
-}
-
-@Composable
-private fun AppRoot(
-    startRoute: Route,
-    authViewModel: AuthViewModel,
-    userViewModel: UserViewModel
-) {
-    ProvideNavBackStack(startRoute = startRoute) {
-        ProvideSnackbarHostState {
-            AppMainLayout {
-                AppNavigation(
-                    authViewModel = authViewModel,
-                    userViewModel = userViewModel
+            } else
+                key(state.accountId) {
+                    ProvideNavBackStack(startRoute = route) {
+                        AppMainLayout {
+                            AppNavigation(
+                                authUrl = appViewModel.authUrl,
+                                onLogout = appViewModel::logout,
+                                startup = {
+                                    StartupErrorView(
+                                        result = state.result,
+                                        onRetry = appViewModel::retry,
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
+            state.loginError?.let { error ->
+                AppBottomSheet(
+                    title = stringResource(id = R.string.error),
+                    error = stringResource(id = error),
+                    onDismiss = appViewModel::dismissError,
+                    actions = {
+                        TextButton(onClick = appViewModel::dismissError) {
+                            Text(text = stringResource(id = R.string.close))
+                        }
+                    },
                 )
             }
         }
     }
 }
-
-private const val ERROR_PROFILE_REQUIRED = "error-profile-required"

@@ -7,18 +7,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.cankolay.twodo.android.domain.model.api.ApiResult
+import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,51 +32,77 @@ fun AppBottomSheet(
     title: String,
     description: String? = null,
     onDismiss: () -> Unit,
-    sheetState: SheetState = rememberModalBottomSheetState(),
+    result: ApiResult<*>? = null,
+    showLoading: Boolean = true,
+    error: String? = null,
+    onRetry: (() -> Unit)? = null,
+    status: @Composable () -> Unit = {},
     actions: (@Composable RowScope.() -> Unit)? = null,
-    content: LazyListScope.() -> Unit = {}
+    content: (LazyListScope.() -> Unit)? = null,
 ) {
+    val isLoading = result == ApiResult.Loading
+
+    val active by rememberUpdatedState(newValue = isLoading)
+    val sheetState =
+        rememberBottomSheetState(
+            initialValue = SheetValue.Hidden,
+            confirmValueChange = { it != SheetValue.Hidden || !active },
+        )
     ModalBottomSheet(
         sheetState = sheetState,
-        onDismissRequest = onDismiss
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        sheetGesturesEnabled = !isLoading,
     ) {
-        AppLazyColumn(
-            modifier = Modifier.imePadding(),
-            contentPadding = PaddingValues(all = 16.dp),
-            fill = false
-        ) {
-            item {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(space = 8.dp)
-                ) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
+        when (result) {
+            ApiResult.Loading ->
+                if (showLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-                    description?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
+            is ApiResult.Failure -> ErrorCard(error = result.error.message, onRefresh = onRetry)
+
+            else -> Unit
+        }
+        ErrorCard(error = error)
+        Column(modifier = Modifier.imePadding()) {
+            Column(
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+            ) {
+                Text(
+                    text = title,
+                    style =
+                        MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                )
+
+                description?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                 }
             }
 
-            content()
+            status()
 
-            actions?.let { sheetActions ->
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(
-                            space = 8.dp,
-                            alignment = Alignment.End
-                        )
-                    ) {
-                        sheetActions()
+            if (content != null || actions != null) {
+                AppLazyColumn(
+                    contentPadding = PaddingValues(all = 16.dp),
+                    fill = false,
+                ) {
+                    content?.invoke(this)
+
+                    actions?.let { sheetActions ->
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(
+                                        space = 8.dp,
+                                        alignment = Alignment.End,
+                                    ),
+                            ) {
+                                sheetActions()
+                            }
+                        }
                     }
                 }
             }

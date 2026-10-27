@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Text
@@ -30,63 +31,71 @@ fun OnboardingLayout(
     description: String,
     isLoading: Boolean = false,
     onRefresh: (() -> Unit)? = null,
+    status: @Composable () -> Unit = {},
     actions: (@Composable () -> Unit)? = null,
     lazyContent: LazyListScope.() -> Unit,
-    content: @Composable () -> Unit = {}
+    content: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
 
     AppLayout(
         route = route,
         topBar = {},
-        bottomBar = if (actions != null) {
-            {
-                NavigationBar {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        actions()
+        bottomBar =
+            if (actions != null) {
+                {
+                    NavigationBar {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            actions()
+                        }
                     }
                 }
-            }
-        } else {
-            {}
-        }
+            } else {
+                {}
+            },
     ) {
+        when {
+            isLoading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+
+            else -> Unit
+        }
+        status()
         PullToRefreshLazyColumn(
             isLoading = isLoading,
             onRefresh = onRefresh,
             contentPadding = PaddingValues(top = 64.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(space = 16.dp)
+            verticalArrangement = Arrangement.spacedBy(space = 16.dp),
         ) {
             item {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(space = 32.dp)
+                    verticalArrangement = Arrangement.spacedBy(space = 32.dp),
                 ) {
                     AsyncImage(
                         model = context.packageManager.getApplicationIcon(context.packageName),
                         contentDescription = null,
-                        modifier =
-                            Modifier
-                                .size(size = 64.dp)
-                                .clip(shape = CircleShape),
+                        modifier = Modifier
+                            .size(size = 64.dp)
+                            .clip(shape = CircleShape),
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            style =
+                                MaterialTheme.typography.headlineLarge.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold,
+                                ),
                         )
 
                         Text(
                             text = description,
-                            style = MaterialTheme.typography.titleLarge
+                            style = MaterialTheme.typography.titleLarge,
                         )
                     }
                 }

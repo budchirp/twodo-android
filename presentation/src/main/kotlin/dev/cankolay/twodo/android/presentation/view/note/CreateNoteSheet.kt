@@ -4,44 +4,48 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
+import dev.cankolay.twodo.android.presentation.form.FormTextField
 import dev.cankolay.twodo.android.presentation.viewmodel.note.CreateNoteFormState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CreateNoteSheet(
     form: CreateNoteFormState,
+    result: ApiResult<*>?,
     onDismiss: () -> Unit,
     onTitleChange: (String) -> Unit,
-    onCreate: () -> Unit
+    onCreate: () -> Unit,
 ) {
+    val isLoading = result == ApiResult.Loading
+
     AppBottomSheet(
         title = stringResource(id = R.string.create_note),
         onDismiss = onDismiss,
+        result = result,
+        showLoading = false,
         actions = {
             Button(
-                enabled = form.canSubmit,
-                onClick = onCreate
+                enabled = form.canSubmit && !isLoading,
+                onClick = onCreate,
             ) {
                 Text(text = stringResource(id = R.string.create))
             }
-        }
+        },
     ) {
         item {
-            TextField(
+            FormTextField(
                 modifier = Modifier.fillMaxWidth(),
-                value = form.title.value,
+                field = form.title,
+                enabled = !isLoading,
                 onValueChange = onTitleChange,
-                label = { Text(text = stringResource(id = R.string.title)) },
-                isError = form.title.error != null,
-                supportingText = form.title.error?.let { error ->
-                    { Text(text = stringResource(id = error)) }
-                }
+                label = stringResource(id = R.string.title),
+                onSubmit = onCreate,
             )
         }
     }

@@ -1,5 +1,6 @@
 package dev.cankolay.twodo.android.presentation.viewmodel.calendar
 
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
@@ -10,15 +11,13 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodInput
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
-import dev.cankolay.twodo.android.domain.model.api.onError
-import dev.cankolay.twodo.android.domain.model.api.onSuccess
-import dev.cankolay.twodo.android.domain.usecase.api.calendar.CreateCalendarEntryUseCase
-import dev.cankolay.twodo.android.domain.usecase.api.calendar.DeleteCalendarEntryUseCase
-import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarEntriesUseCase
-import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarPredictionSummaryUseCase
-import dev.cankolay.twodo.android.domain.usecase.api.calendar.UpdateCalendarEntryUseCase
+import dev.cankolay.twodo.android.domain.model.api.user.Gender
+import dev.cankolay.twodo.android.domain.model.application.SessionState
+import dev.cankolay.twodo.android.domain.repository.api.CalendarRepository
+import dev.cankolay.twodo.android.domain.repository.application.SessionRepository
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
-import dev.cankolay.twodo.android.presentation.core.UiEvent
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -30,197 +29,230 @@ data class CalendarEntryFormState(
     val notes: String = "",
     val periodEvent: PeriodEvent = PeriodEvent.DAY,
     val flowLevel: FlowLevel = FlowLevel.MEDIUM,
-    val symptoms: Set<PeriodSymptom> = emptySet()
+    val symptoms: Set<PeriodSymptom> = emptySet(),
 ) {
-    val isEditing = entry != null
-
-    companion object {
-        fun create(date: LocalDate) = CalendarEntryFormState(date = date)
-
-        fun edit(entry: CalendarEntry) = CalendarEntryFormState(
-            entry = entry,
-            date = entry.date,
-            type = entry.type,
-            notes = entry.notes.orEmpty(),
-            periodEvent = entry.period?.event ?: PeriodEvent.DAY,
-            flowLevel = entry.period?.flowLevel ?: FlowLevel.MEDIUM,
-            symptoms = entry.period?.symptoms.orEmpty().toSet()
-        )
-    }
-}
-
-sealed interface CalendarSheet {
-    data object None : CalendarSheet
-    data object PredictionSummary : CalendarSheet
-    data class EntryForm(val form: CalendarEntryFormState) : CalendarSheet
-    data class DeleteConfirmation(val entry: CalendarEntry) : CalendarSheet
+    val editing: Boolean
+        get() = entry != null
 }
 
 data class CalendarUiState(
-    val entriesResult: ApiResult<List<CalendarEntry>> = ApiResult.Loading,
-    val cachedEntries: List<CalendarEntry>? = null,
-    val predictionResult: ApiResult<CalendarPredictionSummary> = ApiResult.Loading,
-    val visibleMonth: YearMonth = YearMonth.now(),
-    val selectedDate: LocalDate = LocalDate.now(),
-    val activeSheet: CalendarSheet = CalendarSheet.None
-) {
-    val entries: List<CalendarEntry>? get() = cachedEntries ?: entriesResult.dataOrNull
-    val selectedEntries: List<CalendarEntry>
-        get() = entries.orEmpty().filter { it.date == selectedDate }
-    val isLoading: Boolean get() = entriesResult.isLoading
-    val error: String? get() = entriesResult.errorMessage
-}
+    val entries: ApiResult<List<CalendarEntry>>? = null,
+    val prediction: ApiResult<CalendarPredictionSummary>? = null,
+    val result: ApiResult<*>? = null,
+    val month: YearMonth = YearMonth.now(),
+    val date: LocalDate = LocalDate.now(),
+    val form: CalendarEntryFormState = CalendarEntryFormState(date = LocalDate.now()),
+    val showPrediction: Boolean = false,
+    val showForm: Boolean = false,
+    val showDelete: Boolean = false,
+    val canTrackPeriods: Boolean = false,
+)
 
 @HiltViewModel
-class CalendarViewModel @Inject constructor(
-    private val createCalendarEntryUseCase: CreateCalendarEntryUseCase,
-    private val getCalendarEntriesUseCase: GetCalendarEntriesUseCase,
-    private val updateCalendarEntryUseCase: UpdateCalendarEntryUseCase,
-    private val deleteCalendarEntryUseCase: DeleteCalendarEntryUseCase,
-    private val getCalendarPredictionSummaryUseCase: GetCalendarPredictionSummaryUseCase
-) : BaseViewModel<CalendarUiState>(CalendarUiState()) {
-
+class CalendarViewModel
+@Inject
+constructor(
+    private val calendar: CalendarRepository,
+    session: SessionRepository,
+) : BaseViewModel<CalendarUiState>(initialState = CalendarUiState()) {
     init {
-        fetchEntries()
-    }
-
-    fun openPredictionSheet() {
-        updateState { copy(activeSheet = CalendarSheet.PredictionSummary) }
-        loadPredictionSummary()
-    }
-
-    fun openCreateEntrySheet(date: LocalDate = uiState.value.selectedDate) {
-        updateState {
-            copy(
-                selectedDate = date,
-                activeSheet = CalendarSheet.EntryForm(CalendarEntryFormState.create(date))
-            )
-        }
-    }
-
-    fun openEditEntrySheet(entry: CalendarEntry) {
-        updateState {
-            copy(
-                selectedDate = entry.date,
-                activeSheet = CalendarSheet.EntryForm(CalendarEntryFormState.edit(entry))
-            )
-        }
-    }
-
-    fun dismissSheet() {
-        updateState { copy(activeSheet = CalendarSheet.None) }
-    }
-
-    fun updateEntryType(type: CalendarEntryType) = updateForm { copy(type = type) }
-
-    fun updateEntryNotes(notes: String) = updateForm { copy(notes = notes) }
-
-    fun updatePeriodEvent(event: PeriodEvent) = updateForm { copy(periodEvent = event) }
-
-    fun updateFlowLevel(flowLevel: FlowLevel) = updateForm { copy(flowLevel = flowLevel) }
-
-    fun updateSymptoms(symptoms: Set<PeriodSymptom>) = updateForm { copy(symptoms = symptoms) }
-
-    fun requestDeleteEntry() {
-        val form = (uiState.value.activeSheet as? CalendarSheet.EntryForm)?.form ?: return
-        val entry = form.entry ?: return
-        updateState { copy(activeSheet = CalendarSheet.DeleteConfirmation(entry)) }
-    }
-
-    fun selectDate(date: LocalDate) {
-        updateState { copy(selectedDate = date, visibleMonth = YearMonth.from(date)) }
-    }
-
-    fun moveMonth(months: Int) {
-        updateState {
-            val newMonth = visibleMonth.plusMonths(months.toLong())
-            val newDay = minOf(selectedDate.dayOfMonth, newMonth.lengthOfMonth())
-            copy(
-                visibleMonth = newMonth,
-                selectedDate = newMonth.atDay(newDay)
-            )
-        }
-    }
-
-    fun fetchEntries() {
-        launchOnce("entries") {
-            updateState { copy(entriesResult = ApiResult.Loading) }
-            val result = getCalendarEntriesUseCase()
-            updateState {
-                copy(
-                    entriesResult = result,
-                    cachedEntries = result.dataOrNull ?: cachedEntries
-                )
-            }
-            loadPredictionSummary()
-        }
-    }
-
-    fun submitEntry(isFemale: Boolean) {
-        val form = (uiState.value.activeSheet as? CalendarSheet.EntryForm)?.form ?: return
-        val input = buildInput(form, form.date, isFemale)
-        dismissSheet()
-        launchOnce("save-entry") {
-            val result = if (form.isEditing && form.entry != null) {
-                updateCalendarEntryUseCase(form.entry.id, input)
-            } else {
-                createCalendarEntryUseCase(input)
-            }
-            result.onSuccess { fetchEntries() }
-                .onError { message, _ ->
-                    sendEvent(UiEvent.ShowSnackbar(message))
-                    fetchEntries()
+        viewModelScope.launch {
+            session.state.collect { state ->
+                _uiState.update {
+                    it.copy(
+                        canTrackPeriods =
+                            (state as? SessionState.Active)?.user?.gender == Gender.FEMALE
+                    )
                 }
+            }
         }
-    }
 
-    fun confirmDeleteEntry() {
-        val entry =
-            (uiState.value.activeSheet as? CalendarSheet.DeleteConfirmation)?.entry ?: return
-        dismissSheet()
-        updateState { copy(cachedEntries = entries?.filterNot { it.id == entry.id }) }
-
-        launchOnce("delete-entry:${entry.id}") {
-            deleteCalendarEntryUseCase(entry.id)
-                .onSuccess { fetchEntries() }
-                .onError { message, _ ->
-                    sendEvent(UiEvent.ShowSnackbar(message))
-                    fetchEntries()
+        viewModelScope.launch {
+            calendar.entries.collect { entries ->
+                if (uiState.value.entries != ApiResult.Loading) {
+                    _uiState.update {
+                        it.copy(entries = entries?.let { ApiResult.Success(data = it) })
+                    }
                 }
+            }
+        }
+
+        fetch()
+    }
+
+    fun openPrediction(forceRefresh: Boolean = false) {
+        if (uiState.value.result == ApiResult.Loading) return
+
+        _uiState.update { it.copy(showPrediction = true) }
+
+        if (uiState.value.prediction == ApiResult.Loading) return
+
+        _uiState.update { it.copy(prediction = ApiResult.Loading) }
+
+        viewModelScope.launch {
+            val result = calendar.getPredictionSummary(forceRefresh = forceRefresh)
+
+            _uiState.update { it.copy(prediction = result) }
         }
     }
 
-    private fun loadPredictionSummary() {
-        launchLatest("prediction") {
-            updateState { copy(predictionResult = ApiResult.Loading) }
-            val result = getCalendarPredictionSummaryUseCase()
-            updateState { copy(predictionResult = result) }
+    fun openForm() {
+        if (uiState.value.result == ApiResult.Loading) return
+
+        _uiState.update {
+            it.copy(
+                form = CalendarEntryFormState(date = it.date),
+                showForm = true,
+                result = null,
+            )
         }
     }
 
-    private inline fun updateForm(crossinline transform: CalendarEntryFormState.() -> CalendarEntryFormState) {
-        updateState {
-            val form = activeSheet as? CalendarSheet.EntryForm ?: return@updateState this
-            copy(activeSheet = CalendarSheet.EntryForm(form.form.run(transform)))
-        }
-    }
-
-    private fun buildInput(
-        form: CalendarEntryFormState,
-        date: LocalDate,
-        isFemale: Boolean
-    ): CalendarEntryInput {
-        val periodInput = if (isFemale && form.type == CalendarEntryType.PERIOD) {
-            PeriodInput(form.periodEvent, form.flowLevel, form.symptoms.toList())
-        } else {
-            null
-        }
-
-        return CalendarEntryInput(
-            date = date,
-            type = form.type,
-            notes = form.notes.ifBlank { null },
-            period = periodInput
+    fun openForm(entry: CalendarEntry) {
+        if (
+            uiState.value.result == ApiResult.Loading ||
+            !entry.canManage(canTrackPeriods = uiState.value.canTrackPeriods)
         )
+            return
+
+        _uiState.update {
+            it.copy(
+                date = entry.date,
+                result = null,
+                showForm = true,
+                form =
+                    CalendarEntryFormState(
+                        entry = entry,
+                        date = entry.date,
+                        type = entry.type,
+                        notes = entry.notes.orEmpty(),
+                        periodEvent = entry.period?.event ?: PeriodEvent.DAY,
+                        flowLevel = entry.period?.flowLevel ?: FlowLevel.MEDIUM,
+                        symptoms = entry.period?.symptoms.orEmpty().toSet(),
+                    ),
+            )
+        }
+    }
+
+    fun updateForm(form: CalendarEntryFormState) {
+        if (uiState.value.result == ApiResult.Loading || !uiState.value.showForm) return
+
+        _uiState.update { it.copy(form = form) }
+    }
+
+    fun dismiss() {
+        if (uiState.value.result == ApiResult.Loading) return
+
+        _uiState.update {
+            it.copy(showForm = false, showDelete = false, showPrediction = false, result = null)
+        }
+    }
+
+    fun askDelete() {
+        if (uiState.value.result == ApiResult.Loading || uiState.value.form.entry == null) return
+
+        _uiState.update {
+            it.copy(
+                showForm = false,
+                showDelete = true,
+                result = null,
+            )
+        }
+    }
+
+    fun select(date: LocalDate) {
+        _uiState.update { it.copy(date = date, month = YearMonth.from(date)) }
+    }
+
+    fun move(months: Int) {
+        _uiState.update {
+            val month = it.month.plusMonths(months.toLong())
+
+            it.copy(
+                month = month,
+                date = month.atDay(minOf(it.date.dayOfMonth, month.lengthOfMonth())),
+            )
+        }
+    }
+
+    fun fetch(forceRefresh: Boolean = false) {
+        if (uiState.value.entries == ApiResult.Loading) return
+
+        _uiState.update { it.copy(entries = ApiResult.Loading) }
+
+        viewModelScope.launch {
+            val result = calendar.getAll(forceRefresh = forceRefresh)
+
+            _uiState.update { it.copy(entries = result, prediction = null) }
+        }
+    }
+
+    fun save() {
+        if (!uiState.value.showForm) return
+
+        val form = uiState.value.form
+
+        if (!form.type.canCreate(canTrackPeriods = uiState.value.canTrackPeriods)) return
+
+        val input =
+            CalendarEntryInput(
+                date = form.date,
+                type = form.type,
+                notes = form.notes.ifBlank { null },
+                period =
+                    if (form.type == CalendarEntryType.PERIOD)
+                        PeriodInput(
+                            event = form.periodEvent,
+                            flowLevel = form.flowLevel,
+                            symptoms = form.symptoms.toList(),
+                        )
+                    else null,
+            )
+
+        submit(
+            refreshEntries =
+                form.type == CalendarEntryType.PERIOD ||
+                        form.entry?.type == CalendarEntryType.PERIOD
+        ) {
+            if (form.entry != null) calendar.update(id = form.entry.id, input = input)
+            else calendar.create(input = input)
+        }
+    }
+
+    fun delete() {
+        val entry = uiState.value.form.entry ?: return
+
+        if (!entry.canManage(canTrackPeriods = uiState.value.canTrackPeriods)) return
+
+        submit(refreshEntries = entry.type == CalendarEntryType.PERIOD) {
+            calendar.delete(id = entry.id)
+        }
+    }
+
+    private fun submit(refreshEntries: Boolean, block: suspend () -> ApiResult<*>) {
+        if (uiState.value.result == ApiResult.Loading) return
+
+        _uiState.update { it.copy(result = ApiResult.Loading) }
+
+        viewModelScope.launch {
+            val result = block()
+
+            _uiState.update { it.copy(result = result, prediction = null) }
+
+            if (result is ApiResult.Success && refreshEntries) fetch(forceRefresh = true)
+        }
     }
 }
+
+fun CalendarEntryType.canCreate(canTrackPeriods: Boolean): Boolean =
+    when (this) {
+        CalendarEntryType.NOTE -> true
+
+        CalendarEntryType.PERIOD -> canTrackPeriods
+
+        CalendarEntryType.OVULATION,
+        CalendarEntryType.PERIOD_PREDICTION -> false
+    }
+
+fun CalendarEntry.canManage(canTrackPeriods: Boolean): Boolean =
+    createdBy != null && type.canCreate(canTrackPeriods = canTrackPeriods)

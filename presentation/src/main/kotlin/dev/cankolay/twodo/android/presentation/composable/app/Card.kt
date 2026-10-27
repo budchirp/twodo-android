@@ -31,19 +31,19 @@ fun Card(
     content: @Composable () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(other = modifier)
-            .clip(shape = shape)
-            .then(other = if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(other = modifier)
+                .clip(shape = shape)
+                .then(other = if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = color
-        )) {
+        colors = CardDefaults.cardColors(containerColor = color),
+    ) {
         Column(
             modifier = Modifier.padding(paddingValues = contentPadding),
             verticalArrangement = verticalArrangement,
-            horizontalAlignment = horizontalAlignment
+            horizontalAlignment = horizontalAlignment,
         ) {
             content()
         }
@@ -56,7 +56,7 @@ fun CardStack(
     shape: Shape = MaterialTheme.shapes.large,
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
     contentPadding: PaddingValues = PaddingValues(all = 0.dp),
-    items: List<(@Composable () -> Unit)?>
+    items: List<(@Composable () -> Unit)?>,
 ) {
     if (items.isEmpty()) return
 
@@ -65,14 +65,14 @@ fun CardStack(
         shape = shape,
         color = Color.Transparent,
         contentPadding = PaddingValues(all = 0.dp),
-        verticalArrangement = Arrangement.spacedBy(space = 2.dp)
+        verticalArrangement = Arrangement.spacedBy(space = 2.dp),
     ) {
         items.forEach { item ->
             item?.let {
                 Card(
                     shape = SquircleShape(radius = 4.dp),
                     color = color,
-                    contentPadding = contentPadding
+                    contentPadding = contentPadding,
                 ) {
                     item()
                 }
@@ -89,7 +89,8 @@ data class CardStackListItem(
     val leadingContent: @Composable (() -> Unit)? = null,
     val trailingContent: @Composable (() -> Unit)? = null,
     val contentPadding: PaddingValues? = null,
-    val contentSize: Dp? = 24.dp
+    val contentSize: Dp? = 24.dp,
+    val modifier: Modifier = Modifier,
 )
 
 @Composable
@@ -97,7 +98,7 @@ fun CardStackList(
     modifier: Modifier = Modifier,
     shape: Shape = MaterialTheme.shapes.large,
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
-    items: List<CardStackListItem>
+    items: List<CardStackListItem>,
 ) {
     if (items.isEmpty()) return
 
@@ -105,20 +106,22 @@ fun CardStackList(
         modifier = modifier,
         shape = shape,
         color = color,
-        items = items.map { item ->
-            {
-                ListItem(
-                    title = item.title,
-                    description = item.description,
-                    leadingContent = item.leadingContent,
-                    trailingContent = item.trailingContent,
-                    onClick = item.onClick,
-                    enabled = item.enabled,
-                    contentPadding = item.contentPadding,
-                    contentSize = item.contentSize
-                )
-            }
-        }
+        items =
+            items.map { item ->
+                {
+                    ListItem(
+                        modifier = item.modifier,
+                        title = item.title,
+                        description = item.description,
+                        leadingContent = item.leadingContent,
+                        trailingContent = item.trailingContent,
+                        onClick = item.onClick,
+                        enabled = item.enabled,
+                        contentPadding = item.contentPadding,
+                        contentSize = item.contentSize,
+                    )
+                }
+            },
     )
 }
 
@@ -133,21 +136,22 @@ fun CardList(
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     contentPadding: PaddingValues? = null,
+    contentSize: Dp? = 24.dp,
 ) {
-    CardStackList(
+    Card(
         modifier = modifier,
         color = color,
-        items = listOf(
-            CardStackListItem(
-                title = title,
-                description = description,
-                onClick = onClick,
-                enabled = enabled,
-                leadingContent = leadingContent,
-                trailingContent = trailingContent,
-                contentPadding = contentPadding,
-                contentSize = 24.dp
-            )
+        contentPadding = PaddingValues(all = 0.dp),
+    ) {
+        ListItem(
+            title = title,
+            description = description,
+            onClick = onClick,
+            enabled = enabled,
+            leadingContent = leadingContent,
+            trailingContent = trailingContent,
+            contentPadding = contentPadding,
+            contentSize = contentSize
         )
-    )
+    }
 }

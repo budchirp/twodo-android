@@ -68,109 +68,112 @@ sealed interface Route : NavKey {
 }
 
 @Composable
-fun NavKey.getDetails(): RouteDetail {
-    val routeDetail = mapOf(
-        Route.Notes to RouteDetail(
-            title = stringResource(id = R.string.notes),
-            description = stringResource(id = R.string.notes),
-            icon = RouteDetailIcon(
-                default = Icons.Filled.Edit,
-                outlined = Icons.Outlined.Edit,
+fun Route.getDetails(): RouteDetail =
+    when (this) {
+        Route.Notes,
+        is Route.Note ->
+            RouteDetail(
+                title = stringResource(id = R.string.notes),
+                icon = RouteDetailIcon(default = Icons.Filled.Edit, outlined = Icons.Outlined.Edit),
             )
-        ),
-        Route.Calendar to RouteDetail(
-            title = stringResource(id = R.string.calendar),
-            description = stringResource(id = R.string.calendar_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Filled.CalendarMonth,
-                outlined = Icons.Outlined.CalendarMonth,
-            )
-        ),
-        Route.Settings to RouteDetail(
-            title = stringResource(id = R.string.settings),
-            description = stringResource(id = R.string.settings),
-            icon = RouteDetailIcon(
-                default = Icons.Filled.Settings,
-                outlined = Icons.Outlined.Settings
-            )
-        ),
-        Route.StartupError to RouteDetail(
-            title = stringResource(id = R.string.startup_error_title),
-            description = stringResource(id = R.string.startup_error_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Default.CloudOff,
-            )
-        ),
-        Route.ProfileSetup to RouteDetail(
-            title = stringResource(id = R.string.profile_setup),
-            description = stringResource(id = R.string.profile_setup_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Default.Person,
-            )
-        ),
-        Route.CoupleSetup to RouteDetail(
-            title = stringResource(id = R.string.couple_setup),
-            description = stringResource(id = R.string.couple_setup_desc),
-            icon = RouteDetailIcon(
-                default = ImageVector.vectorResource(id = R.drawable.partner_heart_24px),
-            )
-        ),
-        Route.Couple to RouteDetail(
-            title = stringResource(id = R.string.couple),
-            description = stringResource(id = R.string.couple),
-            icon = RouteDetailIcon(
-                default = ImageVector.vectorResource(id = R.drawable.partner_heart_24px),
-            )
-        ),
-        Route.Appearance to RouteDetail(
-            title = stringResource(id = R.string.appearance),
-            description = stringResource(id = R.string.appearance_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Default.Palette,
-            )
-        ),
-        Route.Theme to RouteDetail(
-            title = stringResource(id = R.string.theme),
-            description = stringResource(id = R.string.theme_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Default.DarkMode,
-            ),
-        ),
-        Route.MaterialYou to RouteDetail(
-            title = stringResource(id = R.string.material_you),
-            description = stringResource(id = R.string.material_you_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Default.Colorize,
-            )
-        ),
-        Route.Languages to RouteDetail(
-            title = stringResource(id = R.string.languages),
-            description = stringResource(id = R.string.languages_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Filled.Translate,
-            )
-        ),
-        Route.About to RouteDetail(
-            title = stringResource(id = R.string.about),
-            description = stringResource(id = R.string.about_desc),
-            icon = RouteDetailIcon(
-                default = Icons.Filled.Info,
-            )
-        ),
-    )
 
-    val lookupKey = when (this) {
-        is Route.Note -> Route.Notes
-        else -> this
+        Route.Calendar ->
+            RouteDetail(
+                title = stringResource(id = R.string.calendar),
+                description = stringResource(id = R.string.calendar_desc),
+                icon =
+                    RouteDetailIcon(
+                        default = Icons.Filled.CalendarMonth,
+                        outlined = Icons.Outlined.CalendarMonth,
+                    ),
+            )
+
+        Route.Settings ->
+            RouteDetail(
+                title = stringResource(id = R.string.settings),
+                icon =
+                    RouteDetailIcon(
+                        default = Icons.Filled.Settings,
+                        outlined = Icons.Outlined.Settings,
+                    ),
+            )
+
+        Route.Welcome ->
+            RouteDetail(
+                title = stringResource(id = R.string.welcome),
+                description = stringResource(id = R.string.welcome_desc),
+                icon = RouteDetailIcon(default = Icons.Default.Person),
+            )
+
+        Route.StartupError ->
+            RouteDetail(
+                title = stringResource(id = R.string.startup_error_title),
+                description = stringResource(id = R.string.startup_error_desc),
+                icon = RouteDetailIcon(default = Icons.Default.CloudOff),
+            )
+
+        Route.ProfileSetup ->
+            RouteDetail(
+                title = stringResource(id = R.string.profile_setup),
+                description = stringResource(id = R.string.profile_setup_desc),
+                icon = RouteDetailIcon(default = Icons.Default.Person),
+            )
+
+        Route.CoupleSetup ->
+            RouteDetail(
+                title = stringResource(id = R.string.couple_setup),
+                description = stringResource(id = R.string.couple_setup_desc),
+                icon =
+                    RouteDetailIcon(
+                        default = ImageVector.vectorResource(id = R.drawable.partner_heart_24px)
+                    ),
+            )
+
+        Route.Couple ->
+            RouteDetail(
+                title = stringResource(id = R.string.couple),
+                icon =
+                    RouteDetailIcon(
+                        default = ImageVector.vectorResource(id = R.drawable.partner_heart_24px)
+                    ),
+            )
+
+        Route.Appearance ->
+            RouteDetail(
+                title = stringResource(id = R.string.appearance),
+                description = stringResource(id = R.string.appearance_desc),
+                icon = RouteDetailIcon(default = Icons.Default.Palette),
+            )
+
+        Route.Theme ->
+            RouteDetail(
+                title = stringResource(id = R.string.theme),
+                description = stringResource(id = R.string.theme_desc),
+                icon = RouteDetailIcon(default = Icons.Default.DarkMode),
+            )
+
+        Route.MaterialYou ->
+            RouteDetail(
+                title = stringResource(id = R.string.material_you),
+                description = stringResource(id = R.string.material_you_desc),
+                icon = RouteDetailIcon(default = Icons.Default.Colorize),
+            )
+
+        Route.Languages ->
+            RouteDetail(
+                title = stringResource(id = R.string.languages),
+                description = stringResource(id = R.string.languages_desc),
+                icon = RouteDetailIcon(default = Icons.Default.Translate),
+            )
+
+        Route.About ->
+            RouteDetail(
+                title = stringResource(id = R.string.about),
+                description = stringResource(id = R.string.about_desc),
+                icon = RouteDetailIcon(default = Icons.Default.Info),
+            )
     }
 
-    return routeDetail[lookupKey] ?: routeDetail.getValue(Route.Notes)
-}
-
-val onboardingRoutes = listOf(
-    Route.Welcome, Route.ProfileSetup, Route.StartupError, Route.CoupleSetup
-)
-
-val navigationRoutes = listOf(
-    Route.Notes, Route.Calendar, Route.Settings
-)
+val onboardingRoutes =
+    listOf(Route.Welcome, Route.ProfileSetup, Route.StartupError, Route.CoupleSetup)
+val navigationRoutes = listOf(Route.Notes, Route.Calendar, Route.Settings)

@@ -24,158 +24,181 @@ import dev.cankolay.twodo.android.presentation.util.DateUtils
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PredictionSummarySheet(
-    result: ApiResult<CalendarPredictionSummary>,
+    state: ApiResult<CalendarPredictionSummary>?,
     onDismiss: () -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
 ) {
     AppBottomSheet(
         title = stringResource(id = R.string.period_tracker),
-        onDismiss = onDismiss
-    ) {
-        if (result.isLoading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            return@AppBottomSheet
-        }
-
-        val data = result.dataOrNull
-        if (data == null) {
-            item {
-                ErrorCard(
-                    title = stringResource(id = R.string.prediction_unavailable),
-                    error = result.errorMessage,
-                    onRefresh = onRefresh
-                )
-            }
-            return@AppBottomSheet
-        }
-
-        val cycle = data.cyclePrediction
-
-        item {
-            val items = if (cycle == null || !cycle.hasEnoughData) {
-                listOf(
-                    CardStackListItem(
-                        title = stringResource(id = R.string.prediction_unavailable),
-                        description = cycle?.basis?.takeIf { it.isNotBlank() }
-                            ?: stringResource(id = R.string.prediction_unavailable_desc)
-                    )
-                )
-            } else {
-                val cycleLength = cycle.cycleLengthDays
-                val periodDuration = cycle.periodDurationDays
-
-                val averagesText = if (
-                    cycleLength != null && periodDuration != null
-                ) {
-                    stringResource(
-                        id = R.string.period_tracker_averages,
-                        cycleLength,
-                        periodDuration
-                    )
-                } else {
-                    null
-                }
-
-                val periodWindow = cycle.nextPeriodWindow
-                val start = cycle.expectedPeriodStartDate
-                val end = cycle.expectedPeriodEndDate
-
-                listOfNotNull(
-                    when {
-                        periodWindow != null -> {
-                            CardStackListItem(
-                                title = stringResource(id = R.string.next_period_window),
-                                description = "${
-                                    DateUtils.format(
-                                        periodWindow.startDate,
-                                        DateUtils.SUMMARY_DATE_PATTERN
-                                    )
-                                } – ${
-                                    DateUtils.format(
-                                        periodWindow.endDate,
-                                        DateUtils.SUMMARY_DATE_PATTERN
-                                    )
-                                }"
-                            )
-                        }
-
-                        start != null -> {
-                            CardStackListItem(
-                                title = stringResource(id = R.string.next_period_window),
-                                description = if (end != null) {
-                                    "${
-                                        DateUtils.format(
-                                            start,
-                                            DateUtils.SUMMARY_DATE_PATTERN
-                                        )
-                                    } – ${
-                                        DateUtils.format(
-                                            end,
-                                            DateUtils.SUMMARY_DATE_PATTERN
-                                        )
-                                    }"
-                                } else {
-                                    DateUtils.format(start, DateUtils.SUMMARY_DATE_PATTERN)
-                                }
-                            )
-                        }
-
-                        else -> null
-                    },
-
-                    cycle.ovulationWindow?.let { window ->
-                        CardStackListItem(
-                            title = stringResource(id = R.string.ovulation_window),
-                            description = "${
-                                DateUtils.format(
-                                    window.startDate,
-                                    DateUtils.SUMMARY_DATE_PATTERN
-                                )
-                            } – ${
-                                DateUtils.format(
-                                    window.endDate,
-                                    DateUtils.SUMMARY_DATE_PATTERN
-                                )
-                            }"
-                        )
-                    },
-
-                    averagesText?.let {
-                        CardStackListItem(
-                            title = stringResource(id = R.string.period_tracker_desc),
-                            description = it
-                        )
-                    },
-
-                    cycle.basis?.takeIf { it.isNotBlank() }?.let {
-                        CardStackListItem(
-                            title = stringResource(id = R.string.period_tips_title),
-                            description = it
-                        )
+        onDismiss = onDismiss,
+        status = {
+            when (state) {
+                ApiResult.Loading ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
                     }
-                )
+
+                is ApiResult.Failure ->
+                    ErrorCard(
+                        modifier = Modifier.padding(all = 16.dp),
+                        error = state.error.message,
+                        onRefresh = onRefresh,
+                    )
+
+                else -> Unit
             }
+        },
+        content =
+            when (state) {
+                is ApiResult.Success -> {
+                    {
+                        val cycle = state.data.cyclePrediction
 
-            CardStackList(items = items)
-        }
+                        item {
+                            val items =
+                                if (cycle == null || !cycle.hasEnoughData) {
+                                    listOf(
+                                        CardStackListItem(
+                                            title =
+                                                stringResource(
+                                                    id = R.string.prediction_unavailable
+                                                ),
+                                            description =
+                                                cycle?.basis?.takeIf { it.isNotBlank() }
+                                                    ?: stringResource(
+                                                        id = R.string.prediction_unavailable_desc
+                                                    ),
+                                        )
+                                    )
+                                } else {
+                                    val cycleLength = cycle.cycleLengthDays
+                                    val periodDuration = cycle.periodDurationDays
+                                    val averagesText =
+                                        if (cycleLength != null && periodDuration != null) {
+                                            stringResource(
+                                                id = R.string.period_tracker_averages,
+                                                cycleLength,
+                                                periodDuration,
+                                            )
+                                        } else null
 
-        item {
-            val defaultDisclaimer = stringResource(id = R.string.default_medical_disclaimer)
+                                    val periodWindow = cycle.nextPeriodWindow
+                                    val start = cycle.expectedPeriodStartDate
+                                    val end = cycle.expectedPeriodEndDate
 
-            Text(
-                text = cycle?.disclaimer?.takeIf { it.isNotBlank() } ?: defaultDisclaimer,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-        }
-    }
+                                    listOfNotNull(
+                                        when {
+                                            periodWindow != null ->
+                                                CardStackListItem(
+                                                    title =
+                                                        stringResource(
+                                                            id = R.string.next_period_window
+                                                        ),
+                                                    description =
+                                                        "${
+                                                            DateUtils.format(
+                                                                periodWindow.startDate,
+                                                                DateUtils.SUMMARY_DATE_PATTERN,
+                                                            )
+                                                        } – ${
+                                                            DateUtils.format(
+                                                                periodWindow.endDate,
+                                                                DateUtils.SUMMARY_DATE_PATTERN,
+                                                            )
+                                                        }",
+                                                )
+
+                                            start != null ->
+                                                CardStackListItem(
+                                                    title =
+                                                        stringResource(
+                                                            id = R.string.next_period_window
+                                                        ),
+                                                    description =
+                                                        if (end != null) {
+                                                            "${
+                                                                DateUtils.format(
+                                                                    start,
+                                                                    DateUtils.SUMMARY_DATE_PATTERN
+                                                                )
+                                                            } – ${
+                                                                DateUtils.format(
+                                                                    end,
+                                                                    DateUtils.SUMMARY_DATE_PATTERN
+                                                                )
+                                                            }"
+                                                        } else
+                                                            DateUtils.format(
+                                                                start,
+                                                                DateUtils.SUMMARY_DATE_PATTERN,
+                                                            ),
+                                                )
+
+                                            else -> null
+                                        },
+                                        cycle.ovulationWindow?.let { window ->
+                                            CardStackListItem(
+                                                title =
+                                                    stringResource(id = R.string.ovulation_window),
+                                                description =
+                                                    "${
+                                                        DateUtils.format(
+                                                            window.startDate,
+                                                            DateUtils.SUMMARY_DATE_PATTERN
+                                                        )
+                                                    } – ${
+                                                        DateUtils.format(
+                                                            window.endDate,
+                                                            DateUtils.SUMMARY_DATE_PATTERN
+                                                        )
+                                                    }",
+                                            )
+                                        },
+                                        averagesText?.let {
+                                            CardStackListItem(
+                                                title =
+                                                    stringResource(
+                                                        id = R.string.period_tracker_desc
+                                                    ),
+                                                description = it,
+                                            )
+                                        },
+                                        cycle.basis
+                                            ?.takeIf { it.isNotBlank() }
+                                            ?.let {
+                                                CardStackListItem(
+                                                    title =
+                                                        stringResource(
+                                                            id = R.string.period_tips_title
+                                                        ),
+                                                    description = it,
+                                                )
+                                            },
+                                    )
+                                }
+
+                            CardStackList(items = items)
+                        }
+
+                        item {
+                            Text(
+                                text =
+                                    cycle?.disclaimer?.takeIf { it.isNotBlank() }
+                                        ?: stringResource(id = R.string.default_medical_disclaimer),
+                                style = MaterialTheme.typography.labelSmall,
+                                color =
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            )
+                        }
+                    }
+                }
+
+                else -> null
+            },
+    )
 }

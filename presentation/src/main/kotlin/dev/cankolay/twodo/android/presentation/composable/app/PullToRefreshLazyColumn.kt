@@ -1,8 +1,5 @@
 package dev.cankolay.twodo.android.presentation.composable.app
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,28 +32,22 @@ fun PullToRefreshLazyColumn(
     val pullToRefreshState = rememberPullToRefreshState()
 
     PullToRefreshBox(
+        modifier = modifier,
         enabled = onRefresh != null,
         onRefresh = onRefresh ?: {},
         isRefreshing = isLoading,
         state = pullToRefreshState,
         indicator = {
-            val showIndicator = isLoading || pullToRefreshState.distanceFraction > 0f
-            AnimatedVisibility(
-                modifier = Modifier.align(Alignment.TopCenter),
-                visible = showIndicator,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
+            if (!isLoading && pullToRefreshState.distanceFraction > 0f) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
-        }
+        },
     ) {
         AppLazyColumn(
-            modifier = modifier,
             state = state,
             contentPadding = contentPadding,
             verticalArrangement = verticalArrangement,
-            horizontalAlignment = horizontalAlignment
+            horizontalAlignment = horizontalAlignment,
         ) {
             content()
         }

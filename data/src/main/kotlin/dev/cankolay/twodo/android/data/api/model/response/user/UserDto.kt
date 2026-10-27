@@ -40,7 +40,7 @@ fun UserDto.toDomain() = User(
     name = name,
     picture = picture,
     gender = gender?.let { Gender.fromValue(value = it) },
-    profileCompleted = profileCompleted || (name.isNotBlank() && gender != null),
+    profileCompleted = profileCompleted,
     couple = couple?.toDomain()
 )
 

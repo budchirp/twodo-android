@@ -27,23 +27,25 @@ fun AppNavigationRail() {
     val navBackStack = LocalNavBackStack.current
     val route = navBackStack.lastOrNull() ?: Route.Notes
 
-    if (onboardingRoutes.any { it == route }) return
+    if (route in onboardingRoutes) return
+    val selectedRoute = navBackStack.firstOrNull { it in navigationRoutes }
 
     NavigationRail(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        windowInsets = WindowInsets.systemBars
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        windowInsets = WindowInsets.systemBars,
     ) {
         Column(
             modifier = Modifier.fillMaxHeight(),
-            verticalArrangement = Arrangement.spacedBy(
-                space = 8.dp,
-                alignment = Alignment.CenterVertically
-            )
+            verticalArrangement =
+                Arrangement.spacedBy(
+                    space = 8.dp,
+                    alignment = Alignment.CenterVertically,
+                ),
         ) {
             navigationRoutes.forEach { route ->
                 val details = route.getDetails()
 
-                val isSelected = navBackStack.lastOrNull() == route
+                val isSelected = selectedRoute == route
 
                 NavigationRailItem(
                     selected = isSelected,
@@ -53,11 +55,8 @@ fun AppNavigationRail() {
                         }
                     },
                     icon = {
-                        Icon(
-                            icon = if (isSelected) details.icon.default else details.icon.outlined
-                                ?: details.icon.default
-                        )
-                    }
+                        Icon(icon = details.icon.forSelection(selected = isSelected))
+                    },
                 )
             }
         }

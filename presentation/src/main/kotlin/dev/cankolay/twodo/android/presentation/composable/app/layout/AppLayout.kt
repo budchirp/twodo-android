@@ -21,7 +21,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.cankolay.twodo.android.presentation.composable.rememberDeviceCornerRadius
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
-data class AppLayoutContext @OptIn(ExperimentalMaterial3Api::class) constructor(
+data class AppLayoutContext
+@OptIn(ExperimentalMaterial3Api::class)
+constructor(
     val route: Route,
     val background: Color,
     val scrollBehavior: TopAppBarScrollBehavior?,
@@ -35,20 +37,19 @@ fun AppLayout(
         context
     },
     topBar: (@Composable (context: AppLayoutContext) -> Unit) = { context ->
-        AppTopAppBar(
-            context = context
-        )
+        AppTopAppBar(context = context)
     },
     bottomBar: @Composable () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
-    val context = context(
-        AppLayoutContext(
-            route = route,
-            background = MaterialTheme.colorScheme.surface,
-            scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val context =
+        context(
+            AppLayoutContext(
+                route = route,
+                background = MaterialTheme.colorScheme.surface,
+                scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
+            )
         )
-    )
 
     Scaffold(
         modifier =
@@ -56,9 +57,12 @@ fun AppLayout(
                 .fillMaxSize()
                 .clip(shape = RoundedCornerShape(size = rememberDeviceCornerRadius()))
                 .then(
-                    other = if (context.scrollBehavior == null) Modifier else Modifier.nestedScroll(
-                        connection = context.scrollBehavior.nestedScrollConnection
-                    )
+                    other =
+                        if (context.scrollBehavior == null) Modifier
+                        else
+                            Modifier.nestedScroll(
+                                connection = context.scrollBehavior.nestedScrollConnection
+                            )
                 ),
         topBar = {
             topBar(context)
@@ -68,10 +72,9 @@ fun AppLayout(
         containerColor = context.background,
     ) { innerPadding ->
         Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues = innerPadding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues = innerPadding)
         ) {
             content()
         }

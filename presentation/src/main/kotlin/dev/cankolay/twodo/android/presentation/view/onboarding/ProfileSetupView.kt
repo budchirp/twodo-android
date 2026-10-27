@@ -6,7 +6,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -14,95 +13,111 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
 import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
-import dev.cankolay.twodo.android.presentation.core.HandleEvents
+import dev.cankolay.twodo.android.presentation.form.FormTextField
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.viewmodel.user.UserViewModel
+import dev.cankolay.twodo.android.presentation.viewmodel.user.ProfileSetupUiState
+import dev.cankolay.twodo.android.presentation.viewmodel.user.ProfileSetupViewModel
+
+@Composable
+fun ProfileSetupView(viewModel: ProfileSetupViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    ProfileSetupContent(
+        userState = state,
+        onRefresh = viewModel::fetch,
+        onNameChange = viewModel::updateName,
+        onGenderChange = viewModel::updateGender,
+        onSubmit = viewModel::save,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun ProfileSetupView(
-    userViewModel: UserViewModel = hiltViewModel()
+private fun ProfileSetupContent(
+    userState: ProfileSetupUiState,
+    onRefresh: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onGenderChange: (Gender) -> Unit,
+    onSubmit: () -> Unit,
 ) {
-    val userState by userViewModel.uiState.collectAsStateWithLifecycle()
-    val profileForm = userState.profileForm
-    HandleEvents(viewModel = userViewModel)
+    val form = userState.form
 
-    val isLoading = userState.isLoading
-    val selectedGender = profileForm.gender.value
+    val isLoading = userState.user == ApiResult.Loading || userState.result == ApiResult.Loading
+
+    val selectedGender = form.gender.value
 
     OnboardingLayout(
         route = Route.ProfileSetup,
         title = stringResource(id = R.string.profile_setup_title),
         description = stringResource(id = R.string.profile_setup_desc),
         isLoading = isLoading,
-        onRefresh = { userViewModel.fetchUser() },
+        onRefresh = onRefresh,
+        status = {
+            when (val result = userState.user) {
+                is ApiResult.Failure ->
+                    ErrorCard(error = result.error.message, onRefresh = onRefresh)
+
+                else -> Unit
+            }
+
+            when (val result = userState.result) {
+                is ApiResult.Failure ->
+                    ErrorCard(error = result.error.message, onRefresh = onSubmit)
+
+                else -> Unit
+            }
+        },
         actions = {
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading && profileForm.canSubmit,
-                onClick = userViewModel::submitProfile
+                enabled = !isLoading && form.canSubmit,
+                onClick = onSubmit,
             ) {
                 Text(text = stringResource(id = R.string.save))
             }
         },
         lazyContent = {
-            if (userState.error != null) {
-                item {
-                    ErrorCard(
-                        title = stringResource(id = R.string.profile_setup_error_title),
-                        error = userState.error,
-                        onRefresh = { userViewModel.fetchUser() }
-                    )
-                }
-            }
-
             item {
-                TextField(
+                FormTextField(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
-                    value = profileForm.name.value,
-                    onValueChange = { userViewModel.updateProfileName(name = it) },
-                    singleLine = true,
-                    label = { Text(text = stringResource(id = R.string.name)) },
-                    isError = profileForm.name.error != null,
-                    supportingText = if (profileForm.name.value.isBlank() || profileForm.name.error != null) {
-                        {
-                            Text(
-                                text = profileForm.name.error?.let { stringResource(id = it) }
-                                    ?: stringResource(id = R.string.name_required)
-                            )
-                        }
-                    } else null
+                    field = form.name,
+                    onValueChange = onNameChange,
+                    enabled = !isLoading,
+                    label = stringResource(id = R.string.name),
+                    onSubmit = onSubmit,
                 )
             }
 
             item {
-                val genders = mapOf(
-                    Gender.FEMALE to R.string.female,
-                    Gender.MALE to R.string.male
-                )
+                val genders =
+                    mapOf(
+                        Gender.FEMALE to R.string.female,
+                        Gender.MALE to R.string.male,
+                    )
 
                 CardRadioList(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     items = genders.keys.toList(),
                     selected = selectedGender,
                     label = { gender -> stringResource(id = genders.getValue(gender)) },
-                    onSelected = userViewModel::updateProfileGender
+                    onSelected = onGenderChange,
+                    enabled = !isLoading,
                 )
 
-                profileForm.gender.error?.let { error ->
+                form.gender.error?.let { error ->
                     Text(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        text = stringResource(id = error)
+                        text = stringResource(id = error),
                     )
                 }
             }
-        }
+        },
     )
 }

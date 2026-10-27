@@ -11,6 +11,7 @@ import dev.cankolay.twodo.android.data.repository.api.NoteRepositoryImpl
 import dev.cankolay.twodo.android.data.repository.api.UserRepositoryImpl
 import dev.cankolay.twodo.android.data.repository.application.AuthStateRepositoryImpl
 import dev.cankolay.twodo.android.data.repository.application.EnvironmentConfigRepositoryImpl
+import dev.cankolay.twodo.android.data.repository.application.SessionRepositoryImpl
 import dev.cankolay.twodo.android.data.repository.application.SettingsStateRepositoryImpl
 import dev.cankolay.twodo.android.domain.repository.api.CalendarRepository
 import dev.cankolay.twodo.android.domain.repository.api.CoupleRepository
@@ -19,12 +20,18 @@ import dev.cankolay.twodo.android.domain.repository.api.NoteRepository
 import dev.cankolay.twodo.android.domain.repository.api.UserRepository
 import dev.cankolay.twodo.android.domain.repository.application.AuthStateRepository
 import dev.cankolay.twodo.android.domain.repository.application.EnvironmentConfigRepository
+import dev.cankolay.twodo.android.domain.repository.application.SessionRepository
 import dev.cankolay.twodo.android.domain.repository.application.SettingsStateRepository
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+    @Binds
+    abstract fun bindSessionRepository(
+        impl: SessionRepositoryImpl
+    ): SessionRepository
+
     @Binds
     abstract fun bindCalendarRepository(
         impl: CalendarRepositoryImpl

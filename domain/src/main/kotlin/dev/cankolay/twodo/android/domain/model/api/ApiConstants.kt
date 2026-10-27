@@ -2,14 +2,11 @@ package dev.cankolay.twodo.android.domain.model.api
 
 object ApiConstants {
     object Endpoints {
-        const val SERVER_VERSION = "server/version"
-
         const val USERS = "users"
         const val USER_ME = "$USERS/me"
         const val INITIALIZE = "$USERS/initialize"
 
         const val COUPLES = "couples"
-        const val COUPLE_ME = "$COUPLES/me"
         const val COUPLE_LEAVE = "$COUPLES/leave"
 
         const val INVITES = "invites"
