@@ -20,20 +20,19 @@ class AppActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition {
-            settingsViewModel.uiState.value.isLoading ||
-                    !appViewModel.isInitialized.value
+            settingsViewModel.uiState.value.isLoading || !appViewModel.isInitialized.value
         }
 
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
 
-        consumeAuthIntent(intent)
+        consumeAuthIntent(source = intent)
 
         setContent {
             AppUI(
                 settingsViewModel = settingsViewModel,
-                appViewModel = appViewModel
+                appViewModel = appViewModel,
             )
         }
     }
@@ -42,7 +41,7 @@ class AppActivity : AppCompatActivity() {
         super.onNewIntent(intent)
 
         setIntent(intent)
-        consumeAuthIntent(intent)
+        consumeAuthIntent(source = intent)
     }
 
     private fun consumeAuthIntent(source: Intent) {

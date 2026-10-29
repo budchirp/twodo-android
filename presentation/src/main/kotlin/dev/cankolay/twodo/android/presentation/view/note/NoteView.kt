@@ -142,12 +142,11 @@ private fun NoteContent(
         when (val note = state.note) {
             null -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(all = 24.dp),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         text = stringResource(id = R.string.select_note),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -163,7 +162,11 @@ private fun NoteContent(
 
             is ApiResult.Failure -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ErrorCard(error = note.error.message, onRefresh = onRetry)
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = note.error.message,
+                        onRefresh = onRetry,
+                    )
                 }
             }
 

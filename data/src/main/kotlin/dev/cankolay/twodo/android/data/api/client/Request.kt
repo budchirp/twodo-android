@@ -24,10 +24,11 @@ internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Fa
         throw e
     } catch (e: Exception) {
         ApiResult.Failure(
-            error = ApiFailure(
-                message = e.message ?: "Unexpected error",
-                reason = reason
-            )
+            error =
+                ApiFailure(
+                    message = e.message ?: "Unexpected error",
+                    reason = reason,
+                )
         )
     }
 }
@@ -35,7 +36,7 @@ internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Fa
 @PublishedApi
 internal suspend inline fun <R> executeRequest(
     block: suspend () -> HttpResponse,
-    parseSuccess: suspend (HttpResponse) -> ApiResult<R>
+    parseSuccess: suspend (HttpResponse) -> ApiResult<R>,
 ): ApiResult<R> {
     return try {
         val response = block()
@@ -60,36 +61,36 @@ internal suspend inline fun <R> executeRequest(
     }
 }
 
-suspend inline fun <reified T> request(
-    noinline block: suspend () -> HttpResponse
-): ApiResult<T> = executeRequest(block) { response ->
-    val body = response.body<SuccessResponse<T>>()
-    if (body.error) {
-        ApiResult.Failure(
-            ApiFailure(
-                message = body.message,
-                reason = ErrorReason.CLIENT,
-                code = body.code
+suspend inline fun <reified T> request(noinline block: suspend () -> HttpResponse): ApiResult<T> =
+    executeRequest(block = block) { response ->
+        val body = response.body<SuccessResponse<T>>()
+        if (body.error) {
+            ApiResult.Failure(
+                error =
+                    ApiFailure(
+                        message = body.message,
+                        reason = ErrorReason.CLIENT,
+                        code = body.code,
+                    )
             )
-        )
-    } else {
-        ApiResult.Success(data = body.data)
+        } else {
+            ApiResult.Success(data = body.data)
+        }
     }
-}
 
-suspend fun requestUnit(
-    block: suspend () -> HttpResponse
-): ApiResult<Unit> = executeRequest(block) { response ->
-    val body = response.body<EmptySuccessResponse>()
-    if (body.error) {
-        ApiResult.Failure(
-            ApiFailure(
-                message = body.message,
-                reason = ErrorReason.CLIENT,
-                code = body.code
+suspend fun requestUnit(block: suspend () -> HttpResponse): ApiResult<Unit> =
+    executeRequest(block = block) { response ->
+        val body = response.body<EmptySuccessResponse>()
+        if (body.error) {
+            ApiResult.Failure(
+                error =
+                    ApiFailure(
+                        message = body.message,
+                        reason = ErrorReason.CLIENT,
+                        code = body.code,
+                    )
             )
-        )
-    } else {
-        ApiResult.Success(data = Unit)
+        } else {
+            ApiResult.Success(data = Unit)
+        }
     }
-}

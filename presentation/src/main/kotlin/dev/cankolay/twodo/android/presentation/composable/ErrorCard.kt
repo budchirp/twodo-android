@@ -6,7 +6,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Button
@@ -20,14 +19,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.presentation.R
-import dev.cankolay.twodo.android.presentation.composable.app.CardList
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.SettingCard
 
 @Composable
 fun ErrorCard(
-    modifier: Modifier = Modifier.padding(horizontal = 16.dp),
+    modifier: Modifier = Modifier,
     title: String = stringResource(id = R.string.error),
     error: String?,
     onRefresh: (() -> Unit)? = null,
@@ -41,7 +39,7 @@ fun ErrorCard(
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically(),
     ) {
-        CardList(
+        SettingCard(
             modifier = modifier,
             color = MaterialTheme.colorScheme.errorContainer,
             title = title,

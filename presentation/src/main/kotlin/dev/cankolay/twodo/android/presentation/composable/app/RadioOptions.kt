@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 
 @Composable
-fun <T> CardRadioList(
+fun <T> RadioOptions(
     items: List<T>,
     selected: T?,
     label: @Composable (T) -> String,
@@ -15,12 +15,12 @@ fun <T> CardRadioList(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    CardStackList(
+    SettingsGroup(
         modifier = modifier.selectableGroup(),
         items =
             items.map { item ->
                 val onClick = { onSelected(item) }
-                CardStackListItem(
+                SettingItem(
                     title = label(item),
                     modifier =
                         Modifier.selectable(

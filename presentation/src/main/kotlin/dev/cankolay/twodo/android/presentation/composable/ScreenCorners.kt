@@ -30,12 +30,13 @@ private fun View.getAndroidWindowCornerRadiusPx(): Int {
 
     val insets = rootWindowInsets ?: return 0
 
-    val corners = listOfNotNull(
-        insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT),
-        insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT),
-        insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT),
-        insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT)
-    )
+    val corners =
+        listOfNotNull(
+            insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT),
+            insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT),
+            insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT),
+            insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT),
+        )
 
     return corners.maxOfOrNull { it.radius } ?: 0
 }

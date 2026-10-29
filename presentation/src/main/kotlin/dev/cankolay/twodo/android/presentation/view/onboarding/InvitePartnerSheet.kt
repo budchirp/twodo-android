@@ -1,12 +1,14 @@
 package dev.cankolay.twodo.android.presentation.view.onboarding
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
@@ -40,7 +42,9 @@ internal fun InvitePartnerSheet(
     ) {
         item {
             FormTextField(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 field = form.username,
                 enabled = !isLoading,
                 onValueChange = onUsernameChange,

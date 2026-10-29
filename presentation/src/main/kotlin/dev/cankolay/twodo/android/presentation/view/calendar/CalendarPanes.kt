@@ -13,21 +13,22 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.window.core.layout.WindowSizeClass
 import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayoutContext
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppPane
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppPaneDefaults
+import dev.cankolay.twodo.android.presentation.composable.app.layout.currentPaneDirective
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun CalendarPanes(
     isLoading: Boolean,
@@ -36,14 +37,9 @@ internal fun CalendarPanes(
     status: @Composable () -> Unit,
     error: @Composable () -> Unit,
     month: @Composable () -> Unit,
-    entries: (@Composable () -> Unit)?,
+    entries: (LazyListScope.() -> Unit)?,
 ) {
-    val isExpanded =
-        currentWindowAdaptiveInfoV2()
-            .windowSizeClass
-            .isWidthAtLeastBreakpoint(
-                widthDpBreakpoint = WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND
-            )
+    val isExpanded = currentPaneDirective().maxHorizontalPartitions > 1
 
     val calendar: @Composable () -> Unit = {
         AppLayout(route = Route.Calendar, topBar = topBar) {
@@ -54,9 +50,7 @@ internal fun CalendarPanes(
             PullToRefreshLazyColumn(isLoading = isLoading, onRefresh = onRefresh) {
                 item(content = { month() })
 
-                if (!isExpanded && entries != null) {
-                    item(content = { entries() })
-                }
+                if (!isExpanded) entries?.invoke(this)
             }
         }
     }
@@ -89,9 +83,7 @@ internal fun CalendarPanes(
                         error()
 
                         AppLazyColumn(modifier = Modifier.weight(weight = 1f)) {
-                            if (entries != null) {
-                                item(content = { entries() })
-                            }
+                            entries?.invoke(this)
                         }
                     }
                 }

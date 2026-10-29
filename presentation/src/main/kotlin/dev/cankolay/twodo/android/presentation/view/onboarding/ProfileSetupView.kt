@@ -18,7 +18,7 @@ import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
-import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
+import dev.cankolay.twodo.android.presentation.composable.app.RadioOptions
 import dev.cankolay.twodo.android.presentation.form.FormTextField
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.user.ProfileSetupUiState
@@ -60,14 +60,22 @@ private fun ProfileSetupContent(
         status = {
             when (val result = userState.user) {
                 is ApiResult.Failure ->
-                    ErrorCard(error = result.error.message, onRefresh = onRefresh)
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = result.error.message,
+                        onRefresh = onRefresh,
+                    )
 
                 else -> Unit
             }
 
             when (val result = userState.result) {
                 is ApiResult.Failure ->
-                    ErrorCard(error = result.error.message, onRefresh = onSubmit)
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = result.error.message,
+                        onRefresh = onSubmit,
+                    )
 
                 else -> Unit
             }
@@ -102,7 +110,7 @@ private fun ProfileSetupContent(
                         Gender.MALE to R.string.male,
                     )
 
-                CardRadioList(
+                RadioOptions(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     items = genders.keys.toList(),
                     selected = selectedGender,

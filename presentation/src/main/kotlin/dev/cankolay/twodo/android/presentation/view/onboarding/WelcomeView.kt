@@ -19,9 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
+import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
 @Composable
@@ -79,11 +79,11 @@ private fun WelcomeContent(onLogin: () -> Unit) {
                         ),
                     )
 
-                CardStackList(
+                SettingsGroup(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     items =
                         features.map { feature ->
-                            CardStackListItem(
+                            SettingItem(
                                 title = feature.title,
                                 description = feature.description,
                                 leadingContent = {

@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ListItem(
+fun SettingRow(
     modifier: Modifier = Modifier,
     title: String,
     description: String? = null,

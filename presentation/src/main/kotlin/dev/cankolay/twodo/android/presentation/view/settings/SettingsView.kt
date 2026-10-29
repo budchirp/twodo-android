@@ -22,12 +22,12 @@ import dev.cankolay.twodo.android.domain.model.api.user.User
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.Avatar
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.SettingCard
+import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
+import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
-import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 import dev.cankolay.twodo.android.presentation.viewmodel.user.AccountViewModel
@@ -61,52 +61,51 @@ private fun SettingsContent(
         when (user) {
             ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-            is ApiResult.Failure -> ErrorCard(error = user.error.message, onRefresh = onRefresh)
+            is ApiResult.Failure ->
+                ErrorCard(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    error = user.error.message,
+                    onRefresh = onRefresh,
+                )
 
             else -> Unit
         }
         AppLazyColumn {
-            item {
-                when (user) {
-                    is ApiResult.Success ->
-                        ProfileCard(user = user.data, onLogout = { showLogout = true })
-
-                    else -> Unit
+            when (user) {
+                is ApiResult.Success -> {
+                    item {
+                        ProfileCard(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            user = user.data,
+                            onLogout = { showLogout = true },
+                        )
+                    }
                 }
+
+                else -> Unit
             }
 
             item {
-                val routes = listOf(Route.Couple)
+                val details = Route.Couple.getDetails()
 
-                CardStackList(
+                SettingCard(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    items =
-                        routes.map { route ->
-                            val details = route.getDetails()
-
-                            CardStackListItem(
-                                title = details.title,
-                                leadingContent = {
-                                    Icon(icon = details.icon.default)
-                                },
-                                onClick = {
-                                    onNavigate(route)
-                                },
-                            )
-                        },
+                    title = details.title,
+                    leadingContent = { Icon(icon = details.icon.default) },
+                    onClick = { onNavigate(Route.Couple) },
                 )
             }
 
             item {
                 val routes = listOf(Route.Appearance, Route.Languages, Route.About)
 
-                CardStackList(
+                SettingsGroup(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     items =
                         routes.map { route ->
                             val details = route.getDetails()
 
-                            CardStackListItem(
+                            SettingItem(
                                 title = details.title,
                                 description = details.description,
                                 leadingContent = {
@@ -122,12 +121,9 @@ private fun SettingsContent(
         }
 
         if (showLogout) {
-            DestructiveConfirmationSheet(
-                title = stringResource(id = R.string.sign_out),
-                description = stringResource(id = R.string.sign_out_desc),
-                confirmText = stringResource(id = R.string.sign_out),
+            LogoutSheet(
                 onDismiss = { showLogout = false },
-                onConfirm = {
+                onLogout = {
                     showLogout = false
                     onLogout()
                 },
@@ -137,24 +133,19 @@ private fun SettingsContent(
 }
 
 @Composable
-private fun ProfileCard(user: User, onLogout: () -> Unit) {
-    CardStackList(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        items =
-            listOf(
-                CardStackListItem(
-                    title = user.name,
-                    leadingContent = {
-                        Avatar(picture = user.picture)
-                    },
-                    trailingContent = {
-                        Button(onClick = onLogout) {
-                            Text(text = stringResource(id = R.string.sign_out))
-                        }
-                    },
-                    contentPadding = PaddingValues(vertical = 12.dp),
-                    contentSize = null,
-                )
-            ),
+private fun ProfileCard(user: User, onLogout: () -> Unit, modifier: Modifier) {
+    SettingCard(
+        modifier = modifier,
+        title = user.name,
+        leadingContent = {
+            Avatar(picture = user.picture)
+        },
+        trailingContent = {
+            Button(onClick = onLogout) {
+                Text(text = stringResource(id = R.string.sign_out))
+            }
+        },
+        contentPadding = PaddingValues(vertical = 12.dp),
+        contentSize = null,
     )
 }

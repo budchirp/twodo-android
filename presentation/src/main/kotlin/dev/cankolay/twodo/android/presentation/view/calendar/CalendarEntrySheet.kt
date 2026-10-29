@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -23,9 +24,9 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
 import dev.cankolay.twodo.android.presentation.R
-import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
+import dev.cankolay.twodo.android.presentation.composable.app.RadioOptions
+import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
+import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.canCreate
@@ -67,7 +68,8 @@ internal fun CalendarEntrySheet(
         },
     ) {
         item {
-            CardRadioList(
+            RadioOptions(
+                modifier = Modifier.padding(horizontal = 16.dp),
                 items =
                     CalendarEntryType.entries.filter {
                         it.canCreate(canTrackPeriods = canTrackPeriods)
@@ -80,7 +82,9 @@ internal fun CalendarEntrySheet(
         }
         item {
             TextField(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 value = form.notes,
                 enabled = !isLoading,
                 onValueChange = { onFormChange(form.copy(notes = it)) },
@@ -93,10 +97,12 @@ internal fun CalendarEntrySheet(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
                         Text(
+                            modifier = Modifier.padding(horizontal = 16.dp),
                             text = stringResource(id = R.string.period_event),
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        CardRadioList(
+                        RadioOptions(
+                            modifier = Modifier.padding(horizontal = 16.dp),
                             items = PeriodEvent.entries,
                             selected = form.periodEvent,
                             enabled = !isLoading,
@@ -108,10 +114,12 @@ internal fun CalendarEntrySheet(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
                         Text(
+                            modifier = Modifier.padding(horizontal = 16.dp),
                             text = stringResource(id = R.string.flow_level),
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        CardRadioList(
+                        RadioOptions(
+                            modifier = Modifier.padding(horizontal = 16.dp),
                             items = FlowLevel.entries,
                             selected = form.flowLevel,
                             enabled = !isLoading,
@@ -122,16 +130,18 @@ internal fun CalendarEntrySheet(
                 }
                 item {
                     Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         text = stringResource(id = R.string.symptoms),
                         style = MaterialTheme.typography.titleMedium,
                     )
                 }
                 item {
-                    CardStackList(
+                    SettingsGroup(
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         items =
                             PeriodSymptom.entries.map { symptom ->
                                 val checked = symptom in form.symptoms
-                                CardStackListItem(
+                                SettingItem(
                                     title = stringResource(id = symptom.label),
                                     modifier =
                                         Modifier.toggleable(
@@ -155,7 +165,7 @@ internal fun CalendarEntrySheet(
                                         )
                                     },
                                 )
-                            }
+                            },
                     )
                 }
             }

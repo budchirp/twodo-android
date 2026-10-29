@@ -19,9 +19,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
-import dev.cankolay.twodo.android.presentation.composable.app.CardList
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
+import dev.cankolay.twodo.android.presentation.composable.app.SettingCard
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.composition.LocalNotesLayout
@@ -94,7 +94,12 @@ private fun NotesContent(
         when (val notes = state.notes) {
             ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-            is ApiResult.Failure -> ErrorCard(error = notes.error.message, onRefresh = onRefresh)
+            is ApiResult.Failure ->
+                ErrorCard(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    error = notes.error.message,
+                    onRefresh = onRefresh,
+                )
 
             else -> Unit
         }
@@ -107,7 +112,7 @@ private fun NotesContent(
                     val notes = result.data
                     if (notes.isEmpty()) {
                         item {
-                            CardList(
+                            SettingCard(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 title = stringResource(id = R.string.notes_empty_title),
                                 description = stringResource(id = R.string.notes_empty_desc),
@@ -117,7 +122,8 @@ private fun NotesContent(
                         }
                     } else {
                         items(items = notes) { note ->
-                            NoteCard(
+                            NoteItem(
+                                modifier = Modifier.padding(horizontal = 16.dp),
                                 note = note,
                                 selected = selected == note.id,
                                 onClick = { onNoteClick(note.id) },

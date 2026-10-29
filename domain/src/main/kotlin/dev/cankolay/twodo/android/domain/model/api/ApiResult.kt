@@ -24,7 +24,7 @@ fun <T, R> ApiResult<T>.map(transform: (T) -> R): ApiResult<R> =
     when (this) {
         ApiResult.Loading -> ApiResult.Loading
 
-        is ApiResult.Success -> ApiResult.Success(transform(data))
+        is ApiResult.Success -> ApiResult.Success(data = transform(data))
 
         is ApiResult.Failure -> this
     }

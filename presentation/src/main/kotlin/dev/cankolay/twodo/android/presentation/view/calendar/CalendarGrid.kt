@@ -1,7 +1,6 @@
 package dev.cankolay.twodo.android.presentation.view.calendar
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -34,13 +30,7 @@ import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
 import dev.cankolay.twodo.android.presentation.R
-import dev.cankolay.twodo.android.presentation.composable.app.CardList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.MarkdownEditor
-import dev.cankolay.twodo.android.presentation.util.DateUtils
-import dev.cankolay.twodo.android.presentation.viewmodel.calendar.canManage
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -56,6 +46,7 @@ internal fun CalendarGrid(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onDateClick: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val entriesByDate = remember(key1 = entries) { entries.groupBy { it.date } }
     val locale = LocalLocale.current.platformLocale
@@ -78,7 +69,7 @@ internal fun CalendarGrid(
     val today = LocalDate.now()
 
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(space = 12.dp),
     ) {
         Row(
@@ -232,119 +223,6 @@ private fun DayCell(
                     style = MaterialTheme.typography.labelSmall,
                     color = textColor,
                 )
-        }
-    }
-}
-
-@Composable
-internal fun CalendarEntries(
-    date: LocalDate,
-    entries: List<CalendarEntry>,
-    canTrackPeriods: Boolean,
-    onClick: (CalendarEntry) -> Unit,
-) {
-    val (notes, events) = entries.partition { it.type == CalendarEntryType.NOTE }
-    Column(verticalArrangement = Arrangement.spacedBy(space = 16.dp)) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(space = 8.dp),
-        ) {
-            Text(
-                text =
-                    stringResource(
-                        id = R.string.selected_day,
-                        DateUtils.format(
-                            date = date,
-                            pattern = stringResource(id = R.string.calendar_date_pattern),
-                        ),
-                    ),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            if (events.isEmpty()) {
-                CardList(
-                    title = stringResource(id = R.string.calendar_day_empty_title),
-                    description = stringResource(id = R.string.calendar_day_empty_desc),
-                    leadingContent = { Icon(icon = Icons.Default.CalendarMonth) },
-                )
-            } else {
-                CardStackList(
-                    items =
-                        events.map { entry ->
-                            val parts =
-                                when (entry.type) {
-                                    CalendarEntryType.PERIOD ->
-                                        listOfNotNull(
-                                            entry.period?.event?.let {
-                                                stringResource(id = it.label)
-                                            },
-                                            entry.period?.flowLevel?.let {
-                                                stringResource(id = it.label)
-                                            },
-                                            entry.period
-                                                ?.symptoms
-                                                ?.takeIf { it.isNotEmpty() }
-                                                ?.map { stringResource(id = it.label) }
-                                                ?.joinToString(),
-                                            entry.notes?.takeIf { it.isNotBlank() },
-                                        )
-
-                                    else -> listOfNotNull(entry.notes)
-                                }
-                            CardStackListItem(
-                                title = stringResource(id = entry.type.label),
-                                description =
-                                    parts.joinToString(separator = " · ").ifBlank {
-                                        stringResource(id = R.string.no_notes)
-                                    },
-                                leadingContent = {
-                                    Icon(
-                                        icon =
-                                            if (entry.type == CalendarEntryType.OVULATION)
-                                                Icons.Default.AutoAwesome
-                                            else Icons.Default.CalendarMonth
-                                    )
-                                },
-                                onClick =
-                                    if (entry.canManage(canTrackPeriods = canTrackPeriods))
-                                        ({ onClick(entry) })
-                                    else null,
-                            )
-                        }
-                )
-            }
-        }
-        if (notes.isNotEmpty()) {
-            Column {
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
-                notes.forEachIndexed { index, entry ->
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    enabled = entry.canManage(canTrackPeriods = canTrackPeriods)
-                                ) {
-                                    onClick(entry)
-                                }
-                                .padding(all = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(space = 4.dp),
-                    ) {
-                        Text(
-                            text =
-                                DateUtils.format(
-                                    value = entry.createdAt,
-                                    pattern = DateUtils.TIME_PATTERN,
-                                ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        MarkdownEditor(markdown = entry.notes.orEmpty(), readOnly = true)
-                    }
-                    if (index < notes.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
-                    }
-                }
-            }
         }
     }
 }

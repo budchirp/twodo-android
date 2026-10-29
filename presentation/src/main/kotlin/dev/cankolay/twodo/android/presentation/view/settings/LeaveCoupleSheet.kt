@@ -9,7 +9,7 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.Destructive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun BreakupPartnerSheet(
+internal fun LeaveCoupleSheet(
     result: ApiResult<*>?,
     onDismiss: () -> Unit,
     onLeave: () -> Unit,

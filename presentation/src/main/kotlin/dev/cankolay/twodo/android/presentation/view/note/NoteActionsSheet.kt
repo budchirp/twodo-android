@@ -1,15 +1,18 @@
 package dev.cankolay.twodo.android.presentation.view.note
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.presentation.R
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
+import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.util.DateUtils
 
@@ -26,23 +29,27 @@ internal fun NoteActionsSheet(
         onDismiss = onDismiss,
     ) {
         item {
-            CardStackList(
+            SettingsGroup(
+                modifier = Modifier.padding(horizontal = 16.dp),
                 items =
                     listOf(
-                        CardStackListItem(
+                        SettingItem(
                             title =
                                 stringResource(
                                     id = R.string.edited_at,
-                                    DateUtils.format(updatedAt, DateUtils.DATE_TIME_PATTERN),
+                                    DateUtils.format(
+                                        value = updatedAt,
+                                        pattern = DateUtils.DATE_TIME_PATTERN,
+                                    ),
                                 ),
                             leadingContent = { Icon(icon = Icons.Default.Update) },
                         ),
-                        CardStackListItem(
+                        SettingItem(
                             title = stringResource(id = R.string.delete),
                             onClick = onDelete,
                             leadingContent = { Icon(icon = Icons.Default.Delete) },
                         ),
-                    )
+                    ),
             )
         }
     }

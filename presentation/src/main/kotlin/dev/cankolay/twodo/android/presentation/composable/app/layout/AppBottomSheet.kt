@@ -2,7 +2,6 @@ package dev.cankolay.twodo.android.presentation.composable.app.layout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,8 +33,6 @@ fun AppBottomSheet(
     onDismiss: () -> Unit,
     result: ApiResult<*>? = null,
     showLoading: Boolean = true,
-    error: String? = null,
-    onRetry: (() -> Unit)? = null,
     status: @Composable () -> Unit = {},
     actions: (@Composable RowScope.() -> Unit)? = null,
     content: (LazyListScope.() -> Unit)? = null,
@@ -57,17 +54,19 @@ fun AppBottomSheet(
             ApiResult.Loading ->
                 if (showLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-            is ApiResult.Failure -> ErrorCard(error = result.error.message, onRefresh = onRetry)
+            is ApiResult.Failure ->
+                ErrorCard(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    error = result.error.message,
+                )
 
             else -> Unit
         }
-        ErrorCard(error = error)
+
         Column(modifier = Modifier.imePadding()) {
-            Column(
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(space = 8.dp),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
                 Text(
+                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
                     text = title,
                     style =
                         MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
@@ -75,6 +74,7 @@ fun AppBottomSheet(
 
                 description?.let {
                     Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
                         text = it,
                         style = MaterialTheme.typography.bodyLarge,
                     )
@@ -84,16 +84,15 @@ fun AppBottomSheet(
             status()
 
             if (content != null || actions != null) {
-                AppLazyColumn(
-                    contentPadding = PaddingValues(all = 16.dp),
-                    fill = false,
-                ) {
+                AppLazyColumn(fill = false) {
                     content?.invoke(this)
 
                     actions?.let { sheetActions ->
                         item {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
                                 horizontalArrangement =
                                     Arrangement.spacedBy(
                                         space = 8.dp,

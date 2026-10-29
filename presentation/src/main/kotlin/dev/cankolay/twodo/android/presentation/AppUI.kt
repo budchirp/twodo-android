@@ -5,21 +5,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppMainLayout
 import dev.cankolay.twodo.android.presentation.composition.ProvideNavBackStack
 import dev.cankolay.twodo.android.presentation.composition.ProvideNotesLayout
 import dev.cankolay.twodo.android.presentation.navigation.AppNavigation
 import dev.cankolay.twodo.android.presentation.theme.AppTheme
+import dev.cankolay.twodo.android.presentation.view.LoginErrorSheet
 import dev.cankolay.twodo.android.presentation.view.StartupErrorView
 import dev.cankolay.twodo.android.presentation.viewmodel.application.AppViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.application.SettingsViewModel
@@ -37,7 +34,7 @@ fun AppUI(appViewModel: AppViewModel, settingsViewModel: SettingsViewModel) {
                     CircularProgressIndicator()
                 }
             } else
-                key(state.accountId) {
+                key(state.id) {
                     ProvideNavBackStack(startRoute = route) {
                         AppMainLayout {
                             ProvideNotesLayout {
@@ -55,17 +52,8 @@ fun AppUI(appViewModel: AppViewModel, settingsViewModel: SettingsViewModel) {
                         }
                     }
                 }
-            state.loginError?.let { error ->
-                AppBottomSheet(
-                    title = stringResource(id = R.string.error),
-                    error = stringResource(id = error),
-                    onDismiss = appViewModel::dismissError,
-                    actions = {
-                        TextButton(onClick = appViewModel::dismissError) {
-                            Text(text = stringResource(id = R.string.close))
-                        }
-                    },
-                )
+            state.error?.let { error ->
+                LoginErrorSheet(error = error, onDismiss = appViewModel::dismissError)
             }
         }
     }

@@ -1,8 +1,6 @@
 package dev.cankolay.twodo.android.presentation.navigation.notes
 
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
-import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -12,7 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
-import androidx.window.core.layout.WindowSizeClass
+import dev.cankolay.twodo.android.presentation.composable.app.layout.currentPaneDirective
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
 internal class NotesNavigation(
@@ -70,14 +68,7 @@ internal fun rememberNotesNavigation(stack: NavBackStack<NavKey>): NotesNavigati
 
     val pending = rememberSaveable { mutableStateOf<String?>(value = null) }
 
-    val info = currentWindowAdaptiveInfoV2()
-
-    val directive = calculatePaneScaffoldDirective(windowAdaptiveInfo = info)
-
-    val isExpanded =
-        info.windowSizeClass.isWidthAtLeastBreakpoint(
-            widthDpBreakpoint = WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND
-        ) && directive.maxHorizontalPartitions > 1
+    val isExpanded = currentPaneDirective().maxHorizontalPartitions > 1
 
     return remember(key1 = stack, key2 = isExpanded) {
         NotesNavigation(

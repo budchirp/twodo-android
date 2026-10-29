@@ -1,6 +1,7 @@
 package dev.cankolay.twodo.android.presentation.view.calendar
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -11,16 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
-import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
-import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarViewModel
@@ -101,13 +100,18 @@ private fun CalendarContent(
         error = {
             when (val result = state.entries) {
                 is ApiResult.Failure ->
-                    ErrorCard(error = result.error.message, onRefresh = onRefresh)
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = result.error.message,
+                        onRefresh = onRefresh,
+                    )
 
                 else -> Unit
             }
         },
         month = {
             CalendarGrid(
+                modifier = Modifier.padding(horizontal = 16.dp),
                 visibleMonth = state.month,
                 selectedDate = state.date,
                 entries =
@@ -126,7 +130,7 @@ private fun CalendarContent(
             when (val result = state.entries) {
                 is ApiResult.Success -> {
                     {
-                        CalendarEntries(
+                        calendarEntries(
                             date = state.date,
                             entries = result.data.filter { it.date == state.date },
                             canTrackPeriods = state.canTrackPeriods,
@@ -140,7 +144,7 @@ private fun CalendarContent(
     )
 
     if (state.showPrediction) {
-        PredictionSummarySheet(
+        CalendarPredictionSheet(
             state = state.prediction,
             onDismiss = onDismiss,
             onRefresh = onRefreshPrediction,
@@ -160,13 +164,10 @@ private fun CalendarContent(
     }
 
     if (state.showDelete) {
-        DestructiveConfirmationSheet(
-            title = stringResource(id = R.string.delete_calendar_entry),
-            description = stringResource(id = R.string.delete_calendar_entry_desc),
-            confirmText = stringResource(id = R.string.delete),
+        DeleteCalendarEntrySheet(
             result = state.result,
             onDismiss = onDismiss,
-            onConfirm = onDelete,
+            onDelete = onDelete,
         )
     }
 }

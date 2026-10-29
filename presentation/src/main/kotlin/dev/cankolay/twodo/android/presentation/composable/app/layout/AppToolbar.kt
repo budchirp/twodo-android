@@ -19,10 +19,10 @@ import androidx.compose.ui.zIndex
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.motion.slideInY
-import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 import dev.cankolay.twodo.android.presentation.navigation.route.navigationRoutes
+import dev.cankolay.twodo.android.presentation.navigation.route.resetTo
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

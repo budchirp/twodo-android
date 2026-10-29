@@ -2,7 +2,6 @@ package dev.cankolay.twodo.android.presentation.composable
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -67,8 +66,6 @@ fun OnboardingLayout(
         PullToRefreshLazyColumn(
             isLoading = isLoading,
             onRefresh = onRefresh,
-            contentPadding = PaddingValues(top = 64.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(space = 16.dp),
         ) {
             item {
                 Column(

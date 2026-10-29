@@ -2,6 +2,7 @@ package dev.cankolay.twodo.android.presentation.view.note
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,7 @@ import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.MarkdownEditor
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
+import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBarType
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
@@ -92,43 +94,55 @@ internal fun NoteEditor(
             )
         },
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding()
+        when (val result = state.save) {
+            is ApiResult.Failure ->
+                ErrorCard(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    error = result.error.message,
+                    onRefresh = onRetrySave,
+                )
+
+            else -> Unit
+        }
+
+        AppLazyColumn(
+            contentPadding = PaddingValues(all = 0.dp),
+            userScrollEnabled = false,
         ) {
-            when (val result = state.save) {
-                is ApiResult.Failure ->
-                    ErrorCard(error = result.error.message, onRefresh = onRetrySave)
-
-                else -> Unit
-            }
-
-            MarkdownEditor(
-                markdown = note.content,
-                onContentChange = onContentChange,
-                readOnly = isLoading,
-                modifier = Modifier
-                    .weight(weight = 1f)
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-            )
-
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(height = 64.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-            ) {
-                Row(
+            item {
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
+                        .fillParentMaxSize()
+                        .imePadding()
                 ) {
-                    FilledIconButton(onClick = onOpenActions, enabled = !isLoading) {
-                        Icon(icon = Icons.Default.MoreVert)
+                    MarkdownEditor(
+                        markdown = note.content,
+                        onContentChange = onContentChange,
+                        readOnly = isLoading,
+                        modifier =
+                            Modifier
+                                .weight(weight = 1f)
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                    )
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(height = 64.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            FilledIconButton(onClick = onOpenActions, enabled = !isLoading) {
+                                Icon(icon = Icons.Default.MoreVert)
+                            }
+                        }
                     }
                 }
             }

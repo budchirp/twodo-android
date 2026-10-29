@@ -8,40 +8,27 @@
     <string name="dev_website" translatable="false">https://cankolay.dev</string>
     <string name="dev_github" translatable="false">https://github.com/budchirp</string>
 
-    <string name="empty" translatable="false" />
 
     <string name="en" translatable="false">English</string>
     <string name="tr" translatable="false">Türkçe</string>
 
-    <string name="back">Back</string>
     <string name="close">Close</string>
     <string name="save">Save</string>
     <string name="continue_with_trash">Continue with Trash</string>
     <string name="auth_missing_token">Authentication callback is missing a token</string>
-    <string name="sent">Sent</string>
-    <string name="received">Received</string>
-    <string name="accept">Accept</string>
-    <string name="reject">Reject</string>
-    <string name="accepted">Accepted</string>
-    <string name="rejected">Rejected</string>
-    <string name="loading">Loading</string>
-    <string name="pending">Pending</string>
     <string name="title">Title</string>
     <string name="title_required">Enter a title to continue.</string>
     <string name="create">Create</string>
     <string name="delete">Delete</string>
     <string name="try_again">Try again</string>
-    <string name="refresh">Refresh</string>
     <string name="sign_out">Sign out</string>
     <string name="sign_out_desc">You will need to sign in with Trash again.</string>
     <string name="days_together">%1$s days together</string>
     <string name="edited_at">Edited at: %1$s</string>
-    <string name="since">since %1$s</string>
     <string name="username">Username</string>
     <string name="invite">Invite</string>
     <string name="cancel">Cancel</string>
 
-    <string name="api_error">An error occurred while fetching the API                                                                                                                                                                                                                            </string>
 
     <string name="welcome">Welcome to TwoDo</string>
     <string name="welcome_desc">Make a tiny shared space for the things you want to carry together.</string>
@@ -57,7 +44,6 @@
 
     <string name="notes">Notes</string>
     <string name="select_note">Select a note</string>
-    <string name="notes_error">Failed to get your notes</string>
 
     <string name="notes_empty_title">No notes yet</string>
     <string name="notes_empty_desc">Create the first shared note when something comes up.</string>
@@ -70,26 +56,15 @@
     <string name="settings">Settings</string>
 
     <string name="couple">Couple profile</string>
-    <string name="invites">Invites</string>
     <string name="couple_setup">Couple setup</string>
     <string name="couple_setup_title">Set up your shared space</string>
     <string name="couple_setup_desc">Invite your partner or accept their invite to start planning together.</string>
-    <string name="couple_setup_loading">Checking your account</string>
-    <string name="couple_setup_error_title">We could not load your profile</string>
     <string name="invite_partner">Invite your partner</string>
-    <string name="invite_partner_desc">Send an invite with their username.</string>
-    <string name="join_partner">Join your partner</string>
-    <string name="join_partner_desc">Accept an invite that was sent to you.</string>
-    <string name="pending_invites">Pending invites</string>
     <string name="received_invites">Received invites</string>
     <string name="waiting_for">Waiting for %1$s</string>
     <string name="waiting_for_partner_desc">Your invite is on the way. Refresh anytime after they accept.</string>
     <string name="no_received_invites">No invites yet</string>
     <string name="no_received_invites_desc">Ask your partner to send one, or invite them from here.</string>
-    <string name="no_sent_invites">No sent invites</string>
-    <string name="no_sent_invites_desc">Invite your partner when you are ready to connect.</string>
-    <string name="invite_sent_to">Invite sent to %1$s</string>
-    <string name="accepted_invite_desc">Accepted. We are checking your couple profile.</string>
 
     <string name="create_couple">Create couple</string>
     <string name="create_couple_desc">Invite your partner to create a couple together.</string>
@@ -119,7 +94,6 @@
     <string name="languages">Language</string>
     <string name="languages_desc">Change the app language</string>
 
-    <string name="dev">Developer</string>
 
     <string name="about">About</string>
     <string name="about_desc">About this app</string>
@@ -133,13 +107,11 @@
 
     <string name="startup_error_title">Cannot reach TwoDo</string>
     <string name="startup_error_desc">We could not connect to the backend. Your session is still saved; try again when the server is available.</string>
-    <string name="startup_error_card_title">Backend unavailable</string>
     <string name="startup_error_unknown">Could not connect to the backend.</string>
 
     <string name="profile_setup">Profile setup</string>
     <string name="profile_setup_title">Complete your profile</string>
     <string name="profile_setup_desc">Add your name and gender before using shared app features.</string>
-    <string name="profile_setup_error_title">We could not update your profile</string>
     <string name="name">Name</string>
     <string name="name_required">Enter your name to continue.</string>
     <string name="gender_required">Select your gender to continue.</string>
@@ -148,10 +120,6 @@
 
     <string name="calendar">Calendar</string>
     <string name="calendar_desc">Shared activity tracking</string>
-    <string name="calendar_error">Failed to get calendar entries</string>
-    <string name="calendar_empty_title">No calendar entries</string>
-    <string name="calendar_empty_desc">Use the plus button to add a note or activity.</string>
-    <string name="calendar_range">Date range</string>
     <string name="calendar_date_pattern" translatable="false">dd MMM yyyy</string>
     <string name="create_calendar_entry">Create calendar entry</string>
     <string name="edit_calendar_entry">Edit calendar entry</string>
@@ -166,28 +134,13 @@
 
     <string name="period_tracker">Period tracker</string>
     <string name="period_tracker_desc">Expected period, ovulation, and cycle tips</string>
-    <string name="period_tracker_error">Failed to load period tracker</string>
-    <string name="period_tracker_empty_desc">Add period entries over time to see estimates.</string>
     <string name="period_tracker_averages">Average cycle: %1$s days - period: %2$s days</string>
     <string name="next_period_window">Next estimated period</string>
     <string name="ovulation_window">Estimated ovulation window</string>
-    <string name="medical_disclaimer">Medical disclaimer</string>
     <string name="prediction_unavailable">Prediction unavailable</string>
     <string name="prediction_unavailable_desc">Predictions appear after enough period history is available. Estimates are not medical certainty.</string>
-    <string name="recent_period_range">Recent period range</string>
-    <string name="period_range_desc">%1$s - %2$s - %3$s days</string>
-    <string name="cycle_history">Cycle history</string>
-    <string name="cycle_history_desc">Started %1$s - period %2$s days - cycle %3$s days</string>
     <string name="expected_period">Expected period</string>
-    <string name="period_dates_added_calendar">Add and edit period dates from the Calendar screen.</string>
     <string name="period_tips_title">Tips and tricks</string>
-    <string name="period_tips_desc">Small habits make predictions more useful over time.</string>
-    <string name="period_tip_log_consistently">Log consistently</string>
-    <string name="period_tip_log_consistently_desc">Mark start, day, and end entries from the calendar when they happen.</string>
-    <string name="period_tip_symptoms">Track symptoms</string>
-    <string name="period_tip_symptoms_desc">Symptoms and flow help you compare recent cycles with older ones.</string>
-    <string name="period_tip_not_medical">Treat predictions as estimates</string>
-    <string name="period_tip_not_medical_desc">Use backend predictions as planning hints, not medical diagnosis.</string>
 
     <string name="selected_day">%1$s entries</string>
     <string name="calendar_day_empty_title">Nothing on this day</string>
@@ -213,9 +166,5 @@
     <string name="symptom_mood_changes">Mood changes</string>
     <string name="symptom_nausea">Nausea</string>
 
-    <string name="fertile_window_title">Cycle Predictions</string>
-    <string name="days_uncertainty">days uncertainty</string>
-    <string name="estimated_ovulation">Estimated Ovulation</string>
-    <string name="fertile_window">Fertile Window</string>
     <string name="default_medical_disclaimer">Predictions are estimates based on your logged history and should not be used as medical advice.</string>
 </resources>

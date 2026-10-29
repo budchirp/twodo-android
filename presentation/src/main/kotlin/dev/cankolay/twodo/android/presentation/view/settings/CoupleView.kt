@@ -66,7 +66,12 @@ private fun CoupleContent(
         when (val user = userState.user) {
             ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-            is ApiResult.Failure -> ErrorCard(error = user.error.message, onRefresh = onRefresh)
+            is ApiResult.Failure ->
+                ErrorCard(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    error = user.error.message,
+                    onRefresh = onRefresh,
+                )
 
             is ApiResult.Success -> {
                 user.data.couple?.let { couple ->
@@ -120,7 +125,7 @@ private fun CoupleContent(
                                     )
 
                                     val daysTogether =
-                                        DateUtils.daysSince(couple.createdAt).toString()
+                                        DateUtils.daysSince(value = couple.createdAt).toString()
 
                                     Surface(
                                         color = MaterialTheme.colorScheme.primary,
@@ -182,7 +187,7 @@ private fun CoupleContent(
         }
 
         if (userState.showLeave) {
-            BreakupPartnerSheet(
+            LeaveCoupleSheet(
                 result = userState.result,
                 onDismiss = onDismissSheet,
                 onLeave = onLeave,

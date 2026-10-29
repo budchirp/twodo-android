@@ -14,7 +14,7 @@ import java.time.LocalDate
 @Serializable
 data class DateWindowDto(
     val startDate: String,
-    val endDate: String
+    val endDate: String,
 )
 
 @Serializable
@@ -31,7 +31,7 @@ data class PeriodPredictionDto(
     val predictionUncertaintyDays: Int? = null,
     val recentIrregularity: Boolean = false,
     val basis: String? = null,
-    val disclaimer: String? = null
+    val disclaimer: String? = null,
 )
 
 @Serializable
@@ -41,7 +41,7 @@ data class CycleRangeDto(
     val durationDays: Int,
     val isComplete: Boolean = true,
     val flowLevels: List<String> = emptyList(),
-    val symptoms: List<String> = emptyList()
+    val symptoms: List<String> = emptyList(),
 )
 
 @Serializable
@@ -49,73 +49,72 @@ data class CycleHistoryDto(
     val periodStartDate: String,
     val periodEndDate: String,
     val periodDurationDays: Int = 0,
-    val cycleLengthDays: Int? = null
+    val cycleLengthDays: Int? = null,
 )
 
 @Serializable
 data class CalendarPredictionSummaryDto(
     val cyclePrediction: PeriodPredictionDto? = null,
     val ranges: List<CycleRangeDto> = emptyList(),
-    val cycles: List<CycleHistoryDto> = emptyList()
+    val cycles: List<CycleHistoryDto> = emptyList(),
 )
 
 fun DateWindowDto.toDomain(): DateWindow? {
-    val start = parseLocalDateSafe(startDate) ?: return null
-    val end = parseLocalDateSafe(endDate) ?: return null
+    val start = parseDate(value = startDate) ?: return null
+    val end = parseDate(value = endDate) ?: return null
     return DateWindow(startDate = start, endDate = end)
 }
 
-fun PeriodPredictionDto.toDomain() = PeriodPrediction(
-    hasEnoughData = hasEnoughData,
-    reliability = reliability?.let { PeriodPredictionReliability.fromValue(it) }
-        ?: PeriodPredictionReliability.UNKNOWN,
-    nextPeriodWindow = nextPeriodWindow?.toDomain(),
-    ovulationWindow = ovulationWindow?.toDomain(),
-    expectedPeriodStartDate = expectedPeriodStartDate?.let { parseLocalDateSafe(it) },
-    expectedPeriodEndDate = expectedPeriodEndDate?.let { parseLocalDateSafe(it) },
-    cycleLengthDays = cycleLengthDays,
-    periodDurationDays = periodDurationDays,
-    cycleLengthVariabilityDays = cycleLengthVariabilityDays,
-    predictionUncertaintyDays = predictionUncertaintyDays,
-    recentIrregularity = recentIrregularity,
-    basis = basis,
-    disclaimer = disclaimer
-)
+fun PeriodPredictionDto.toDomain() =
+    PeriodPrediction(
+        hasEnoughData = hasEnoughData,
+        reliability =
+            reliability?.let { PeriodPredictionReliability.fromValue(value = it) }
+                ?: PeriodPredictionReliability.UNKNOWN,
+        nextPeriodWindow = nextPeriodWindow?.toDomain(),
+        ovulationWindow = ovulationWindow?.toDomain(),
+        expectedPeriodStartDate = expectedPeriodStartDate?.let { parseDate(value = it) },
+        expectedPeriodEndDate = expectedPeriodEndDate?.let { parseDate(value = it) },
+        cycleLengthDays = cycleLengthDays,
+        periodDurationDays = periodDurationDays,
+        cycleLengthVariabilityDays = cycleLengthVariabilityDays,
+        predictionUncertaintyDays = predictionUncertaintyDays,
+        recentIrregularity = recentIrregularity,
+        basis = basis,
+        disclaimer = disclaimer,
+    )
 
 fun CycleRangeDto.toDomain(): CycleRange? {
-    val start = parseLocalDateSafe(startDate) ?: return null
-    val end = parseLocalDateSafe(endDate) ?: return null
+    val start = parseDate(value = startDate) ?: return null
+    val end = parseDate(value = endDate) ?: return null
     return CycleRange(
         startDate = start,
         endDate = end,
         durationDays = durationDays,
         isComplete = isComplete,
-        flowLevels = flowLevels.map { FlowLevel.fromValue(it) },
-        symptoms = symptoms.map { PeriodSymptom.fromValue(it) }
+        flowLevels = flowLevels.map { FlowLevel.fromValue(value = it) },
+        symptoms = symptoms.map { PeriodSymptom.fromValue(value = it) },
     )
 }
 
 fun CycleHistoryDto.toDomain(): CycleHistory? {
-    val start = parseLocalDateSafe(periodStartDate) ?: return null
-    val end = parseLocalDateSafe(periodEndDate) ?: return null
+    val start = parseDate(value = periodStartDate) ?: return null
+    val end = parseDate(value = periodEndDate) ?: return null
     return CycleHistory(
         periodStartDate = start,
         periodEndDate = end,
         periodDurationDays = periodDurationDays,
-        cycleLengthDays = cycleLengthDays
+        cycleLengthDays = cycleLengthDays,
     )
 }
 
-fun CalendarPredictionSummaryDto.toDomain() = CalendarPredictionSummary(
-    cyclePrediction = cyclePrediction?.toDomain(),
-    ranges = ranges.mapNotNull { it.toDomain() },
-    cycles = cycles.mapNotNull { it.toDomain() }
-)
+fun CalendarPredictionSummaryDto.toDomain() =
+    CalendarPredictionSummary(
+        cyclePrediction = cyclePrediction?.toDomain(),
+        ranges = ranges.mapNotNull { it.toDomain() },
+        cycles = cycles.mapNotNull { it.toDomain() },
+    )
 
-private fun parseLocalDateSafe(text: String): LocalDate? {
-    return try {
-        LocalDate.parse(text)
-    } catch (_: Exception) {
-        null
-    }
-}
+private fun parseDate(value: String): LocalDate? = runCatching {
+    LocalDate.parse(value)
+}.getOrNull()

@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 
 @Composable
-fun SwitchCard(
+fun SwitchSetting(
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
@@ -19,7 +19,7 @@ fun SwitchCard(
     enabled: Boolean = true,
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
 ) {
-    CardList(
+    SettingCard(
         modifier =
             modifier
                 .clip(shape = MaterialTheme.shapes.large)

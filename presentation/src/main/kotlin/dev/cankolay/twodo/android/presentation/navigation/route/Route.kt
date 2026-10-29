@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import dev.cankolay.twodo.android.presentation.R
 import kotlinx.serialization.Serializable
@@ -177,3 +178,11 @@ fun Route.getDetails(): RouteDetail =
 val onboardingRoutes =
     listOf(Route.Welcome, Route.ProfileSetup, Route.StartupError, Route.CoupleSetup)
 val navigationRoutes = listOf(Route.Notes, Route.Calendar, Route.Settings)
+
+fun NavBackStack<NavKey>.resetTo(route: Route) {
+    add(element = route)
+
+    while (size > 1) {
+        removeAt(index = 0)
+    }
+}

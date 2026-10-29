@@ -17,7 +17,7 @@ enum class PeriodPredictionReliability(val value: String) {
 
 data class DateWindow(
     val startDate: LocalDate,
-    val endDate: LocalDate
+    val endDate: LocalDate,
 )
 
 data class CycleRange(
@@ -26,14 +26,14 @@ data class CycleRange(
     val durationDays: Int,
     val isComplete: Boolean = true,
     val flowLevels: List<FlowLevel> = emptyList(),
-    val symptoms: List<PeriodSymptom> = emptyList()
+    val symptoms: List<PeriodSymptom> = emptyList(),
 )
 
 data class CycleHistory(
     val periodStartDate: LocalDate,
     val periodEndDate: LocalDate,
     val periodDurationDays: Int,
-    val cycleLengthDays: Int? = null
+    val cycleLengthDays: Int? = null,
 )
 
 data class PeriodPrediction(
@@ -49,11 +49,11 @@ data class PeriodPrediction(
     val predictionUncertaintyDays: Int? = null,
     val recentIrregularity: Boolean = false,
     val basis: String? = null,
-    val disclaimer: String? = null
+    val disclaimer: String? = null,
 )
 
 data class CalendarPredictionSummary(
     val cyclePrediction: PeriodPrediction? = null,
     val ranges: List<CycleRange> = emptyList(),
-    val cycles: List<CycleHistory> = emptyList()
+    val cycles: List<CycleHistory> = emptyList(),
 )

@@ -1,7 +1,6 @@
 package dev.cankolay.twodo.android.presentation.view.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,9 +33,9 @@ import dev.cankolay.twodo.android.domain.model.api.invite.InviteType
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackList
-import dev.cankolay.twodo.android.presentation.composable.app.CardStackListItem
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
+import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.invite.CoupleSetupUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.invite.CoupleSetupViewModel
@@ -88,21 +87,33 @@ private fun CoupleSetupContent(
         status = {
             when (val result = state.user) {
                 is ApiResult.Failure ->
-                    ErrorCard(error = result.error.message, onRefresh = onRefresh)
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = result.error.message,
+                        onRefresh = onRefresh,
+                    )
 
                 else -> Unit
             }
 
             when (val result = state.invites) {
                 is ApiResult.Failure ->
-                    ErrorCard(error = result.error.message, onRefresh = onRefresh)
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = result.error.message,
+                        onRefresh = onRefresh,
+                    )
 
                 else -> Unit
             }
 
             when (val result = state.action) {
                 is ApiResult.Failure ->
-                    ErrorCard(error = result.error.message, onRefresh = onRefresh)
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = result.error.message,
+                        onRefresh = onRefresh,
+                    )
 
                 else -> Unit
             }
@@ -111,9 +122,7 @@ private fun CoupleSetupContent(
         actions = {
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    onLogout()
-                },
+                onClick = onLogout,
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
@@ -138,110 +147,99 @@ private fun CoupleSetupContent(
                     }
 
                 item {
-                    Column(verticalArrangement = Arrangement.spacedBy(space = 16.dp)) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(space = 8.dp),
-                        ) {
-                            Text(text = stringResource(id = R.string.received_invites))
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = stringResource(id = R.string.received_invites),
+                    )
+                }
 
-                            CardStackList(
-                                items =
-                                    if (received.isEmpty())
-                                        listOf(
-                                            CardStackListItem(
-                                                title =
-                                                    stringResource(
-                                                        id = R.string.no_received_invites
-                                                    ),
-                                                description =
-                                                    stringResource(
-                                                        id = R.string.no_received_invites_desc
-                                                    ),
-                                                leadingContent = {
-                                                    Icon(icon = Icons.Default.Mail)
-                                                },
-                                            )
-                                        )
-                                    else
-                                        received.map { invite ->
-                                            CardStackListItem(
-                                                title = invite.user.name,
-                                                contentSize = null,
-                                                contentPadding = PaddingValues(vertical = 12.dp),
-                                                trailingContent = {
-                                                    Row(
-                                                        verticalAlignment =
-                                                            Alignment.CenterVertically,
-                                                        horizontalArrangement =
-                                                            Arrangement.spacedBy(space = 8.dp),
-                                                    ) {
-                                                        IconButton(
-                                                            onClick = {
-                                                                onHandleInvite(
-                                                                    invite.id,
-                                                                    InviteAction.Reject,
-                                                                )
-                                                            },
-                                                            enabled =
-                                                                state.action != ApiResult.Loading,
-                                                        ) {
-                                                            Icon(icon = Icons.Default.Close)
-                                                        }
-
-                                                        IconButton(
-                                                            enabled =
-                                                                state.action != ApiResult.Loading,
-                                                            onClick = {
-                                                                onHandleInvite(
-                                                                    invite.id,
-                                                                    InviteAction.Accept,
-                                                                )
-                                                            },
-                                                        ) {
-                                                            Icon(icon = Icons.Default.Check)
-                                                        }
-                                                    }
-                                                },
-                                            )
-                                        }
-                            )
-                        }
-
-                        CardStackList(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            items =
+                item {
+                    SettingsGroup(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        items =
+                            if (received.isEmpty())
                                 listOf(
-                                    if (sent.isNotEmpty())
-                                        CardStackListItem(
-                                            title =
-                                                stringResource(
-                                                    id = R.string.waiting_for,
-                                                    sent.lastOrNull()?.user?.name ?: "",
-                                                ),
-                                            description =
-                                                stringResource(
-                                                    id = R.string.waiting_for_partner_desc
-                                                ),
-                                            leadingContent = {
-                                                Icon(icon = Icons.Default.HourglassEmpty)
-                                            },
-                                        )
-                                    else
-                                        CardStackListItem(
-                                            title = stringResource(id = R.string.create_couple),
-                                            description =
-                                                stringResource(id = R.string.create_couple_desc),
-                                            leadingContent = {
-                                                Icon(icon = Icons.Default.PersonAdd)
-                                            },
-                                            onClick = {
-                                                onOpenInvite()
-                                            },
-                                        )
-                                ),
-                        )
-                    }
+                                    SettingItem(
+                                        title = stringResource(id = R.string.no_received_invites),
+                                        description =
+                                            stringResource(id = R.string.no_received_invites_desc),
+                                        leadingContent = {
+                                            Icon(icon = Icons.Default.Mail)
+                                        },
+                                    )
+                                )
+                            else
+                                received.map { invite ->
+                                    SettingItem(
+                                        title = invite.user.name,
+                                        contentSize = null,
+                                        contentPadding = PaddingValues(vertical = 12.dp),
+                                        trailingContent = {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement =
+                                                    Arrangement.spacedBy(space = 8.dp),
+                                            ) {
+                                                IconButton(
+                                                    onClick = {
+                                                        onHandleInvite(
+                                                            invite.id,
+                                                            InviteAction.Reject,
+                                                        )
+                                                    },
+                                                    enabled = state.action != ApiResult.Loading,
+                                                ) {
+                                                    Icon(icon = Icons.Default.Close)
+                                                }
+
+                                                IconButton(
+                                                    enabled = state.action != ApiResult.Loading,
+                                                    onClick = {
+                                                        onHandleInvite(
+                                                            invite.id,
+                                                            InviteAction.Accept,
+                                                        )
+                                                    },
+                                                ) {
+                                                    Icon(icon = Icons.Default.Check)
+                                                }
+                                            }
+                                        },
+                                    )
+                                },
+                    )
+                }
+
+                item {
+                    SettingsGroup(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        items =
+                            listOf(
+                                if (sent.isNotEmpty())
+                                    SettingItem(
+                                        title =
+                                            stringResource(
+                                                id = R.string.waiting_for,
+                                                sent.lastOrNull()?.user?.name ?: "",
+                                            ),
+                                        description =
+                                            stringResource(id = R.string.waiting_for_partner_desc),
+                                        leadingContent = {
+                                            Icon(icon = Icons.Default.HourglassEmpty)
+                                        },
+                                    )
+                                else
+                                    SettingItem(
+                                        title = stringResource(id = R.string.create_couple),
+                                        description =
+                                            stringResource(id = R.string.create_couple_desc),
+                                        leadingContent = {
+                                            Icon(icon = Icons.Default.PersonAdd)
+                                        },
+                                        onClick = onOpenInvite,
+                                    )
+                            ),
+                    )
                 }
             }
         },

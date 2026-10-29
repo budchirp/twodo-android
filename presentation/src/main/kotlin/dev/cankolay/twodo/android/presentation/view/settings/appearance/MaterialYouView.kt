@@ -40,9 +40,9 @@ import com.materialkolor.rememberDynamicColorScheme
 import dev.cankolay.twodo.android.domain.model.application.MaterialYou
 import dev.cankolay.twodo.android.domain.model.application.SettingsState
 import dev.cankolay.twodo.android.presentation.R
-import dev.cankolay.twodo.android.presentation.composable.app.Card
+import dev.cankolay.twodo.android.presentation.composable.app.AppCard
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.SwitchCard
+import dev.cankolay.twodo.android.presentation.composable.app.SwitchSetting
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
@@ -75,7 +75,7 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
                     )
                 }
 
-                SwitchCard(
+                SwitchSetting(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     title = stringResource(id = R.string.material_you),
@@ -92,7 +92,7 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
 
                 HorizontalPager(
                     state = pagerState,
-                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp),
                     pageSpacing = 16.dp,
                 ) { page ->
                     val start = page * colorsPerPage
@@ -151,7 +151,7 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
 
                 val isEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-                SwitchCard(
+                SwitchSetting(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     title = stringResource(id = R.string.wallpaper_colors),
                     description =
@@ -174,7 +174,7 @@ private fun RowScope.ColorButton(
     onClick: (Color) -> Unit = {},
 ) {
     Surface(modifier = Modifier.sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)) {
-        Card(
+        AppCard(
             modifier = Modifier
                 .weight(weight = 1f)
                 .aspectRatio(ratio = 1f),

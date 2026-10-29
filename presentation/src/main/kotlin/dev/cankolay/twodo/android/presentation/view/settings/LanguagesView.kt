@@ -9,7 +9,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import dev.cankolay.twodo.android.presentation.R
-import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
+import dev.cankolay.twodo.android.presentation.composable.app.RadioOptions
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
@@ -43,7 +43,7 @@ private fun LanguagesContent(language: String, onChange: (String) -> Unit) {
                         "tr" to R.string.tr,
                     )
 
-                CardRadioList(
+                RadioOptions(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     items = languages.keys.toList(),
                     selected =

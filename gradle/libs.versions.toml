@@ -83,6 +83,7 @@ coil-network = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", versio
 richeditor = { group = "com.mohamedrejeb.richeditor", name = "richeditor-compose", version.ref = "richeditor" }
 
 squircle-shape = { group = "io.github.stoyan-vuchev", name = "squircle-shape-android", version.ref = "squircle-shape" }
+
 materialKolor = { module = "com.materialkolor:material-kolor", version.ref = "materialKolor" }
 
 [bundles]
@@ -96,7 +97,6 @@ compose = [
     "compose-foundation",
     "compose-ui",
     "compose-material3",
-    "compose-adaptive",
     "compose-material-icons",
     "compose-material-icons-extended",
     "compose-animation"

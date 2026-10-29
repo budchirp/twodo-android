@@ -12,8 +12,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.application.SettingsState
 import dev.cankolay.twodo.android.domain.model.application.Theme
 import dev.cankolay.twodo.android.presentation.R
-import dev.cankolay.twodo.android.presentation.composable.app.CardRadioList
-import dev.cankolay.twodo.android.presentation.composable.app.SwitchCard
+import dev.cankolay.twodo.android.presentation.composable.app.RadioOptions
+import dev.cankolay.twodo.android.presentation.composable.app.SwitchSetting
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
@@ -32,7 +32,7 @@ private fun ThemeContent(state: SettingsState, onChange: (SettingsState) -> Unit
     AppLayout(route = Route.Theme) {
         AppLazyColumn {
             item {
-                CardRadioList(
+                RadioOptions(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     items = Theme.entries,
                     selected = state.theme,
@@ -59,7 +59,7 @@ private fun ThemeContent(state: SettingsState, onChange: (SettingsState) -> Unit
                     onChange(state.copy(isAmoled = isAmoled))
                 }
 
-                SwitchCard(
+                SwitchSetting(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     title = stringResource(id = R.string.amoled),
                     enabled = state.theme != Theme.LIGHT,

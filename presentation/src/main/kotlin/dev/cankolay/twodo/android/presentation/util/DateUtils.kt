@@ -11,19 +11,30 @@ object DateUtils {
     const val DATE_TIME_PATTERN = "dd MMM yyyy HH:mm"
     const val TIME_PATTERN = "HH:mm"
 
-    fun parse(value: String): OffsetDateTime? = runCatching {
+    private fun parse(value: String): OffsetDateTime? = runCatching {
         OffsetDateTime.parse(value)
-    }.getOrNull()
+    }
+        .getOrNull()
 
     fun format(date: LocalDate, pattern: String): String =
         date.format(DateTimeFormatter.ofPattern(pattern))
 
+    fun formatRange(start: LocalDate, end: LocalDate? = null): String {
+        val first = format(date = start, pattern = SUMMARY_DATE_PATTERN)
+
+        return when (end) {
+            null -> first
+
+            else -> "$first – ${format(date = end, pattern = SUMMARY_DATE_PATTERN)}"
+        }
+    }
+
     fun format(value: String, pattern: String): String =
-        parse(value)
+        parse(value = value)
             ?.atZoneSameInstant(ZoneId.systemDefault())
             ?.format(DateTimeFormatter.ofPattern(pattern))
             .orEmpty()
 
     fun daysSince(value: String): Long =
-        parse(value)?.let { ChronoUnit.DAYS.between(it, OffsetDateTime.now()) } ?: 0L
+        parse(value = value)?.let { ChronoUnit.DAYS.between(it, OffsetDateTime.now()) } ?: 0L
 }

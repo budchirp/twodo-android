@@ -14,10 +14,15 @@ import dev.cankolay.twodo.android.domain.model.api.note.Note
 import dev.cankolay.twodo.android.presentation.composition.LocalNotesLayout
 
 @Composable
-internal fun NoteCard(note: Note, selected: Boolean, onClick: () -> Unit) {
+internal fun NoteItem(
+    note: Note,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val isExpanded = LocalNotesLayout.current?.navigation?.isExpanded != false
 
-    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+    Box(modifier = modifier) {
         NoteTransition(id = note.id, detail = false, modifier = Modifier.fillMaxWidth()) {
             Surface(
                 onClick = onClick,

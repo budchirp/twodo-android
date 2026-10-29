@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="dev">Geliştirici</string>
-    <string name="back">Geri</string>
     <string name="close">Kapat</string>
     <string name="save">Kaydet</string>
 
@@ -9,7 +7,6 @@
     <string name="dark">Koyu</string>
     <string name="light">Açık</string>
 
-    <string name="invites">Davetler</string>
     <string name="settings">Ayarlar</string>
 
     <string name="appearance">Görünüm</string>
@@ -38,38 +35,26 @@
     <string name="notes">Notlar</string>
     <string name="select_note">Bir not seçin</string>
     <string name="try_again">Tekrar deneyin</string>
-    <string name="refresh">Yenile</string>
     <string name="sign_out">Çıkış yap</string>
     <string name="sign_out_desc">Tekrar Trash ile giriş yapmanız gerekecek.</string>
-    <string name="api_error">Veriler alınırken bir hata oluştu.</string>
     <string name="continue_with_trash">Trash ile devam edin</string>
     <string name="auth_missing_token">Kimlik doğrulama yanıtında token yok</string>
-    <string name="sent">Gönderilen</string>
-    <string name="received">Alınan</string>
-    <string name="accept">Onayla</string>
-    <string name="reject">Reddet</string>
-    <string name="accepted">Onaylandı</string>
-    <string name="rejected">Reddedildi</string>
-    <string name="pending">Bekliyor</string>
     <string name="title">Başlık</string>
     <string name="title_required">Devam etmek için başlık girin.</string>
     <string name="create">Oluştur</string>
     <string name="delete">Sil</string>
     <string name="days_together">%1$s gündür birlikte</string>
     <string name="edited_at">Düzenlenme: %1$s</string>
-    <string name="since">%1$s tarihinden beri</string>
     <string name="username">Kullanıcı adı</string>
     <string name="invite">Davet et</string>
     <string name="welcome">TwoDo\'ya Hoş geldiniz</string>
     <string name="welcome_desc">Birlikte taşımak istediğiniz notlar için küçük bir ortak alan.</string>
-    <string name="loading">Yükleniyor</string>
     <string name="feature_1">Çift olarak planlayın</string>
     <string name="feature_1_desc">Ortak notları birlikte oluşturun ve düzenleyin</string>
     <string name="feature_2">Uyumlu kalın</string>
     <string name="feature_2_desc">Ortak düşünceleri tek yerde tutun</string>
     <string name="feature_3">Küçük şeyler önemlidir</string>
     <string name="feature_3_desc">Birlikte hatırlamak istediğiniz küçük şeyleri saklayın</string>
-    <string name="notes_error">Notlarınız alınamadı</string>
     <string name="notes_empty_title">Henüz not yok</string>
     <string name="notes_empty_desc">Bir şey çıktığında ilk ortak notu oluşturun.</string>
     <string name="create_note">Not oluştur</string>
@@ -79,22 +64,12 @@
     <string name="couple_setup">Çift kurulumu</string>
     <string name="couple_setup_title">Ortak alanınızı kurun</string>
     <string name="couple_setup_desc">Birlikte planlamaya başlamak için partnerinizi davet edin veya davetini kabul edin.</string>
-    <string name="couple_setup_loading">Hesabınız kontrol ediliyor</string>
-    <string name="couple_setup_error_title">Profiliniz yüklenemedi</string>
     <string name="invite_partner">Partnerinizi davet edin</string>
-    <string name="invite_partner_desc">Kullanıcı adıyla davet gönderin.</string>
-    <string name="join_partner">Partnerinize katılın</string>
-    <string name="join_partner_desc">Size gönderilen bir daveti kabul edin.</string>
-    <string name="pending_invites">Bekleyen davetler</string>
     <string name="received_invites">Alınan davetler</string>
     <string name="waiting_for">%1$s bekleniyor</string>
     <string name="waiting_for_partner_desc">Davetiniz gönderildi. Kabul ettikten sonra istediğiniz zaman yenileyin.</string>
     <string name="no_received_invites">Henüz davet yok</string>
     <string name="no_received_invites_desc">Partnerinizden davet göndermesini isteyin veya buradan davet edin.</string>
-    <string name="no_sent_invites">Gönderilen davet yok</string>
-    <string name="no_sent_invites_desc">Bağlanmaya hazır olduğunuzda partnerinizi davet edin.</string>
-    <string name="invite_sent_to">%1$s kullanıcısına davet gönderildi</string>
-    <string name="accepted_invite_desc">Kabul edildi. Çift profiliniz kontrol ediliyor.</string>
     <string name="create_couple">Çift oluştur</string>
     <string name="create_couple_desc">Birlikte çift oluşturmak için partnerinizi davet edin.</string>
     <string name="username_required">Devam etmek için kullanıcı adı girin.</string>
@@ -105,13 +80,11 @@
 
     <string name="startup_error_title">TwoDo\'ya ulaşılamıyor</string>
     <string name="startup_error_desc">Sunucuya bağlanılamadı. Oturumunuz kayıtlı; sunucu kullanılabilir olduğunda tekrar deneyin.</string>
-    <string name="startup_error_card_title">Sunucu kullanılamıyor</string>
     <string name="startup_error_unknown">Sunucuya bağlanılamadı.</string>
 
     <string name="profile_setup">Profil kurulumu</string>
     <string name="profile_setup_title">Profilinizi tamamlayın</string>
     <string name="profile_setup_desc">Ortak özellikleri kullanmadan önce adınızı ve cinsiyetinizi ekleyin.</string>
-    <string name="profile_setup_error_title">Profiliniz güncellenemedi</string>
     <string name="name">Ad</string>
     <string name="name_required">Devam etmek için adınızı girin.</string>
     <string name="gender_required">Devam etmek için cinsiyetinizi seçin.</string>
@@ -120,10 +93,6 @@
 
     <string name="calendar">Takvim</string>
     <string name="calendar_desc">Ortak aktivite takibi</string>
-    <string name="calendar_error">Takvim kayıtları alınamadı</string>
-    <string name="calendar_empty_title">Takvim kaydı yok</string>
-    <string name="calendar_empty_desc">Not veya aktivite eklemek için artı düğmesini kullanın.</string>
-    <string name="calendar_range">Tarih aralığı</string>
     <string name="create_calendar_entry">Takvim kaydı oluştur</string>
     <string name="edit_calendar_entry">Takvim kaydını düzenle</string>
     <string name="delete_calendar_entry">Takvim kaydı silinsin mi?</string>
@@ -137,28 +106,13 @@
 
     <string name="period_tracker">Regl takibi</string>
     <string name="period_tracker_desc">Tahmini regl, yumurtlama ve döngü önerileri</string>
-    <string name="period_tracker_error">Regl takibi yüklenemedi</string>
-    <string name="period_tracker_empty_desc">Tahminleri görmek için zamanla regl kayıtları ekleyin.</string>
     <string name="period_tracker_averages">Ortalama döngü: %1$s gün - regl: %2$s gün</string>
     <string name="next_period_window">Sonraki tahmini regl</string>
     <string name="ovulation_window">Tahmini yumurtlama aralığı</string>
-    <string name="medical_disclaimer">Tıbbi uyarı</string>
     <string name="prediction_unavailable">Tahmin yok</string>
     <string name="prediction_unavailable_desc">Yeterli regl geçmişi olduğunda tahminler görünür. Tahminler tıbbi kesinlik değildir.</string>
-    <string name="recent_period_range">Son regl aralığı</string>
-    <string name="period_range_desc">%1$s - %2$s - %3$s gün</string>
-    <string name="cycle_history">Döngü geçmişi</string>
-    <string name="cycle_history_desc">Başlangıç %1$s - regl %2$s gün - döngü %3$s gün</string>
     <string name="expected_period">Tahmini regl</string>
-    <string name="period_dates_added_calendar">Regl tarihlerini Takvim ekranından ekleyip düzenleyin.</string>
     <string name="period_tips_title">İpuçları</string>
-    <string name="period_tips_desc">Küçük alışkanlıklar tahminleri zamanla daha kullanışlı yapar.</string>
-    <string name="period_tip_log_consistently">Düzenli kaydedin</string>
-    <string name="period_tip_log_consistently_desc">Başlangıç, gün ve bitiş kayıtlarını takvimden zamanında işaretleyin.</string>
-    <string name="period_tip_symptoms">Belirtileri takip edin</string>
-    <string name="period_tip_symptoms_desc">Belirtiler ve akış, son döngüleri eskileriyle karşılaştırmaya yardımcı olur.</string>
-    <string name="period_tip_not_medical">Tahminleri yaklaşık kabul edin</string>
-    <string name="period_tip_not_medical_desc">Sunucu tahminlerini tıbbi tanı değil, planlama ipucu olarak kullanın.</string>
 
     <string name="selected_day">%1$s kayıtları</string>
     <string name="calendar_day_empty_title">Bu günde kayıt yok</string>
@@ -184,9 +138,5 @@
     <string name="symptom_mood_changes">Duygu değişimleri</string>
     <string name="symptom_nausea">Bulantı</string>
 
-    <string name="fertile_window_title">Döngü Tahminleri</string>
-    <string name="days_uncertainty">gün belirsizlik</string>
-    <string name="estimated_ovulation">Tahmini Yumurtlama</string>
-    <string name="fertile_window">Doğurganlık Penceresi</string>
     <string name="default_medical_disclaimer">Tahminler geçmiş kayıtlarınıza dayalı yaklaşık değerlerdir; tıbbi tavsiye yerine kullanılmamalıdır.</string>
 </resources>

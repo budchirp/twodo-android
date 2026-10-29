@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 
 const val initialOffset = 0.10f
 
@@ -31,10 +30,11 @@ fun slideIn(
     durationMillis: Int = MotionConstants.ENTER_DURATION,
 ): EnterTransition =
     slideInHorizontally(
-        animationSpec = tween(
-            durationMillis = durationMillis,
-            easing = FastOutSlowInEasing
-        ),
+        animationSpec =
+            tween(
+                durationMillis = durationMillis,
+                easing = FastOutSlowInEasing,
+            ),
         initialOffsetX = initialOffsetX,
     ) +
             fadeIn(
@@ -43,7 +43,7 @@ fun slideIn(
                         durationMillis = durationMillis.ForIncoming,
                         delayMillis = durationMillis.ForOutgoing,
                         easing = LinearOutSlowInEasing,
-                    ),
+                    )
             )
 
 fun slideOut(
@@ -51,10 +51,11 @@ fun slideOut(
     durationMillis: Int = MotionConstants.EXIT_DURATION,
 ): ExitTransition =
     slideOutHorizontally(
-        animationSpec = tween(
-            durationMillis = durationMillis,
-            easing = FastOutSlowInEasing
-        ),
+        animationSpec =
+            tween(
+                durationMillis = durationMillis,
+                easing = FastOutSlowInEasing,
+            ),
         targetOffsetX = targetOffsetX,
     ) +
             fadeOut(
@@ -63,7 +64,7 @@ fun slideOut(
                         durationMillis = durationMillis.ForOutgoing,
                         delayMillis = 0,
                         easing = FastOutLinearInEasing,
-                    ),
+                    )
             )
 
 fun slideInY(
@@ -81,23 +82,5 @@ fun slideInY(
                         durationMillis = durationMillis.ForIncoming,
                         delayMillis = durationMillis.ForOutgoing + delayMillis,
                         easing = LinearOutSlowInEasing,
-                    ),
-            )
-
-fun slideOutY(
-    targetOffsetY: (fullHeight: Int) -> Int = { -(it * initialOffset).toInt() },
-    durationMillis: Int = MotionConstants.EXIT_DURATION,
-    delayMillis: Int = 0,
-): ExitTransition =
-    slideOutVertically(
-        animationSpec = tween(durationMillis = durationMillis, easing = FastOutSlowInEasing),
-        targetOffsetY = targetOffsetY,
-    ) +
-            fadeOut(
-                animationSpec =
-                    tween(
-                        durationMillis = durationMillis.ForOutgoing,
-                        delayMillis = delayMillis,
-                        easing = FastOutLinearInEasing,
-                    ),
+                    )
             )

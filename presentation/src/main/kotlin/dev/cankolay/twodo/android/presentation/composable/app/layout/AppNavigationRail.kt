@@ -15,11 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
-import dev.cankolay.twodo.android.presentation.navigation.resetTo
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 import dev.cankolay.twodo.android.presentation.navigation.route.navigationRoutes
 import dev.cankolay.twodo.android.presentation.navigation.route.onboardingRoutes
+import dev.cankolay.twodo.android.presentation.navigation.route.resetTo
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -51,7 +51,7 @@ fun AppNavigationRail() {
                     selected = isSelected,
                     onClick = {
                         if (!isSelected) {
-                            navBackStack.resetTo(route)
+                            navBackStack.resetTo(route = route)
                         }
                     },
                     icon = {

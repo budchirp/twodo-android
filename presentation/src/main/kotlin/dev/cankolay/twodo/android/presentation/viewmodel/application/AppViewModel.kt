@@ -26,9 +26,9 @@ enum class AppPhase(val route: Route?) {
 
 data class AppUiState(
     val phase: AppPhase = AppPhase.Starting,
-    val accountId: String? = null,
+    val id: String? = null,
     val result: ApiResult<User>? = null,
-    val loginError: Int? = null,
+    val error: Int? = null,
 )
 
 @HiltViewModel
@@ -68,7 +68,7 @@ constructor(
 
                                         else -> AppPhase.Ready
                                     },
-                                accountId = state.user.id,
+                                id = state.user.id,
                             )
                     }
                 }
@@ -80,7 +80,7 @@ constructor(
         val token = uri.getQueryParameter("token")
 
         if (token.isNullOrBlank()) {
-            _uiState.update { it.copy(loginError = R.string.auth_missing_token) }
+            _uiState.update { it.copy(error = R.string.auth_missing_token) }
             return
         }
 
@@ -88,7 +88,7 @@ constructor(
     }
 
     fun dismissError() {
-        _uiState.update { it.copy(loginError = null) }
+        _uiState.update { it.copy(error = null) }
     }
 
     fun logout() {
