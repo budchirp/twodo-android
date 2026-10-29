@@ -19,11 +19,8 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
-import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarViewModel
@@ -77,8 +74,9 @@ private fun CalendarContent(
 ) {
     val isLoading = state.result == ApiResult.Loading
 
-    AppLayout(
-        route = Route.Calendar,
+    CalendarPanes(
+        isLoading = state.entries == ApiResult.Loading,
+        onRefresh = onRefresh,
         topBar = { context ->
             AppTopAppBar(
                 context = context,
@@ -93,79 +91,82 @@ private fun CalendarContent(
                 },
             )
         },
-    ) {
-        when (val result = state.entries) {
-            ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        status = {
+            when (val result = state.entries) {
+                ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
-            is ApiResult.Failure -> ErrorCard(error = result.error.message, onRefresh = onRefresh)
-
-            else -> Unit
-        }
-
-        PullToRefreshLazyColumn(
-            isLoading = state.entries == ApiResult.Loading,
-            onRefresh = onRefresh,
-        ) {
-            val entries =
-                when (val result = state.entries) {
-                    is ApiResult.Success -> result.data
-
-                    else -> emptyList()
-                }
-
-            item(key = "calendar") {
-                CalendarGrid(
-                    visibleMonth = state.month,
-                    selectedDate = state.date,
-                    entries = entries,
-                    canTrackPeriods = state.canTrackPeriods,
-                    onPreviousMonth = { onMove(-1) },
-                    onNextMonth = { onMove(1) },
-                    onDateClick = onSelect,
-                )
+                else -> Unit
             }
+        },
+        error = {
+            when (val result = state.entries) {
+                is ApiResult.Failure ->
+                    ErrorCard(error = result.error.message, onRefresh = onRefresh)
 
-            if (state.entries is ApiResult.Success) {
-                item(key = "entries") {
-                    CalendarEntries(
-                        date = state.date,
-                        entries = entries.filter { it.date == state.date },
-                        canTrackPeriods = state.canTrackPeriods,
-                        onClick = onEdit,
-                    )
-                }
+                else -> Unit
             }
-        }
+        },
+        month = {
+            CalendarGrid(
+                visibleMonth = state.month,
+                selectedDate = state.date,
+                entries =
+                    when (val result = state.entries) {
+                        is ApiResult.Success -> result.data
 
-        if (state.showPrediction) {
-            PredictionSummarySheet(
-                state = state.prediction,
-                onDismiss = onDismiss,
-                onRefresh = onRefreshPrediction,
-            )
-        }
-
-        if (state.showForm) {
-            CalendarEntrySheet(
-                form = state.form,
-                result = state.result,
+                        else -> emptyList()
+                    },
                 canTrackPeriods = state.canTrackPeriods,
-                onDismiss = onDismiss,
-                onDelete = onAskDelete,
-                onSave = onSave,
-                onFormChange = onFormChange,
+                onPreviousMonth = { onMove(-1) },
+                onNextMonth = { onMove(1) },
+                onDateClick = onSelect,
             )
-        }
+        },
+        entries =
+            when (val result = state.entries) {
+                is ApiResult.Success -> {
+                    {
+                        CalendarEntries(
+                            date = state.date,
+                            entries = result.data.filter { it.date == state.date },
+                            canTrackPeriods = state.canTrackPeriods,
+                            onClick = onEdit,
+                        )
+                    }
+                }
 
-        if (state.showDelete) {
-            DestructiveConfirmationSheet(
-                title = stringResource(id = R.string.delete_calendar_entry),
-                description = stringResource(id = R.string.delete_calendar_entry_desc),
-                confirmText = stringResource(id = R.string.delete),
-                result = state.result,
-                onDismiss = onDismiss,
-                onConfirm = onDelete,
-            )
-        }
+                else -> null
+            },
+    )
+
+    if (state.showPrediction) {
+        PredictionSummarySheet(
+            state = state.prediction,
+            onDismiss = onDismiss,
+            onRefresh = onRefreshPrediction,
+        )
+    }
+
+    if (state.showForm) {
+        CalendarEntrySheet(
+            form = state.form,
+            result = state.result,
+            canTrackPeriods = state.canTrackPeriods,
+            onDismiss = onDismiss,
+            onDelete = onAskDelete,
+            onSave = onSave,
+            onFormChange = onFormChange,
+        )
+    }
+
+    if (state.showDelete) {
+        DestructiveConfirmationSheet(
+            title = stringResource(id = R.string.delete_calendar_entry),
+            description = stringResource(id = R.string.delete_calendar_entry_desc),
+            confirmText = stringResource(id = R.string.delete),
+            result = state.result,
+            onDismiss = onDismiss,
+            onConfirm = onDelete,
+        )
     }
 }

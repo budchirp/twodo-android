@@ -32,16 +32,13 @@ constructor(
     private val credentials: AuthStateRepository,
     private val environmentConfigRepository: EnvironmentConfigRepository
 ) {
-    private val isDebug =
-        (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-
     private val client = HttpClient(engineFactory = OkHttp) {
         defaultRequest {
             url(urlString = environmentConfigRepository.get().apiUrl)
             contentType(type = ContentType.Application.Json)
         }
 
-        install(createClientPlugin("Credentials") {
+        install(plugin = createClientPlugin(name = "Credentials") {
             onRequest { request, _ ->
                 val token = credentials.state.first().token
                 if (token.isNotBlank()) {
@@ -66,7 +63,7 @@ constructor(
             )
         }
 
-        if (isDebug) {
+        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             install(plugin = Logging) {
                 level = LogLevel.INFO
                 logger =

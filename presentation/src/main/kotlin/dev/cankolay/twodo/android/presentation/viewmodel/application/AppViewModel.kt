@@ -16,12 +16,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class AppPhase(val route: Route?) {
-    Starting(null),
-    SignedOut(Route.Welcome),
-    ProfileRequired(Route.ProfileSetup),
-    CoupleRequired(Route.CoupleSetup),
-    Ready(Route.Notes),
-    Failed(Route.StartupError),
+    Starting(route = null),
+    SignedOut(route = Route.Welcome),
+    ProfileRequired(route = Route.ProfileSetup),
+    CoupleRequired(route = Route.CoupleSetup),
+    Ready(route = Route.Notes),
+    Failed(route = Route.StartupError),
 }
 
 data class AppUiState(

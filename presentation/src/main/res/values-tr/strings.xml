@@ -36,6 +36,7 @@
     <string name="about_view_on_desc">Projeyi %1$s\'da gör</string>
 
     <string name="notes">Notlar</string>
+    <string name="select_note">Bir not seçin</string>
     <string name="try_again">Tekrar deneyin</string>
     <string name="refresh">Yenile</string>
     <string name="sign_out">Çıkış yap</string>

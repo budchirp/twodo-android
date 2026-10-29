@@ -158,7 +158,17 @@ constructor(
             saveMutex.withLock {
                 val result = notes.delete(id = id)
 
-                _uiState.update { it.copy(delete = result) }
+                _uiState.update {
+                    it.copy(
+                        delete = result,
+                        showDelete =
+                            when (result) {
+                                is ApiResult.Success -> false
+
+                                else -> it.showDelete
+                            },
+                    )
+                }
 
                 if (result is ApiResult.Success) clearSavedDraft()
             }

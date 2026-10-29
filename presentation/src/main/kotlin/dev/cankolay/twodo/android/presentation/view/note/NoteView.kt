@@ -1,29 +1,16 @@
 package dev.cankolay.twodo.android.presentation.view.note
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -31,53 +18,110 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
-import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.MarkdownEditor
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
-import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBarType
+import dev.cankolay.twodo.android.presentation.composable.app.layout.AppPane
+import dev.cankolay.twodo.android.presentation.composition.LocalNotesLayout
 import dev.cankolay.twodo.android.presentation.core.HandleNavigation
-import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteEditorUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteEditorViewModel
 
 @Composable
 fun NoteView(
-    id: String,
-    onBack: () -> Unit,
-    viewModel: NoteEditorViewModel = hiltViewModel(),
+    id: String? = null,
+    onBack: () -> Unit = {},
+    viewModel: NoteEditorViewModel? =
+        when (id) {
+            null -> null
+
+            else -> hiltViewModel<NoteEditorViewModel>()
+        },
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val state =
+        when (viewModel) {
+            null -> NoteEditorUiState()
+
+            else -> viewModel.uiState.collectAsStateWithLifecycle().value
+        }
+
+    val navigation = LocalNotesLayout.current?.navigation
+
+    val visible = navigation == null || navigation.id == id
+
+    val close = id != null && visible && navigation?.pending != null
+
     HandleNavigation(
         result =
             Unit.takeIf { state.close is ApiResult.Success || state.delete is ApiResult.Success }
     ) {
         onBack()
     }
-    LaunchedEffect(key1 = id) { viewModel.load(id = id) }
 
-    NoteContent(
-        id = id,
-        uiState = state,
-        onRetry = { viewModel.load(id = id) },
-        onBack = viewModel::close,
-        onTitleChange = viewModel::updateTitle,
-        onContentChange = viewModel::updateContent,
-        onOpenActions = viewModel::openActions,
-        onDismissSheet = viewModel::dismiss,
-        onRequestDelete = viewModel::askDelete,
-        onDelete = viewModel::delete,
-        onRetrySave = viewModel::save,
-    )
+    LaunchedEffect(key1 = id) {
+        when (id) {
+            null -> Unit
+
+            else -> viewModel?.load(id = id)
+        }
+    }
+
+    LaunchedEffect(key1 = close) {
+        if (close) viewModel?.close()
+    }
+
+    LaunchedEffect(key1 = state.close) {
+        when (state.close) {
+            is ApiResult.Failure -> navigation?.cancel()
+
+            else -> Unit
+        }
+    }
+
+    val content: @Composable () -> Unit = {
+        NoteContent(
+            state = state,
+            visible = visible && id != null,
+            onRetry = { if (id != null) viewModel?.load(id = id) },
+            onBack = {
+                when {
+                    navigation?.isExpanded == true && navigation.isFullscreen -> navigation.toggle()
+
+                    else -> viewModel?.close()
+                }
+            },
+            isExpanded = navigation?.isExpanded == true,
+            isFullscreen = navigation?.isFullscreen == true,
+            onToggle = { navigation?.toggle() },
+            onTitleChange = { title -> viewModel?.updateTitle(title = title) },
+            onContentChange = { content -> viewModel?.updateContent(content = content) },
+            onOpenActions = { viewModel?.openActions() },
+            onDismissSheet = { viewModel?.dismiss() },
+            onRequestDelete = { viewModel?.askDelete() },
+            onDelete = { viewModel?.delete() },
+            onRetrySave = { viewModel?.save() },
+        )
+    }
+
+    when (id) {
+        null -> content()
+
+        else ->
+            NoteTransition(
+                id = id,
+                detail = true,
+                modifier = Modifier.fillMaxSize(),
+                content = content,
+            )
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NoteContent(
-    id: String,
-    uiState: NoteEditorUiState,
+    state: NoteEditorUiState,
+    visible: Boolean,
     onRetry: () -> Unit,
     onBack: () -> Unit,
+    isExpanded: Boolean,
+    isFullscreen: Boolean,
+    onToggle: () -> Unit,
     onTitleChange: (String) -> Unit,
     onContentChange: (String) -> Unit,
     onOpenActions: () -> Unit,
@@ -86,117 +130,58 @@ private fun NoteContent(
     onDelete: () -> Unit,
     onRetrySave: () -> Unit,
 ) {
-    val note = uiState.draft
+    BackHandler(enabled = visible) {
+        when {
+            state.showActions || state.showDelete -> onDismissSheet()
 
-    val isLoading = uiState.close == ApiResult.Loading || uiState.delete == ApiResult.Loading
-
-    BackHandler {
-        if (uiState.showActions || uiState.showDelete) onDismissSheet() else onBack()
-    }
-
-    if (note == null) {
-        AppLayout(
-            route = Route.Note(id = id),
-            topBar = { context ->
-                AppTopAppBar(context = context, onBackClick = onBack)
-            },
-        ) {
-            when (val noteState = uiState.note) {
-                ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-
-                is ApiResult.Failure ->
-                    ErrorCard(error = noteState.error.message, onRefresh = onRetry)
-
-                else -> Unit
-            }
+            else -> onBack()
         }
     }
 
-    note?.let { noteDraft ->
-        AppLayout(
-            route = Route.Note(id = id),
-            context = { context ->
-                context.copy(scrollBehavior = null)
-            },
-            topBar = { context ->
-                AppTopAppBar(
-                    type = AppTopAppBarType.Default,
-                    context = context,
-                    onBackClick = onBack,
-                    title = {
-                        BasicTextField(
-                            value = noteDraft.title,
-                            onValueChange = onTitleChange,
-                            enabled = !isLoading,
-                            textStyle =
-                                LocalTextStyle.current.copy(
-                                    color = MaterialTheme.colorScheme.onSurface
-                                ),
-                            cursorBrush = SolidColor(value = MaterialTheme.colorScheme.primary),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    },
-                )
-            },
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding()
-            ) {
-                when (val result = uiState.save) {
-                    is ApiResult.Failure ->
-                        ErrorCard(error = result.error.message, onRefresh = onRetrySave)
-
-                    else -> Unit
-                }
-
-                MarkdownEditor(
-                    markdown = noteDraft.content,
-                    onContentChange = onContentChange,
-                    readOnly = isLoading,
-                    modifier =
-                        Modifier
-                            .weight(weight = 1f)
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                )
-
-                Surface(
+    AppPane(modifier = Modifier.fillMaxSize()) {
+        when (val note = state.note) {
+            null -> {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(height = 64.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        .fillMaxSize()
+                        .padding(all = 24.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        FilledIconButton(onClick = onOpenActions, enabled = !isLoading) {
-                            Icon(icon = Icons.Default.MoreVert)
-                        }
-                    }
+                    Text(
+                        text = stringResource(id = R.string.select_note),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
-            if (uiState.showActions) {
-                NoteActionsSheet(
-                    title = noteDraft.title.ifBlank { stringResource(id = R.string.notes) },
-                    updatedAt = noteDraft.updatedAt,
-                    onDismiss = onDismissSheet,
-                    onDelete = onRequestDelete,
-                )
+            ApiResult.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
 
-            if (uiState.showDelete) {
-                DeleteNoteSheet(
-                    result = uiState.delete,
-                    onDismiss = onDismissSheet,
+            is ApiResult.Failure -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ErrorCard(error = note.error.message, onRefresh = onRetry)
+                }
+            }
+
+            is ApiResult.Success -> {
+                NoteEditor(
+                    note = state.draft ?: note.data,
+                    state = state,
+                    isExpanded = isExpanded,
+                    isFullscreen = isFullscreen,
+                    onBack = onBack,
+                    onToggle = onToggle,
+                    onTitleChange = onTitleChange,
+                    onContentChange = onContentChange,
+                    onOpenActions = onOpenActions,
+                    onDismissSheet = onDismissSheet,
+                    onRequestDelete = onRequestDelete,
                     onDelete = onDelete,
+                    onRetrySave = onRetrySave,
                 )
             }
         }

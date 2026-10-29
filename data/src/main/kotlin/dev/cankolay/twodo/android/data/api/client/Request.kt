@@ -18,12 +18,17 @@ internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Fa
     return try {
         val body = body<ErrorResponse>()
         ApiResult.Failure(
-            ApiFailure(message = body.message, reason = reason, code = body.code)
+            error = ApiFailure(message = body.message, reason = reason, code = body.code)
         )
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        ApiResult.Failure(ApiFailure(message = e.message ?: "Unexpected error", reason = reason))
+        ApiResult.Failure(
+            error = ApiFailure(
+                message = e.message ?: "Unexpected error",
+                reason = reason
+            )
+        )
     }
 }
 
@@ -51,7 +56,7 @@ internal suspend inline fun <R> executeRequest(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        ApiResult.Failure(ApiFailure(message = e.message ?: "Unexpected error"))
+        ApiResult.Failure(error = ApiFailure(message = e.message ?: "Unexpected error"))
     }
 }
 

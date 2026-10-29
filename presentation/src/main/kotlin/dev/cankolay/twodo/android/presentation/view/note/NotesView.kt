@@ -24,14 +24,21 @@ import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
+import dev.cankolay.twodo.android.presentation.composition.LocalNotesLayout
 import dev.cankolay.twodo.android.presentation.core.HandleNavigation
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.note.NotesUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.note.NotesViewModel
 
 @Composable
-fun NotesView(onNoteClick: (String) -> Unit, viewModel: NotesViewModel = hiltViewModel()) {
+fun NotesView(
+    onNoteClick: (String) -> Unit,
+    viewModel: NotesViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val selected = LocalNotesLayout.current?.navigation?.id
+
     val id =
         when (val result = state.result) {
             is ApiResult.Success -> result.data.id
@@ -46,6 +53,7 @@ fun NotesView(onNoteClick: (String) -> Unit, viewModel: NotesViewModel = hiltVie
 
     NotesContent(
         state = state,
+        selected = selected,
         onRefresh = { viewModel.fetch(forceRefresh = true) },
         onCreateClick = viewModel::openForm,
         onDismissSheet = viewModel::dismiss,
@@ -59,6 +67,7 @@ fun NotesView(onNoteClick: (String) -> Unit, viewModel: NotesViewModel = hiltVie
 @Composable
 private fun NotesContent(
     state: NotesUiState,
+    selected: String?,
     onRefresh: () -> Unit,
     onCreateClick: () -> Unit,
     onDismissSheet: () -> Unit,
@@ -97,7 +106,7 @@ private fun NotesContent(
                 is ApiResult.Success -> {
                     val notes = result.data
                     if (notes.isEmpty()) {
-                        item(key = "empty") {
+                        item {
                             CardList(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 title = stringResource(id = R.string.notes_empty_title),
@@ -107,10 +116,10 @@ private fun NotesContent(
                             )
                         }
                     } else {
-                        items(items = notes, key = { it.id }) { note ->
-                            CardList(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                title = note.title,
+                        items(items = notes) { note ->
+                            NoteCard(
+                                note = note,
+                                selected = selected == note.id,
                                 onClick = { onNoteClick(note.id) },
                             )
                         }

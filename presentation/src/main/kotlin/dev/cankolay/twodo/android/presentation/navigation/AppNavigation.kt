@@ -6,8 +6,11 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
+import dev.cankolay.twodo.android.presentation.composition.LocalNotesLayout
 import dev.cankolay.twodo.android.presentation.motion.TransitionType
 import dev.cankolay.twodo.android.presentation.motion.navigationTransition
+import dev.cankolay.twodo.android.presentation.navigation.notes.noteDetailMetadata
+import dev.cankolay.twodo.android.presentation.navigation.notes.notesListMetadata
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.view.calendar.CalendarView
 import dev.cankolay.twodo.android.presentation.view.note.NoteView
@@ -31,8 +34,14 @@ fun AppNavigation(
 ) {
     val navBackStack = LocalNavBackStack.current
 
+    val layout = requireNotNull(value = LocalNotesLayout.current)
+
+    val notes = layout.navigation
+
     NavDisplay(
         backStack = navBackStack,
+        sceneStrategies = listOf(element = layout.strategy),
+        sharedTransitionScope = layout.transition,
         onBack = {
             if (navBackStack.size > 1) {
                 navBackStack.removeLastOrNull()
@@ -61,16 +70,14 @@ fun AppNavigation(
                     CoupleSetupView(onLogout = onLogout)
                 }
 
-                entry<Route.Notes>(metadata = navigationTransition(type = TransitionType.FADE)) {
-                    NotesView(
-                        onNoteClick = { id -> navBackStack.add(element = Route.Note(id = id)) }
-                    )
+                entry<Route.Notes>(metadata = notesListMetadata()) {
+                    NotesView(onNoteClick = notes::select)
                 }
 
-                entry<Route.Note> {
+                entry<Route.Note>(metadata = noteDetailMetadata()) { note ->
                     NoteView(
-                        id = it.id,
-                        onBack = { if (navBackStack.size > 1) navBackStack.removeLastOrNull() },
+                        id = note.id,
+                        onBack = { if (notes.id == note.id) notes.close() },
                     )
                 }
 

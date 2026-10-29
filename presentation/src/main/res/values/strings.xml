@@ -56,6 +56,7 @@
     <string name="feature_3_desc">Save the small things you want to remember together</string>
 
     <string name="notes">Notes</string>
+    <string name="select_note">Select a note</string>
     <string name="notes_error">Failed to get your notes</string>
 
     <string name="notes_empty_title">No notes yet</string>

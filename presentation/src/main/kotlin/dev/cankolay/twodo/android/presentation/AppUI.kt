@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppMainLayout
 import dev.cankolay.twodo.android.presentation.composition.ProvideNavBackStack
+import dev.cankolay.twodo.android.presentation.composition.ProvideNotesLayout
 import dev.cankolay.twodo.android.presentation.navigation.AppNavigation
 import dev.cankolay.twodo.android.presentation.theme.AppTheme
 import dev.cankolay.twodo.android.presentation.view.StartupErrorView
@@ -39,16 +40,18 @@ fun AppUI(appViewModel: AppViewModel, settingsViewModel: SettingsViewModel) {
                 key(state.accountId) {
                     ProvideNavBackStack(startRoute = route) {
                         AppMainLayout {
-                            AppNavigation(
-                                authUrl = appViewModel.authUrl,
-                                onLogout = appViewModel::logout,
-                                startup = {
-                                    StartupErrorView(
-                                        result = state.result,
-                                        onRetry = appViewModel::retry,
-                                    )
-                                },
-                            )
+                            ProvideNotesLayout {
+                                AppNavigation(
+                                    authUrl = appViewModel.authUrl,
+                                    onLogout = appViewModel::logout,
+                                    startup = {
+                                        StartupErrorView(
+                                            result = state.result,
+                                            onRetry = appViewModel::retry,
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 }
