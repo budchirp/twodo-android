@@ -1,14 +1,14 @@
 package dev.cankolay.twodo.android.presentation.view.note
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -19,10 +19,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
+import dev.cankolay.twodo.android.presentation.composable.app.AppLinearProgressIndicator
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
-import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
 import dev.cankolay.twodo.android.presentation.composable.app.SettingCard
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
+import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.composition.LocalNotesLayout
 import dev.cankolay.twodo.android.presentation.core.HandleNavigation
@@ -39,12 +40,8 @@ fun NotesView(
 
     val selected = LocalNotesLayout.current?.navigation?.id
 
-    val id =
-        when (val result = state.result) {
-            is ApiResult.Success -> result.data.id
-
-            else -> null
-        }
+    val result = state.result
+    val id = if (result is ApiResult.Success) result.data.id else null
 
     HandleNavigation(result = id) { id ->
         viewModel.consume()
@@ -63,7 +60,7 @@ fun NotesView(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun NotesContent(
     state: NotesUiState,
@@ -91,25 +88,25 @@ private fun NotesContent(
             )
         },
     ) {
-        when (val notes = state.notes) {
-            ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        AppLinearProgressIndicator(isLoading = state.load == ApiResult.Loading)
 
-            is ApiResult.Failure ->
-                ErrorCard(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    error = notes.error.message,
-                    onRefresh = onRefresh,
-                )
-
-            else -> Unit
-        }
-        PullToRefreshLazyColumn(
-            isLoading = state.notes == ApiResult.Loading,
+        PullToRefreshBox(
+            isRefreshing = state.load == ApiResult.Loading,
             onRefresh = onRefresh,
+            indicator = {},
         ) {
-            when (val result = state.notes) {
-                is ApiResult.Success -> {
-                    val notes = result.data
+            AppLazyColumn {
+                val load = state.load
+                if (load is ApiResult.Failure) {
+                    item {
+                        ErrorCard(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            error = load.error.message,
+                            onRefresh = onRefresh,
+                        )
+                    }
+                }
+                state.notes?.let { notes ->
                     if (notes.isEmpty()) {
                         item {
                             SettingCard(
@@ -121,7 +118,7 @@ private fun NotesContent(
                             )
                         }
                     } else {
-                        items(items = notes) { note ->
+                        items(items = notes, key = { it.id }) { note ->
                             NoteItem(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 note = note,
@@ -131,10 +128,9 @@ private fun NotesContent(
                         }
                     }
                 }
-
-                else -> Unit
             }
         }
+
         if (state.showForm) {
             CreateNoteSheet(
                 form = state.form,

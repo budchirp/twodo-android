@@ -70,7 +70,7 @@ internal fun CalendarGrid(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(space = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(space = 16.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

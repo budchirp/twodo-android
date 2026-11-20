@@ -29,6 +29,14 @@ class UserService @Inject constructor(private val client: KtorClient) {
         }
     }
 
+    suspend fun refreshProfile() = request<UserDto> {
+        client().post {
+            url {
+                path(ApiConstants.Endpoints.USER_PROFILE_REFRESH)
+            }
+        }
+    }
+
     suspend fun updateProfile(dto: UpdateProfileRequestDto) = request<UserDto> {
         client().patch {
             url {

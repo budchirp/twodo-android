@@ -43,7 +43,7 @@ fun SettingRow(
                         paddingValues =
                             contentPadding
                                 ?: PaddingValues(
-                                    vertical = if (description == null) 24.dp else 16.dp
+                                    vertical = 16.dp
                                 )
                     ),
             verticalAlignment = Alignment.CenterVertically,

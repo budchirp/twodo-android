@@ -139,4 +139,6 @@
     <string name="symptom_nausea">Bulantı</string>
 
     <string name="default_medical_disclaimer">Tahminler geçmiş kayıtlarınıza dayalı yaklaşık değerlerdir; tıbbi tavsiye yerine kullanılmamalıdır.</string>
+    <string name="profile">Profil</string>
+    <string name="refresh_profile">Yenile</string>
 </resources>

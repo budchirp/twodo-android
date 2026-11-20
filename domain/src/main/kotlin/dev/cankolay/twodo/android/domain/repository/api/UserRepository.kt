@@ -7,5 +7,6 @@ import dev.cankolay.twodo.android.domain.model.api.user.User
 interface UserRepository {
     suspend fun initialize(): ApiResult<User>
     suspend fun get(): ApiResult<User>
+    suspend fun refreshProfile(): ApiResult<User>
     suspend fun updateProfile(name: String, gender: Gender): ApiResult<User>
 }

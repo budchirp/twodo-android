@@ -30,7 +30,7 @@ internal fun CreateNoteSheet(
         title = stringResource(id = R.string.create_note),
         onDismiss = onDismiss,
         result = result,
-        showLoading = false,
+        onRefresh = onCreate,
         actions = {
             Button(
                 enabled = form.canSubmit && !isLoading,

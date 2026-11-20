@@ -50,6 +50,9 @@ sealed interface Route : NavKey {
     data object Settings : Route
 
     @Serializable
+    data object Profile : Route
+
+    @Serializable
     data object Couple : Route
 
     @Serializable
@@ -128,6 +131,12 @@ fun Route.getDetails(): RouteDetail =
                     RouteDetailIcon(
                         default = ImageVector.vectorResource(id = R.drawable.partner_heart_24px)
                     ),
+            )
+
+        Route.Profile ->
+            RouteDetail(
+                title = stringResource(id = R.string.profile),
+                icon = RouteDetailIcon(default = Icons.Default.Person),
             )
 
         Route.Couple ->

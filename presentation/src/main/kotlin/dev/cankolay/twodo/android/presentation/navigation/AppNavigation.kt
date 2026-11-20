@@ -21,6 +21,7 @@ import dev.cankolay.twodo.android.presentation.view.onboarding.WelcomeView
 import dev.cankolay.twodo.android.presentation.view.settings.AboutView
 import dev.cankolay.twodo.android.presentation.view.settings.CoupleView
 import dev.cankolay.twodo.android.presentation.view.settings.LanguagesView
+import dev.cankolay.twodo.android.presentation.view.settings.ProfileView
 import dev.cankolay.twodo.android.presentation.view.settings.SettingsView
 import dev.cankolay.twodo.android.presentation.view.settings.appearance.AppearanceView
 import dev.cankolay.twodo.android.presentation.view.settings.appearance.MaterialYouView
@@ -87,9 +88,12 @@ fun AppNavigation(
 
                 entry<Route.Settings>(metadata = navigationTransition(type = TransitionType.FADE)) {
                     SettingsView(
-                        onLogout = onLogout,
                         onNavigate = { route -> navBackStack.add(element = route) },
                     )
+                }
+
+                entry<Route.Profile>(metadata = navigationTransition()) {
+                    ProfileView(onLogout = onLogout)
                 }
 
                 entry<Route.Couple>(metadata = navigationTransition()) {

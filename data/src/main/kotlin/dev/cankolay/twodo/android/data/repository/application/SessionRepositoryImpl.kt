@@ -19,6 +19,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -56,7 +58,9 @@ class SessionRepositoryImpl @Inject constructor(
                 sessionScope = null
                 _isInitialized.value = true
                 if (token.isBlank()) {
+                    needsInitialization = false
                     _state.value = SessionState.SignedOut
+                    clearData()
                 } else coroutineScope {
                     _state.value = SessionState.Starting
                     sessionScope = this
@@ -85,13 +89,18 @@ class SessionRepositoryImpl @Inject constructor(
         loadUser()
     }
 
+    override suspend fun refreshProfile(): ApiResult<User> = inSession {
+        userLock.withLock {
+            users.refreshProfile().also { result ->
+                if (result is ApiResult.Success) applyUser(user = result.data)
+            }
+        }
+    }
+
     override suspend fun updateProfile(name: String, gender: Gender): ApiResult<User> = inSession {
         userLock.withLock {
-            users.updateProfile(name = name, gender = gender).also {
-                if (it is ApiResult.Success) {
-                    needsInitialization = false
-                    _state.value = SessionState.Active(user = it.data)
-                }
+            users.updateProfile(name = name, gender = gender).also { result ->
+                if (result is ApiResult.Success) applyUser(user = result.data)
             }
         }
     }
@@ -99,9 +108,11 @@ class SessionRepositoryImpl @Inject constructor(
     override suspend fun leaveCouple(): ApiResult<Unit> = inSession {
         userLock.withLock {
             couples.leave().also { result ->
+                currentCoroutineContext().ensureActive()
                 if (result is ApiResult.Success) {
                     val active = _state.value as? SessionState.Active
                     clearData()
+                    currentCoroutineContext().ensureActive()
                     if (active != null) _state.value =
                         SessionState.Active(user = active.user.copy(couple = null))
                 }
@@ -111,23 +122,31 @@ class SessionRepositoryImpl @Inject constructor(
 
     private suspend fun loadUser(): ApiResult<User> = userLock.withLock {
         val result = if (needsInitialization) users.initialize() else users.get()
+        currentCoroutineContext().ensureActive()
         when (result) {
             ApiResult.Loading -> Unit
 
             is ApiResult.Success -> {
-                needsInitialization = false
-                val previous = _state.value as? SessionState.Active
-                if (previous != null && previous.user.couple?.createdAt != result.data.couple?.createdAt) clearData()
-                _state.value = SessionState.Active(user = result.data)
+                applyUser(user = result.data)
             }
 
             is ApiResult.Failure -> if (_state.value !is SessionState.Active) {
-                _state.value = if (result.error.code == "error-profile-required") {
+                val code = result.error.code?.replace('.', '_')?.replace('-', '_')
+                _state.value = if (code == "error_profile_required") {
                     SessionState.ProfileRequired
                 } else SessionState.Failed(error = result.error)
             }
         }
         result
+    }
+
+    private suspend fun applyUser(user: User) {
+        currentCoroutineContext().ensureActive()
+        needsInitialization = false
+        val previous = _state.value as? SessionState.Active
+        if (previous != null && previous.user.couple?.createdAt != user.couple?.createdAt) clearData()
+        currentCoroutineContext().ensureActive()
+        _state.value = SessionState.Active(user = user)
     }
 
     private suspend fun endSession() {

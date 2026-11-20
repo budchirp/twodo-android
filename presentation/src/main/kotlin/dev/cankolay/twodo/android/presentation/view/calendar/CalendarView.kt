@@ -1,13 +1,11 @@
 package dev.cankolay.twodo.android.presentation.view.calendar
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,7 +15,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
-import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
@@ -30,11 +27,7 @@ fun CalendarView(viewModel: CalendarViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(key1 = state.result) {
-        when (state.result) {
-            is ApiResult.Success -> viewModel.dismiss()
-
-            else -> Unit
-        }
+        if (state.result is ApiResult.Success) viewModel.dismiss()
     }
 
     CalendarContent(
@@ -72,9 +65,10 @@ private fun CalendarContent(
     onFormChange: (CalendarEntryFormState) -> Unit,
 ) {
     val isLoading = state.result == ApiResult.Loading
+    val entries = state.entries
 
     CalendarPanes(
-        isLoading = state.entries == ApiResult.Loading,
+        isLoading = state.load == ApiResult.Loading,
         onRefresh = onRefresh,
         topBar = { context ->
             AppTopAppBar(
@@ -90,36 +84,13 @@ private fun CalendarContent(
                 },
             )
         },
-        status = {
-            when (val result = state.entries) {
-                ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-
-                else -> Unit
-            }
-        },
-        error = {
-            when (val result = state.entries) {
-                is ApiResult.Failure ->
-                    ErrorCard(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        error = result.error.message,
-                        onRefresh = onRefresh,
-                    )
-
-                else -> Unit
-            }
-        },
+        error = (state.load as? ApiResult.Failure)?.error,
         month = {
             CalendarGrid(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 visibleMonth = state.month,
                 selectedDate = state.date,
-                entries =
-                    when (val result = state.entries) {
-                        is ApiResult.Success -> result.data
-
-                        else -> emptyList()
-                    },
+                entries = entries.orEmpty(),
                 canTrackPeriods = state.canTrackPeriods,
                 onPreviousMonth = { onMove(-1) },
                 onNextMonth = { onMove(1) },
@@ -127,25 +98,22 @@ private fun CalendarContent(
             )
         },
         entries =
-            when (val result = state.entries) {
-                is ApiResult.Success -> {
-                    {
-                        calendarEntries(
-                            date = state.date,
-                            entries = result.data.filter { it.date == state.date },
-                            canTrackPeriods = state.canTrackPeriods,
-                            onClick = onEdit,
-                        )
-                    }
+            if (entries != null) {
+                {
+                    calendarEntries(
+                        date = state.date,
+                        entries = entries.filter { it.date == state.date },
+                        canTrackPeriods = state.canTrackPeriods,
+                        onClick = onEdit,
+                    )
                 }
-
-                else -> null
-            },
+            } else null,
     )
 
     if (state.showPrediction) {
         CalendarPredictionSheet(
-            state = state.prediction,
+            prediction = state.prediction,
+            load = state.predictionLoad,
             onDismiss = onDismiss,
             onRefresh = onRefreshPrediction,
         )

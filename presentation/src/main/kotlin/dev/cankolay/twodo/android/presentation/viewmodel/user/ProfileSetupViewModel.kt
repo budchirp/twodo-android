@@ -3,16 +3,20 @@ package dev.cankolay.twodo.android.presentation.viewmodel.user
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
+import dev.cankolay.twodo.android.domain.model.api.map
 import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.domain.model.api.user.User
-import dev.cankolay.twodo.android.domain.repository.application.SessionRepository
+import dev.cankolay.twodo.android.domain.model.application.SessionState
+import dev.cankolay.twodo.android.domain.usecase.api.user.UpdateProfileUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.ObserveSessionUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.RefreshSessionUseCase
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
-import dev.cankolay.twodo.android.presentation.core.userResult
 import dev.cankolay.twodo.android.presentation.form.FormField
 import dev.cankolay.twodo.android.presentation.form.update
 import dev.cankolay.twodo.android.presentation.form.validatePresent
 import dev.cankolay.twodo.android.presentation.form.validateRequired
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,37 +30,43 @@ data class ProfileFormState(
 }
 
 data class ProfileSetupUiState(
-    val user: ApiResult<User>? = null,
-    val result: ApiResult<User>? = null,
+    val user: User? = null,
+    val load: ApiResult<Unit>? = null,
+    val result: ApiResult<Unit>? = null,
     val form: ProfileFormState = ProfileFormState(),
+    val formInitialized: Boolean = false,
 )
 
 @HiltViewModel
-class ProfileSetupViewModel @Inject constructor(private val session: SessionRepository) :
-    BaseViewModel<ProfileSetupUiState>(initialState = ProfileSetupUiState()) {
+class ProfileSetupViewModel @Inject constructor(
+    private val observeSession: ObserveSessionUseCase,
+    private val refreshSession: RefreshSessionUseCase,
+    private val updateProfile: UpdateProfileUseCase,
+) : BaseViewModel<ProfileSetupUiState>(initialState = ProfileSetupUiState()) {
+
+    private var loadJob: Job? = null
 
     init {
         viewModelScope.launch {
-            session.state.collect { state ->
-                val result = state.userResult()
-
+            observeSession().collect { session ->
                 _uiState.update {
-                    val previous = it.user as? ApiResult.Success
+                    when (session) {
+                        is SessionState.Active -> it.copy(
+                            user = session.user,
+                            load = if (it.user == null && it.load == ApiResult.Loading)
+                                ApiResult.Success(data = Unit) else it.load,
+                            form = if (!it.formInitialized) ProfileFormState(
+                                name = FormField(value = session.user.name),
+                                gender = FormField(value = session.user.gender),
+                            ) else it.form,
+                            formInitialized = true,
+                        )
 
-                    it.copy(
-                        user = result,
-                        form =
-                            when {
-                                result is ApiResult.Success &&
-                                        previous?.data?.id != result.data.id ->
-                                    ProfileFormState(
-                                        name = FormField(value = result.data.name),
-                                        gender = FormField(value = result.data.gender),
-                                    )
-
-                                else -> it.form
-                            },
-                    )
+                        is SessionState.Failed -> it.copy(load = ApiResult.Failure(error = session.error))
+                        SessionState.Starting -> ProfileSetupUiState(load = ApiResult.Loading)
+                        SessionState.SignedOut -> ProfileSetupUiState()
+                        SessionState.ProfileRequired -> it.copy(user = null, load = null)
+                    }
                 }
             }
         }
@@ -66,7 +76,10 @@ class ProfileSetupViewModel @Inject constructor(private val session: SessionRepo
         if (uiState.value.result == ApiResult.Loading) return
 
         _uiState.update {
-            it.copy(form = it.form.copy(name = it.form.name.update(value = name)))
+            it.copy(
+                form = it.form.copy(name = it.form.name.update(value = name)),
+                formInitialized = true,
+            )
         }
     }
 
@@ -74,7 +87,10 @@ class ProfileSetupViewModel @Inject constructor(private val session: SessionRepo
         if (uiState.value.result == ApiResult.Loading) return
 
         _uiState.update {
-            it.copy(form = it.form.copy(gender = it.form.gender.update(value = gender)))
+            it.copy(
+                form = it.form.copy(gender = it.form.gender.update(value = gender)),
+                formInitialized = true,
+            )
         }
     }
 
@@ -94,22 +110,24 @@ class ProfileSetupViewModel @Inject constructor(private val session: SessionRepo
         _uiState.update { it.copy(result = ApiResult.Loading) }
 
         viewModelScope.launch {
-            val result = session.updateProfile(name = name.value.trim(), gender = selected)
+            val result = updateProfile(name = name.value.trim(), gender = selected)
 
-            _uiState.update { it.copy(result = result) }
+            _uiState.update { it.copy(result = result.map { }) }
         }
     }
 
     fun fetch() {
-        if (uiState.value.user == ApiResult.Loading || uiState.value.result == ApiResult.Loading)
+        if (loadJob?.isActive == true) return
+
+        if (uiState.value.load == ApiResult.Loading || uiState.value.result == ApiResult.Loading)
             return
 
-        _uiState.update { it.copy(user = ApiResult.Loading) }
+        _uiState.update { it.copy(load = ApiResult.Loading) }
 
-        viewModelScope.launch {
-            val result = session.refresh()
+        loadJob = viewModelScope.launch {
+            val result = refreshSession()
 
-            _uiState.update { it.copy(user = result) }
+            _uiState.update { it.copy(load = result.map { }) }
         }
     }
 }

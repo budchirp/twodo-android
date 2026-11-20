@@ -125,7 +125,7 @@ internal fun LazyListScope.calendarEntries(
                                     onClick = { onClick(entry) },
                                 )
                                 .padding(all = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(space = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(space = 8.dp),
                     ) {
                         Text(
                             text =

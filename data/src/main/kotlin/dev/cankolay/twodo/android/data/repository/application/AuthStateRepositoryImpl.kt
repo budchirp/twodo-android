@@ -29,6 +29,16 @@ constructor(
         }
     }
 
+    override suspend fun invalidate(token: String) {
+        if (token.isBlank()) return
+
+        dataStore.edit { preferences ->
+            if (preferences[PreferenceKeys.TOKEN] == token) {
+                preferences.remove(PreferenceKeys.TOKEN)
+            }
+        }
+    }
+
     private val default = AuthState()
 
     override val state = dataStore.data.catch { exception ->

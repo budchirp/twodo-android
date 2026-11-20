@@ -30,7 +30,7 @@ internal fun InvitePartnerSheet(
         title = stringResource(id = R.string.invite_partner),
         onDismiss = onDismiss,
         result = result,
-        showLoading = false,
+        onRefresh = onInvite,
         actions = {
             Button(
                 enabled = form.canSubmit && !isLoading,

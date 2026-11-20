@@ -21,9 +21,9 @@ import dev.cankolay.twodo.android.presentation.viewmodel.application.SettingsVie
 
 @Composable
 fun ThemeView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
-    val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val state by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
-    ThemeContent(state = uiState.settings, onChange = settingsViewModel::update)
+    ThemeContent(state = state.settings, onChange = settingsViewModel::update)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

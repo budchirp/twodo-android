@@ -2,7 +2,6 @@ package dev.cankolay.twodo.android.presentation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -11,6 +10,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.cankolay.twodo.android.presentation.composable.app.AppCircularProgressIndicator
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppMainLayout
 import dev.cankolay.twodo.android.presentation.composition.ProvideNavBackStack
 import dev.cankolay.twodo.android.presentation.composition.ProvideNotesLayout
@@ -29,12 +29,8 @@ fun AppUI(appViewModel: AppViewModel, settingsViewModel: SettingsViewModel) {
     AppTheme(settingsState = settings.settings) {
         Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
             val route = state.phase.route
-            if (settings.isLoading || route == null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else
-                key(state.id) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (!settings.isLoading && route != null) key(state.id) {
                     ProvideNavBackStack(startRoute = route) {
                         AppMainLayout {
                             ProvideNotesLayout {
@@ -52,6 +48,11 @@ fun AppUI(appViewModel: AppViewModel, settingsViewModel: SettingsViewModel) {
                         }
                     }
                 }
+                AppCircularProgressIndicator(
+                    isLoading = settings.isLoading || route == null,
+                    modifier = Modifier.align(alignment = Alignment.Center),
+                )
+            }
             state.error?.let { error ->
                 LoginErrorSheet(error = error, onDismiss = appViewModel::dismissError)
             }

@@ -17,6 +17,7 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.first
@@ -43,6 +44,14 @@ constructor(
                 val token = credentials.state.first().token
                 if (token.isNotBlank()) {
                     request.headers[HttpHeaders.Authorization] = "Bearer $token"
+                }
+            }
+            onResponse { response ->
+                if (response.status == HttpStatusCode.Unauthorized) {
+                    val authorization = response.call.request.headers[HttpHeaders.Authorization]
+                    if (authorization?.startsWith("Bearer ") == true) {
+                        credentials.invalidate(token = authorization.removePrefix("Bearer "))
+                    }
                 }
             }
         })

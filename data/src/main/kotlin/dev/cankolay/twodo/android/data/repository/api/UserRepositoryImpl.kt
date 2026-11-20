@@ -17,6 +17,8 @@ constructor(
 
     override suspend fun get() = userService.get().map { it.toDomain() }
 
+    override suspend fun refreshProfile() = userService.refreshProfile().map { it.toDomain() }
+
     override suspend fun updateProfile(name: String, gender: Gender) =
         userService.updateProfile(
             dto = UpdateProfileRequestDto(

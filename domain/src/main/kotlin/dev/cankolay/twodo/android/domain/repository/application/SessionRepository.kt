@@ -12,6 +12,7 @@ interface SessionRepository {
     suspend fun authenticate(token: String)
     suspend fun logout()
     suspend fun refresh(): ApiResult<User>
+    suspend fun refreshProfile(): ApiResult<User>
     suspend fun updateProfile(name: String, gender: Gender): ApiResult<User>
     suspend fun leaveCouple(): ApiResult<Unit>
 }

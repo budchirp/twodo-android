@@ -54,9 +54,9 @@ private val ColorList =
 
 @Composable
 fun MaterialYouView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
-    val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val state by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
-    MaterialYouContent(state = uiState.settings, onChange = settingsViewModel::update)
+    MaterialYouContent(state = state.settings, onChange = settingsViewModel::update)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

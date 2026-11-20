@@ -13,7 +13,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
+import dev.cankolay.twodo.android.presentation.composable.app.AppLinearProgressIndicator
 import dev.cankolay.twodo.android.presentation.composable.app.Avatar
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
@@ -45,7 +45,7 @@ import dev.cankolay.twodo.android.presentation.viewmodel.user.CoupleViewModel
 fun CoupleView(viewModel: CoupleViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     CoupleContent(
-        userState = state,
+        state = state,
         onRefresh = viewModel::refresh,
         onRequestLeave = viewModel::confirm,
         onDismissSheet = viewModel::dismiss,
@@ -56,139 +56,135 @@ fun CoupleView(viewModel: CoupleViewModel = hiltViewModel()) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CoupleContent(
-    userState: CoupleUiState,
+    state: CoupleUiState,
     onRefresh: () -> Unit,
     onRequestLeave: () -> Unit,
     onDismissSheet: () -> Unit,
     onLeave: () -> Unit,
 ) {
     AppLayout(route = Route.Couple) {
-        when (val user = userState.user) {
-            ApiResult.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        AppLinearProgressIndicator(isLoading = state.load == ApiResult.Loading)
+        AppLazyColumn {
+            val load = state.load
+            if (load is ApiResult.Failure) {
+                item {
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = load.error.message,
+                        onRefresh = onRefresh,
+                    )
+                }
+            }
+            state.user?.couple?.let { couple ->
+                item {
+                    val first = couple.users.firstOrNull()
+                    val second = couple.users.drop(n = 1).firstOrNull()
 
-            is ApiResult.Failure ->
-                ErrorCard(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    error = user.error.message,
-                    onRefresh = onRefresh,
-                )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(space = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(modifier = Modifier.width(width = 128.dp)) {
+                            Avatar(
+                                modifier =
+                                    Modifier
+                                        .align(Alignment.CenterStart)
+                                        .zIndex(zIndex = 1f),
+                                picture = first?.picture,
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                size = 80.dp,
+                            )
 
-            is ApiResult.Success -> {
-                user.data.couple?.let { couple ->
-                    AppLazyColumn {
-                        item {
-                            val first = couple.users.firstOrNull()
-                            val second = couple.users.drop(n = 1).firstOrNull()
+                            Avatar(
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                picture = second?.picture,
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                size = 80.dp,
+                            )
+                        }
 
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(space = 16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                Box(modifier = Modifier.width(width = 128.dp)) {
-                                    Avatar(
-                                        modifier =
-                                            Modifier
-                                                .align(Alignment.CenterStart)
-                                                .zIndex(zIndex = 1f),
-                                        picture = first?.picture,
-                                        color = MaterialTheme.colorScheme.surfaceContainer,
-                                        size = 80.dp,
-                                    )
-
-                                    Avatar(
-                                        modifier = Modifier.align(Alignment.CenterEnd),
-                                        picture = second?.picture,
-                                        color = MaterialTheme.colorScheme.surfaceContainer,
-                                        size = 80.dp,
-                                    )
-                                }
-
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(space = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                ) {
-                                    Text(
-                                        text =
-                                            couple.users.joinToString(separator = " & ") {
-                                                it.name
-                                            },
-                                        textAlign = TextAlign.Center,
-                                        style =
-                                            MaterialTheme.typography.titleLarge.copy(
-                                                color = MaterialTheme.colorScheme.primary,
-                                                fontWeight = FontWeight.SemiBold,
-                                            ),
-                                    )
-
-                                    val daysTogether =
-                                        DateUtils.daysSince(value = couple.createdAt).toString()
-
-                                    Surface(
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text =
+                                    couple.users.joinToString(separator = " & ") {
+                                        it.name
+                                    },
+                                textAlign = TextAlign.Center,
+                                style =
+                                    MaterialTheme.typography.titleLarge.copy(
                                         color = MaterialTheme.colorScheme.primary,
-                                        shape = MaterialTheme.shapes.extraLarge,
-                                    ) {
-                                        Text(
-                                            modifier =
-                                                Modifier.padding(
-                                                    horizontal = 16.dp,
-                                                    vertical = 4.dp,
-                                                ),
-                                            style =
-                                                LocalTextStyle.current.copy(
-                                                    fontWeight = FontWeight.Medium
-                                                ),
-                                            text =
-                                                stringResource(
-                                                    id = R.string.days_together,
-                                                    daysTogether,
-                                                ),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        item {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
-                        }
-
-                        item {
-                            Button(
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp)
-                                    .fillMaxWidth(),
-                                colors =
-                                    ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.error,
-                                        contentColor = MaterialTheme.colorScheme.onError,
+                                        fontWeight = FontWeight.SemiBold,
                                     ),
-                                enabled = userState.result != ApiResult.Loading,
-                                onClick = onRequestLeave,
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(icon = Icons.Default.HeartBroken)
+                            )
 
-                                    Text(text = stringResource(id = R.string.break_up))
-                                }
+                            val daysTogether =
+                                DateUtils.daysSince(value = couple.createdAt).toString()
+
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = MaterialTheme.shapes.extraLarge,
+                            ) {
+                                Text(
+                                    modifier =
+                                        Modifier.padding(
+                                            horizontal = 16.dp,
+                                            vertical = 4.dp,
+                                        ),
+                                    style =
+                                        LocalTextStyle.current.copy(
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                    text =
+                                        stringResource(
+                                            id = R.string.days_together,
+                                            daysTogether,
+                                        ),
+                                )
                             }
                         }
                     }
                 }
-            }
 
-            null -> Unit
+                item {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
+                }
+
+                item {
+                    Button(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError,
+                            ),
+                        enabled = state.result != ApiResult.Loading,
+                        onClick = onRequestLeave,
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(icon = Icons.Default.HeartBroken)
+
+                            Text(text = stringResource(id = R.string.break_up))
+                        }
+                    }
+                }
+            }
         }
 
-        if (userState.showLeave) {
+        if (state.showLeave) {
             LeaveCoupleSheet(
-                result = userState.result,
+                result = state.result,
                 onDismiss = onDismissSheet,
                 onLeave = onLeave,
             )

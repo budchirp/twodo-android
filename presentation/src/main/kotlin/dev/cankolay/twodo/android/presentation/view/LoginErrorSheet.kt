@@ -17,16 +17,17 @@ internal fun LoginErrorSheet(@StringRes error: Int, onDismiss: () -> Unit) {
     AppBottomSheet(
         title = stringResource(id = R.string.error),
         onDismiss = onDismiss,
-        status = {
-            ErrorCard(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                error = stringResource(id = error),
-            )
-        },
         actions = {
             TextButton(onClick = onDismiss) {
                 Text(text = stringResource(id = R.string.close))
             }
         },
-    )
+    ) {
+        item {
+            ErrorCard(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                error = stringResource(id = error),
+            )
+        }
+    }
 }

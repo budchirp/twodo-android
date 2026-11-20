@@ -10,6 +10,7 @@ data class ApiFailure(
     val message: String,
     val code: String? = null,
     val reason: ErrorReason = ErrorReason.TRANSPORT,
+    val statusCode: Int? = null,
 )
 
 sealed interface ApiResult<out T> {

@@ -10,16 +10,22 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
+import androidx.compose.ui.unit.dp
+import dev.cankolay.twodo.android.domain.model.api.ApiFailure
+import dev.cankolay.twodo.android.presentation.composable.ErrorCard
+import dev.cankolay.twodo.android.presentation.composable.app.AppLinearProgressIndicator
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayoutContext
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
@@ -28,14 +34,17 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.AppPaneDefa
 import dev.cankolay.twodo.android.presentation.composable.app.layout.currentPaneDirective
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalMaterial3AdaptiveApi::class,
+)
 @Composable
 internal fun CalendarPanes(
     isLoading: Boolean,
     onRefresh: () -> Unit,
     topBar: @Composable (AppLayoutContext) -> Unit,
-    status: @Composable () -> Unit,
-    error: @Composable () -> Unit,
+    error: ApiFailure?,
     month: @Composable () -> Unit,
     entries: (LazyListScope.() -> Unit)?,
 ) {
@@ -43,53 +52,71 @@ internal fun CalendarPanes(
 
     val calendar: @Composable () -> Unit = {
         AppLayout(route = Route.Calendar, topBar = topBar) {
-            status()
+            AppLinearProgressIndicator(isLoading = isLoading)
 
-            if (!isExpanded) error()
+            PullToRefreshBox(
+                isRefreshing = isLoading,
+                onRefresh = onRefresh,
+                indicator = {},
+            ) {
+                AppLazyColumn {
+                    if (!isExpanded && error != null) {
+                        item {
+                            ErrorCard(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                error = error.message,
+                                onRefresh = onRefresh,
+                            )
+                        }
+                    }
+                    item(content = { month() })
 
-            PullToRefreshLazyColumn(isLoading = isLoading, onRefresh = onRefresh) {
-                item(content = { month() })
-
-                if (!isExpanded) entries?.invoke(this)
+                    if (!isExpanded) entries?.invoke(this)
+                }
             }
         }
     }
 
-    when {
-        isExpanded -> {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(color = MaterialTheme.colorScheme.surfaceContainer),
-                horizontalArrangement = Arrangement.spacedBy(space = AppPaneDefaults.Spacing),
+    if (isExpanded) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.surfaceContainer),
+            horizontalArrangement = Arrangement.spacedBy(space = AppPaneDefaults.Spacing),
+        ) {
+            Box(modifier = Modifier.weight(weight = 1f), content = { calendar() })
+
+            AppPane(
+                modifier = Modifier
+                    .width(width = AppPaneDefaults.Width)
+                    .fillMaxHeight()
             ) {
-                Box(modifier = Modifier.weight(weight = 1f), content = { calendar() })
-
-                AppPane(
-                    modifier = Modifier
-                        .width(width = AppPaneDefaults.Width)
-                        .fillMaxHeight()
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .windowInsetsPadding(
+                                insets =
+                                    WindowInsets.systemBars.only(sides = WindowInsetsSides.Top)
+                            )
                 ) {
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .windowInsetsPadding(
-                                    insets =
-                                        WindowInsets.systemBars.only(sides = WindowInsetsSides.Top)
+                    AppLazyColumn(modifier = Modifier.weight(weight = 1f)) {
+                        if (error != null) {
+                            item {
+                                ErrorCard(
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    error = error.message,
+                                    onRefresh = onRefresh,
                                 )
-                    ) {
-                        error()
-
-                        AppLazyColumn(modifier = Modifier.weight(weight = 1f)) {
-                            entries?.invoke(this)
+                            }
                         }
+                        entries?.invoke(this)
                     }
                 }
             }
         }
-
-        else -> calendar()
+    } else {
+        calendar()
     }
 }

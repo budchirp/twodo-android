@@ -4,10 +4,14 @@ import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
-import dev.cankolay.twodo.android.domain.model.api.user.User
+import dev.cankolay.twodo.android.domain.model.api.map
 import dev.cankolay.twodo.android.domain.model.application.SessionState
-import dev.cankolay.twodo.android.domain.repository.application.EnvironmentConfigRepository
-import dev.cankolay.twodo.android.domain.repository.application.SessionRepository
+import dev.cankolay.twodo.android.domain.usecase.application.environment.GetEnvironmentConfigUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.AuthenticateUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.LogoutUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.ObserveSessionInitializedUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.ObserveSessionUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.RefreshSessionUseCase
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
@@ -27,23 +31,25 @@ enum class AppPhase(val route: Route?) {
 data class AppUiState(
     val phase: AppPhase = AppPhase.Starting,
     val id: String? = null,
-    val result: ApiResult<User>? = null,
+    val result: ApiResult<Unit>? = null,
     val error: Int? = null,
 )
 
 @HiltViewModel
-class AppViewModel
-@Inject
-constructor(
-    private val session: SessionRepository,
-    environment: EnvironmentConfigRepository,
+class AppViewModel @Inject constructor(
+    private val observeSession: ObserveSessionUseCase,
+    private val observeInitialized: ObserveSessionInitializedUseCase,
+    private val refreshSession: RefreshSessionUseCase,
+    private val authenticateSession: AuthenticateUseCase,
+    private val logoutSession: LogoutUseCase,
+    private val getEnvironment: GetEnvironmentConfigUseCase,
 ) : BaseViewModel<AppUiState>(initialState = AppUiState()) {
-    val authUrl = environment.get().authUrl
-    val isInitialized = session.isInitialized
+    val authUrl = getEnvironment().authUrl
+    val isInitialized = observeInitialized()
 
     init {
         viewModelScope.launch {
-            session.state.collect { state ->
+            observeSession().collect { state ->
                 _uiState.update { current ->
                     when (state) {
                         SessionState.Starting -> AppUiState()
@@ -84,7 +90,7 @@ constructor(
             return
         }
 
-        viewModelScope.launch { session.authenticate(token = token) }
+        viewModelScope.launch { authenticateSession(token = token) }
     }
 
     fun dismissError() {
@@ -92,7 +98,7 @@ constructor(
     }
 
     fun logout() {
-        viewModelScope.launch { session.logout() }
+        viewModelScope.launch { logoutSession() }
     }
 
     fun retry() {
@@ -101,9 +107,9 @@ constructor(
         _uiState.update { it.copy(result = ApiResult.Loading) }
 
         viewModelScope.launch {
-            val result = session.refresh()
+            val result = refreshSession()
 
-            _uiState.update { it.copy(result = result) }
+            _uiState.update { it.copy(result = result.map { }) }
         }
     }
 }

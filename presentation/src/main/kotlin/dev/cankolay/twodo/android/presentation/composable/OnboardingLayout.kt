@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,10 +21,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import dev.cankolay.twodo.android.presentation.composable.app.PullToRefreshLazyColumn
+import dev.cankolay.twodo.android.presentation.composable.app.AppLinearProgressIndicator
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
+import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun OnboardingLayout(
     route: Route,
@@ -30,7 +34,6 @@ fun OnboardingLayout(
     description: String,
     isLoading: Boolean = false,
     onRefresh: (() -> Unit)? = null,
-    status: @Composable () -> Unit = {},
     actions: (@Composable () -> Unit)? = null,
     lazyContent: LazyListScope.() -> Unit,
     content: @Composable () -> Unit = {},
@@ -57,48 +60,47 @@ fun OnboardingLayout(
                 {}
             },
     ) {
-        when {
-            isLoading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-
-            else -> Unit
-        }
-        status()
-        PullToRefreshLazyColumn(
-            isLoading = isLoading,
-            onRefresh = onRefresh,
+        AppLinearProgressIndicator(isLoading = isLoading)
+        PullToRefreshBox(
+            isRefreshing = isLoading,
+            enabled = onRefresh != null,
+            onRefresh = onRefresh ?: {},
+            indicator = {},
         ) {
-            item {
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(space = 32.dp),
-                ) {
-                    AsyncImage(
-                        model = context.packageManager.getApplicationIcon(context.packageName),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(size = 64.dp)
-                            .clip(shape = CircleShape),
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-                        Text(
-                            text = title,
-                            style =
-                                MaterialTheme.typography.headlineLarge.copy(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold,
-                                ),
+            AppLazyColumn {
+                item {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(space = 16.dp),
+                    ) {
+                        AsyncImage(
+                            model = context.packageManager.getApplicationIcon(context.packageName),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(size = 64.dp)
+                                .clip(shape = CircleShape),
                         )
 
-                        Text(
-                            text = description,
-                            style = MaterialTheme.typography.titleLarge,
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
+                            Text(
+                                text = title,
+                                style =
+                                    MaterialTheme.typography.headlineLarge.copy(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold,
+                                    ),
+                            )
+
+                            Text(
+                                text = description,
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                        }
                     }
                 }
-            }
 
-            lazyContent()
+                lazyContent()
+            }
         }
 
         content()

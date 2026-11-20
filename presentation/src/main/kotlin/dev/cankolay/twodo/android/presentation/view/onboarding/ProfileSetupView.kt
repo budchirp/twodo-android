@@ -1,10 +1,13 @@
 package dev.cankolay.twodo.android.presentation.view.onboarding
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,7 +31,7 @@ import dev.cankolay.twodo.android.presentation.viewmodel.user.ProfileSetupViewMo
 fun ProfileSetupView(viewModel: ProfileSetupViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ProfileSetupContent(
-        userState = state,
+        state = state,
         onRefresh = viewModel::fetch,
         onNameChange = viewModel::updateName,
         onGenderChange = viewModel::updateGender,
@@ -39,15 +42,15 @@ fun ProfileSetupView(viewModel: ProfileSetupViewModel = hiltViewModel()) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ProfileSetupContent(
-    userState: ProfileSetupUiState,
+    state: ProfileSetupUiState,
     onRefresh: () -> Unit,
     onNameChange: (String) -> Unit,
     onGenderChange: (Gender) -> Unit,
     onSubmit: () -> Unit,
 ) {
-    val form = userState.form
+    val form = state.form
 
-    val isLoading = userState.user == ApiResult.Loading || userState.result == ApiResult.Loading
+    val isLoading = state.load == ApiResult.Loading || state.result == ApiResult.Loading
 
     val selectedGender = form.gender.value
 
@@ -57,29 +60,6 @@ private fun ProfileSetupContent(
         description = stringResource(id = R.string.profile_setup_desc),
         isLoading = isLoading,
         onRefresh = onRefresh,
-        status = {
-            when (val result = userState.user) {
-                is ApiResult.Failure ->
-                    ErrorCard(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        error = result.error.message,
-                        onRefresh = onRefresh,
-                    )
-
-                else -> Unit
-            }
-
-            when (val result = userState.result) {
-                is ApiResult.Failure ->
-                    ErrorCard(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        error = result.error.message,
-                        onRefresh = onSubmit,
-                    )
-
-                else -> Unit
-            }
-        },
         actions = {
             Button(
                 modifier = Modifier.fillMaxWidth(),
@@ -90,6 +70,26 @@ private fun ProfileSetupContent(
             }
         },
         lazyContent = {
+            val load = state.load
+            if (load is ApiResult.Failure) {
+                item {
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = load.error.message,
+                        onRefresh = onRefresh,
+                    )
+                }
+            }
+            val result = state.result
+            if (result is ApiResult.Failure) {
+                item {
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = result.error.message,
+                        onRefresh = onSubmit,
+                    )
+                }
+            }
             item {
                 FormTextField(
                     modifier = Modifier
@@ -110,20 +110,23 @@ private fun ProfileSetupContent(
                         Gender.MALE to R.string.male,
                     )
 
-                RadioOptions(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    items = genders.keys.toList(),
-                    selected = selectedGender,
-                    label = { gender -> stringResource(id = genders.getValue(gender)) },
-                    onSelected = onGenderChange,
-                    enabled = !isLoading,
-                )
-
-                form.gender.error?.let { error ->
-                    Text(
+                Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
+                    RadioOptions(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        text = stringResource(id = error),
+                        items = genders.keys.toList(),
+                        selected = selectedGender,
+                        label = { gender -> stringResource(id = genders.getValue(gender)) },
+                        onSelected = onGenderChange,
+                        enabled = !isLoading,
                     )
+
+                    form.gender.error?.let { error ->
+                        Text(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            text = stringResource(id = error),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
         },

@@ -28,6 +28,7 @@ fun DestructiveConfirmationSheet(
         description = description,
         onDismiss = onDismiss,
         result = result,
+        onRefresh = onConfirm,
         actions = {
             TextButton(onClick = onDismiss, enabled = !isLoading) {
                 Text(text = stringResource(id = R.string.cancel))

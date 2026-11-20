@@ -167,4 +167,6 @@
     <string name="symptom_nausea">Nausea</string>
 
     <string name="default_medical_disclaimer">Predictions are estimates based on your logged history and should not be used as medical advice.</string>
+    <string name="profile">Profile</string>
+    <string name="refresh_profile">Refresh</string>
 </resources>

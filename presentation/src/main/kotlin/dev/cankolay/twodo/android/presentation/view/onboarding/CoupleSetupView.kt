@@ -45,22 +45,21 @@ fun CoupleSetupView(onLogout: () -> Unit, viewModel: CoupleSetupViewModel = hilt
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(key1 = state.result) {
-        when (state.result) {
-            is ApiResult.Success -> viewModel.dismiss()
-
-            else -> Unit
-        }
+        if (state.result is ApiResult.Success) viewModel.dismiss()
     }
 
     CoupleSetupContent(
         state = state,
         onLogout = onLogout,
         onRefresh = viewModel::refresh,
+        onRefreshUser = viewModel::refreshUser,
+        onRefreshInvites = { viewModel.fetch(forceRefresh = true) },
         onOpenInvite = viewModel::openForm,
         onDismissSheet = viewModel::dismiss,
         onUsernameChange = viewModel::updateUsername,
         onInvite = viewModel::create,
         onHandleInvite = viewModel::handle,
+        onRetryAction = viewModel::retryAction,
     )
 }
 
@@ -70,54 +69,23 @@ private fun CoupleSetupContent(
     state: CoupleSetupUiState,
     onLogout: () -> Unit,
     onRefresh: () -> Unit,
+    onRefreshUser: () -> Unit,
+    onRefreshInvites: () -> Unit,
     onOpenInvite: () -> Unit,
     onDismissSheet: () -> Unit,
     onUsernameChange: (String) -> Unit,
     onInvite: () -> Unit,
     onHandleInvite: (String, InviteAction) -> Unit,
+    onRetryAction: () -> Unit,
 ) {
     OnboardingLayout(
         route = Route.CoupleSetup,
         title = stringResource(id = R.string.couple_setup_title),
         description = stringResource(id = R.string.couple_setup_desc),
         isLoading =
-            state.user == ApiResult.Loading ||
-                    state.invites == ApiResult.Loading ||
+            state.userLoad == ApiResult.Loading ||
+                    state.invitesLoad == ApiResult.Loading ||
                     state.action == ApiResult.Loading,
-        status = {
-            when (val result = state.user) {
-                is ApiResult.Failure ->
-                    ErrorCard(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        error = result.error.message,
-                        onRefresh = onRefresh,
-                    )
-
-                else -> Unit
-            }
-
-            when (val result = state.invites) {
-                is ApiResult.Failure ->
-                    ErrorCard(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        error = result.error.message,
-                        onRefresh = onRefresh,
-                    )
-
-                else -> Unit
-            }
-
-            when (val result = state.action) {
-                is ApiResult.Failure ->
-                    ErrorCard(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        error = result.error.message,
-                        onRefresh = onRefresh,
-                    )
-
-                else -> Unit
-            }
-        },
         onRefresh = onRefresh,
         actions = {
             OutlinedButton(
@@ -135,14 +103,45 @@ private fun CoupleSetupContent(
             }
         },
         lazyContent = {
-            if (state.user is ApiResult.Success && state.invites is ApiResult.Success) {
+            val userLoad = state.userLoad
+            if (userLoad is ApiResult.Failure) {
+                item {
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = userLoad.error.message,
+                        onRefresh = onRefreshUser,
+                    )
+                }
+            }
+            val invitesLoad = state.invitesLoad
+            if (invitesLoad is ApiResult.Failure) {
+                item {
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = invitesLoad.error.message,
+                        onRefresh = onRefreshInvites,
+                    )
+                }
+            }
+            val action = state.action
+            if (action is ApiResult.Failure) {
+                item {
+                    ErrorCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        error = action.error.message,
+                        onRefresh = onRetryAction,
+                    )
+                }
+            }
+            val invites = state.invites
+            if (state.user != null && invites != null) {
                 val sent =
-                    state.invites.data.filter {
+                    invites.filter {
                         it.status == InviteStatus.PENDING && it.type == InviteType.Sent
                     }
 
                 val received =
-                    state.invites.data.filter {
+                    invites.filter {
                         it.status == InviteStatus.PENDING && it.type == InviteType.Received
                     }
 
@@ -173,7 +172,7 @@ private fun CoupleSetupContent(
                                     SettingItem(
                                         title = invite.user.name,
                                         contentSize = null,
-                                        contentPadding = PaddingValues(vertical = 12.dp),
+                                        contentPadding = PaddingValues(vertical = 16.dp),
                                         trailingContent = {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,

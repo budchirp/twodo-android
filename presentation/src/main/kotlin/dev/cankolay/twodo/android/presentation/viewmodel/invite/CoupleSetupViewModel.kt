@@ -5,16 +5,21 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.invite.Invite
 import dev.cankolay.twodo.android.domain.model.api.invite.InviteAction
+import dev.cankolay.twodo.android.domain.model.api.map
 import dev.cankolay.twodo.android.domain.model.api.user.User
-import dev.cankolay.twodo.android.domain.repository.api.InviteRepository
-import dev.cankolay.twodo.android.domain.repository.application.SessionRepository
+import dev.cankolay.twodo.android.domain.model.application.SessionState
+import dev.cankolay.twodo.android.domain.usecase.api.invite.CreateInviteUseCase
+import dev.cankolay.twodo.android.domain.usecase.api.invite.GetInvitesUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.invite.HandleInviteUseCase
+import dev.cankolay.twodo.android.domain.usecase.api.invite.ObserveInvitesUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.ObserveSessionUseCase
+import dev.cankolay.twodo.android.domain.usecase.application.session.RefreshSessionUseCase
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
-import dev.cankolay.twodo.android.presentation.core.userResult
 import dev.cankolay.twodo.android.presentation.form.FormField
 import dev.cankolay.twodo.android.presentation.form.update
 import dev.cankolay.twodo.android.presentation.form.validateRequired
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,37 +29,65 @@ data class InvitePartnerFormState(val username: FormField<String> = FormField(va
         get() = username.value.isNotBlank()
 }
 
+data class InviteActionRequest(val id: String, val action: InviteAction)
+
 data class CoupleSetupUiState(
-    val user: ApiResult<User>? = null,
-    val invites: ApiResult<List<Invite>>? = null,
-    val result: ApiResult<Invite>? = null,
+    val user: User? = null,
+    val userLoad: ApiResult<Unit>? = null,
+    val invites: List<Invite>? = null,
+    val invitesLoad: ApiResult<Unit>? = null,
+    val result: ApiResult<Unit>? = null,
     val action: ApiResult<Unit>? = null,
+    val pendingAction: InviteActionRequest? = null,
     val form: InvitePartnerFormState = InvitePartnerFormState(),
     val showForm: Boolean = false,
 )
 
 @HiltViewModel
-class CoupleSetupViewModel
-@Inject
-constructor(
-    private val invites: InviteRepository,
-    private val session: SessionRepository,
+class CoupleSetupViewModel @Inject constructor(
+    private val observeInvites: ObserveInvitesUseCase,
+    private val getInvites: GetInvitesUseCase,
+    private val createInvite: CreateInviteUseCase,
+    private val observeSession: ObserveSessionUseCase,
+    private val refreshSession: RefreshSessionUseCase,
     private val handleInvite: HandleInviteUseCase,
-) : BaseViewModel<CoupleSetupUiState>(initialState = CoupleSetupUiState()) {
+) : BaseViewModel<CoupleSetupUiState>(
+    initialState = CoupleSetupUiState(
+        user = (observeSession().value as? SessionState.Active)?.user,
+        invites = observeInvites().value
+    )
+) {
+
+    private var invitesJob: Job? = null
+    private var userJob: Job? = null
 
     init {
         viewModelScope.launch {
-            session.state.collect { state ->
-                _uiState.update { it.copy(user = state.userResult()) }
+            observeSession().collect { session ->
+                _uiState.update {
+                    when (session) {
+                        is SessionState.Active -> it.copy(
+                            user = session.user,
+                            userLoad = if (it.user == null && it.userLoad == ApiResult.Loading)
+                                ApiResult.Success(data = Unit) else it.userLoad,
+                        )
+
+                        is SessionState.Failed -> it.copy(userLoad = ApiResult.Failure(error = session.error))
+                        SessionState.Starting -> CoupleSetupUiState(userLoad = ApiResult.Loading)
+                        SessionState.SignedOut -> CoupleSetupUiState()
+                        SessionState.ProfileRequired -> it.copy(user = null, userLoad = null)
+                    }
+                }
             }
         }
 
         viewModelScope.launch {
-            invites.invites.collect { data ->
-                if (uiState.value.invites != ApiResult.Loading) {
-                    _uiState.update {
-                        it.copy(invites = data?.let { ApiResult.Success(data = it) })
-                    }
+            observeInvites().collect { data ->
+                _uiState.update {
+                    it.copy(
+                        invites = data,
+                        invitesLoad = if (data == null && it.invites != null) null else it.invitesLoad,
+                    )
                 }
             }
         }
@@ -97,16 +130,21 @@ constructor(
         _uiState.update { it.copy(result = ApiResult.Loading) }
 
         viewModelScope.launch {
-            val result = invites.create(username = username.value.trim())
+            val result = createInvite(username = username.value.trim())
 
-            _uiState.update { it.copy(result = result) }
+            _uiState.update { it.copy(result = result.map { }) }
         }
     }
 
     fun handle(id: String, action: InviteAction) {
         if (uiState.value.action == ApiResult.Loading) return
 
-        _uiState.update { it.copy(action = ApiResult.Loading) }
+        _uiState.update {
+            it.copy(
+                action = ApiResult.Loading,
+                pendingAction = InviteActionRequest(id = id, action = action),
+            )
+        }
 
         viewModelScope.launch {
             val result = handleInvite(id = id, action = action)
@@ -115,29 +153,41 @@ constructor(
         }
     }
 
+    fun retryAction() {
+        val pending = uiState.value.pendingAction ?: return
+        handle(id = pending.id, action = pending.action)
+    }
+
     fun fetch(forceRefresh: Boolean = false) {
-        if (uiState.value.invites == ApiResult.Loading) return
+        if (invitesJob?.isActive == true) return
 
-        _uiState.update { it.copy(invites = ApiResult.Loading) }
+        if (uiState.value.invitesLoad == ApiResult.Loading) return
 
-        viewModelScope.launch {
-            val result = invites.getAll(forceRefresh = forceRefresh)
+        _uiState.update { it.copy(invitesLoad = ApiResult.Loading) }
 
-            _uiState.update { it.copy(invites = result) }
+        invitesJob = viewModelScope.launch {
+            val result = getInvites(forceRefresh = forceRefresh)
+
+            _uiState.update { it.copy(invitesLoad = result.map { }) }
         }
     }
 
     fun refresh() {
         fetch(forceRefresh = true)
+        refreshUser()
+    }
 
-        if (uiState.value.user == ApiResult.Loading) return
+    fun refreshUser() {
+        if (userJob?.isActive == true) return
 
-        _uiState.update { it.copy(user = ApiResult.Loading, action = null) }
+        if (uiState.value.userLoad == ApiResult.Loading) return
 
-        viewModelScope.launch {
-            val result = session.refresh()
+        _uiState.update { it.copy(userLoad = ApiResult.Loading) }
 
-            _uiState.update { it.copy(user = result) }
+        userJob = viewModelScope.launch {
+            val result = refreshSession()
+
+            _uiState.update { it.copy(userLoad = result.map { }) }
         }
     }
 }

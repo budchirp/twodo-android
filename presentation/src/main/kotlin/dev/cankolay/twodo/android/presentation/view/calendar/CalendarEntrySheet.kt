@@ -53,7 +53,7 @@ internal fun CalendarEntrySheet(
             ),
         onDismiss = onDismiss,
         result = result,
-        showLoading = form.editing,
+        onRefresh = onSave,
         actions = {
             if (form.editing)
                 TextButton(onClick = onDelete, enabled = !isLoading) {
@@ -92,85 +92,81 @@ internal fun CalendarEntrySheet(
                 minLines = 3,
             )
         }
-        when (form.type) {
-            CalendarEntryType.PERIOD -> {
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-                        Text(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            text = stringResource(id = R.string.period_event),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        RadioOptions(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            items = PeriodEvent.entries,
-                            selected = form.periodEvent,
-                            enabled = !isLoading,
-                            label = { stringResource(id = it.label) },
-                            onSelected = { onFormChange(form.copy(periodEvent = it)) },
-                        )
-                    }
-                }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
-                        Text(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            text = stringResource(id = R.string.flow_level),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        RadioOptions(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            items = FlowLevel.entries,
-                            selected = form.flowLevel,
-                            enabled = !isLoading,
-                            label = { stringResource(id = it.label) },
-                            onSelected = { onFormChange(form.copy(flowLevel = it)) },
-                        )
-                    }
-                }
-                item {
+        if (form.type == CalendarEntryType.PERIOD) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
                     Text(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        text = stringResource(id = R.string.symptoms),
+                        text = stringResource(id = R.string.period_event),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                }
-                item {
-                    SettingsGroup(
+                    RadioOptions(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        items =
-                            PeriodSymptom.entries.map { symptom ->
-                                val checked = symptom in form.symptoms
-                                SettingItem(
-                                    title = stringResource(id = symptom.label),
-                                    modifier =
-                                        Modifier.toggleable(
-                                            value = checked,
-                                            enabled = !isLoading,
-                                            role = Role.Checkbox,
-                                        ) { selected ->
-                                            onFormChange(
-                                                form.copy(
-                                                    symptoms =
-                                                        if (selected) form.symptoms + symptom
-                                                        else form.symptoms - symptom
-                                                )
-                                            )
-                                        },
-                                    leadingContent = {
-                                        Checkbox(
-                                            checked = checked,
-                                            onCheckedChange = null,
-                                            enabled = !isLoading,
-                                        )
-                                    },
-                                )
-                            },
+                        items = PeriodEvent.entries,
+                        selected = form.periodEvent,
+                        enabled = !isLoading,
+                        label = { stringResource(id = it.label) },
+                        onSelected = { onFormChange(form.copy(periodEvent = it)) },
                     )
                 }
             }
-
-            else -> Unit
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = stringResource(id = R.string.flow_level),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    RadioOptions(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        items = FlowLevel.entries,
+                        selected = form.flowLevel,
+                        enabled = !isLoading,
+                        label = { stringResource(id = it.label) },
+                        onSelected = { onFormChange(form.copy(flowLevel = it)) },
+                    )
+                }
+            }
+            item {
+                Text(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    text = stringResource(id = R.string.symptoms),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+            item {
+                SettingsGroup(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    items =
+                        PeriodSymptom.entries.map { symptom ->
+                            val checked = symptom in form.symptoms
+                            SettingItem(
+                                title = stringResource(id = symptom.label),
+                                modifier =
+                                    Modifier.toggleable(
+                                        value = checked,
+                                        enabled = !isLoading,
+                                        role = Role.Checkbox,
+                                    ) { selected ->
+                                        onFormChange(
+                                            form.copy(
+                                                symptoms =
+                                                    if (selected) form.symptoms + symptom
+                                                    else form.symptoms - symptom
+                                            )
+                                        )
+                                    },
+                                leadingContent = {
+                                    Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = null,
+                                        enabled = !isLoading,
+                                    )
+                                },
+                            )
+                        },
+                )
+            }
         }
     }
 }

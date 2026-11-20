@@ -4,8 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
+import dev.cankolay.twodo.android.domain.model.api.map
 import dev.cankolay.twodo.android.domain.model.api.note.Note
-import dev.cankolay.twodo.android.domain.repository.api.NoteRepository
+import dev.cankolay.twodo.android.domain.usecase.api.note.DeleteNoteUseCase
+import dev.cankolay.twodo.android.domain.usecase.api.note.GetNoteUseCase
+import dev.cankolay.twodo.android.domain.usecase.api.note.UpdateNoteUseCase
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -16,9 +19,10 @@ import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 data class NoteEditorUiState(
-    val note: ApiResult<Note>? = null,
+    val note: Note? = null,
+    val load: ApiResult<Unit>? = null,
     val draft: Note? = null,
-    val save: ApiResult<Note>? = null,
+    val save: ApiResult<Unit>? = null,
     val delete: ApiResult<Unit>? = null,
     val close: ApiResult<Unit>? = null,
     val showActions: Boolean = false,
@@ -28,17 +32,17 @@ data class NoteEditorUiState(
         get() {
             val current = draft ?: return false
 
-            val saved = (note as? ApiResult.Success)?.data ?: return true
+            val saved = note ?: return true
 
             return current.title != saved.title || current.content != saved.content
         }
 }
 
 @HiltViewModel
-class NoteEditorViewModel
-@Inject
-constructor(
-    private val notes: NoteRepository,
+class NoteEditorViewModel @Inject constructor(
+    private val getNote: GetNoteUseCase,
+    private val updateNote: UpdateNoteUseCase,
+    private val deleteNote: DeleteNoteUseCase,
     private val savedStateHandle: SavedStateHandle,
 ) : BaseViewModel<NoteEditorUiState>(initialState = NoteEditorUiState()) {
     private val saveMutex = Mutex()
@@ -58,17 +62,20 @@ constructor(
         }
     }
 
-    fun load(id: String) {
-        if (loadJob?.isActive == true || uiState.value.draft?.id == id) return
+    fun load(id: String, forceRefresh: Boolean = false) {
+        if (loadJob?.isActive == true || (!forceRefresh && uiState.value.draft?.id == id)) return
 
-        _uiState.update { it.copy(note = ApiResult.Loading) }
+        _uiState.update {
+            if (it.draft != null && it.draft.id != id) NoteEditorUiState(load = ApiResult.Loading)
+            else it.copy(load = ApiResult.Loading)
+        }
 
         loadJob = viewModelScope.launch {
-            val result = notes.get(id = id)
+            val result = getNote(id = id, forceRefresh = forceRefresh)
 
             val saved = (result as? ApiResult.Success)?.data
 
-            val draft = saved?.let {
+            val draft = uiState.value.draft ?: saved?.let {
                 if (savedStateHandle.get<String>("noteId") == id)
                     it.copy(
                         title = savedStateHandle.get<String>("title") ?: it.title,
@@ -79,8 +86,9 @@ constructor(
 
             _uiState.update {
                 it.copy(
-                    note = result,
-                    draft = draft,
+                    note = saved ?: it.note,
+                    load = result.map { },
+                    draft = draft ?: it.draft,
                 )
             }
 
@@ -142,8 +150,12 @@ constructor(
     }
 
     fun save() {
-        if (uiState.value.close == ApiResult.Loading || uiState.value.delete != null) return
+        if (
+            uiState.value.save == ApiResult.Loading ||
+            uiState.value.close == ApiResult.Loading || uiState.value.delete != null
+        ) return
 
+        _uiState.update { it.copy(save = ApiResult.Loading) }
         viewModelScope.launch { saveDraft() }
     }
 
@@ -156,17 +168,12 @@ constructor(
 
         viewModelScope.launch {
             saveMutex.withLock {
-                val result = notes.delete(id = id)
+                val result = deleteNote(id = id)
 
                 _uiState.update {
                     it.copy(
                         delete = result,
-                        showDelete =
-                            when (result) {
-                                is ApiResult.Success -> false
-
-                                else -> it.showDelete
-                            },
+                        showDelete = result !is ApiResult.Success && it.showDelete,
                     )
                 }
 
@@ -184,7 +191,7 @@ constructor(
 
             _uiState.update { it.copy(save = ApiResult.Loading) }
 
-            when (val result = notes.update(id = draft.id, note = draft)) {
+            when (val result = updateNote(id = draft.id, note = draft)) {
                 ApiResult.Loading -> return@withLock ApiResult.Loading
 
                 is ApiResult.Failure -> {
@@ -196,8 +203,8 @@ constructor(
                 is ApiResult.Success -> {
                     _uiState.update {
                         it.copy(
-                            note = result,
-                            save = result,
+                            note = result.data,
+                            save = result.map { Unit },
                             draft = if (it.draft == draft) result.data else it.draft,
                         )
                     }
@@ -208,7 +215,7 @@ constructor(
         }
 
         if (!uiState.value.changed) {
-            _uiState.update { it.copy(save = it.note) }
+            _uiState.update { it.copy(save = if (it.note != null) ApiResult.Success(data = Unit) else null) }
 
             clearSavedDraft()
         }

@@ -18,7 +18,12 @@ internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Fa
     return try {
         val body = body<ErrorResponse>()
         ApiResult.Failure(
-            error = ApiFailure(message = body.message, reason = reason, code = body.code)
+            error = ApiFailure(
+                message = body.message.ifBlank { status.description },
+                reason = reason,
+                code = body.code,
+                statusCode = status.value,
+            )
         )
     } catch (e: CancellationException) {
         throw e
@@ -26,8 +31,9 @@ internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Fa
         ApiResult.Failure(
             error =
                 ApiFailure(
-                    message = e.message ?: "Unexpected error",
+                    message = status.description,
                     reason = reason,
+                    statusCode = status.value,
                 )
         )
     }
@@ -42,7 +48,19 @@ internal suspend inline fun <R> executeRequest(
         val response = block()
         val statusCode = response.status.value
         if (statusCode in 200..299) {
-            parseSuccess(response)
+            try {
+                parseSuccess(response)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                ApiResult.Failure(
+                    error = ApiFailure(
+                        message = "Invalid server response",
+                        reason = ErrorReason.SERVER,
+                        statusCode = statusCode,
+                    )
+                )
+            }
         } else {
             response.errorResult(
                 reason = if (statusCode in 400..499) ErrorReason.CLIENT else ErrorReason.SERVER
@@ -71,6 +89,7 @@ suspend inline fun <reified T> request(noinline block: suspend () -> HttpRespons
                         message = body.message,
                         reason = ErrorReason.CLIENT,
                         code = body.code,
+                        statusCode = response.status.value,
                     )
             )
         } else {
@@ -88,6 +107,7 @@ suspend fun requestUnit(block: suspend () -> HttpResponse): ApiResult<Unit> =
                         message = body.message,
                         reason = ErrorReason.CLIENT,
                         code = body.code,
+                        statusCode = response.status.value,
                     )
             )
         } else {
