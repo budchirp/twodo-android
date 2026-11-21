@@ -8,7 +8,8 @@ data class CalendarEntryRequestDto(
     val date: String,
     val type: String,
     val notes: String? = null,
-    val period: PeriodRequestDto? = null
+    val period: PeriodRequestDto? = null,
+    val isImportant: Boolean
 )
 
 @Serializable
@@ -23,6 +24,7 @@ fun CalendarEntryInput.toDto() = CalendarEntryRequestDto(
     date = date.toString(),
     type = type.value,
     notes = notes,
+    isImportant = isImportant,
     period = period?.let { period ->
         PeriodRequestDto(
             event = period.event.value,

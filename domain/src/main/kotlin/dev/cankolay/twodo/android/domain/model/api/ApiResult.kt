@@ -6,11 +6,14 @@ enum class ErrorReason {
     TRANSPORT,
 }
 
+data class FieldError(val field: String, val messages: List<String>)
+
 data class ApiFailure(
     val message: String,
     val code: String? = null,
     val reason: ErrorReason = ErrorReason.TRANSPORT,
     val statusCode: Int? = null,
+    val fieldErrors: List<FieldError> = emptyList(),
 )
 
 sealed interface ApiResult<out T> {

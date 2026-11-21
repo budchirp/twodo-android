@@ -33,6 +33,7 @@ dependencies {
     implementation(libs.bundles.hilt)
     ksp(libs.hilt.compiler)
 
+    implementation(libs.appcompat)
     implementation(libs.datastore)
     implementation(libs.bundles.ktor)
 }

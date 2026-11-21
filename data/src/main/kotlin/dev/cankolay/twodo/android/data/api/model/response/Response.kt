@@ -8,7 +8,8 @@ data class ErrorResponse(
     val error: Boolean,
     val code: String = "unknown",
     val message: String,
-    val data: JsonElement? = null
+    val data: JsonElement? = null,
+    val details: JsonElement? = null,
 )
 
 @Serializable
@@ -24,5 +25,5 @@ data class EmptySuccessResponse(
     val error: Boolean,
     val code: String = "success",
     val message: String,
-    val data: JsonElement? = null
+    val data: JsonElement? = null,
 )

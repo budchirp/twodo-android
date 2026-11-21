@@ -24,7 +24,7 @@ enum class AppPhase(val route: Route?) {
     SignedOut(route = Route.Welcome),
     ProfileRequired(route = Route.ProfileSetup),
     CoupleRequired(route = Route.CoupleSetup),
-    Ready(route = Route.Notes),
+    Ready(route = Route.Home),
     Failed(route = Route.StartupError),
 }
 

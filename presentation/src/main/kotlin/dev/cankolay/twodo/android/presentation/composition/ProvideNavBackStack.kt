@@ -33,7 +33,7 @@ private fun NavKey?.shouldReplaceWith(route: Route) =
         Route.StartupError -> this != Route.StartupError
         Route.ProfileSetup -> this != Route.ProfileSetup
         Route.CoupleSetup -> this != Route.CoupleSetup
-        Route.Notes ->
+        Route.Home ->
             this == null ||
                 this == Route.Welcome ||
                 this == Route.StartupError ||

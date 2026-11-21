@@ -6,12 +6,18 @@ import dev.cankolay.twodo.android.data.api.model.response.SuccessResponse
 import dev.cankolay.twodo.android.domain.model.api.ApiFailure
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.ErrorReason
+import dev.cankolay.twodo.android.domain.model.api.FieldError
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.RedirectResponseException
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.statement.HttpResponse
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 @PublishedApi
 internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Failure {
@@ -22,6 +28,7 @@ internal suspend fun HttpResponse.errorResult(reason: ErrorReason): ApiResult.Fa
                 message = body.message.ifBlank { status.description },
                 reason = reason,
                 code = body.code,
+                fieldErrors = validationErrors(body.details ?: body.data),
                 statusCode = status.value,
             )
         )
@@ -114,3 +121,15 @@ suspend fun requestUnit(block: suspend () -> HttpResponse): ApiResult<Unit> =
             ApiResult.Success(data = Unit)
         }
     }
+
+private fun validationErrors(value: JsonElement?): List<FieldError> {
+    val entries = value as? JsonArray ?: return emptyList()
+    return entries.mapNotNull { entry ->
+        val item = entry as? JsonObject ?: return@mapNotNull null
+        val field = (item["field"] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+        val messages = (item["messages"] as? JsonArray)?.mapNotNull {
+            (it as? JsonPrimitive)?.contentOrNull
+        }.orEmpty()
+        FieldError(field = field, messages = messages)
+    }
+}

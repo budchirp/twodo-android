@@ -3,6 +3,7 @@ package dev.cankolay.twodo.android.presentation.view.note
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -20,6 +21,7 @@ import dev.cankolay.twodo.android.presentation.util.DateUtils
 @Composable
 internal fun NoteActionsSheet(
     title: String,
+    createdAt: String,
     updatedAt: String,
     onDismiss: () -> Unit,
     onDelete: () -> Unit,
@@ -34,14 +36,19 @@ internal fun NoteActionsSheet(
                 items =
                     listOf(
                         SettingItem(
-                            title =
-                                stringResource(
-                                    id = R.string.edited_at,
-                                    DateUtils.format(
-                                        value = updatedAt,
-                                        pattern = DateUtils.DATE_TIME_PATTERN,
-                                    ),
-                                ),
+                            title = stringResource(id = R.string.created_at),
+                            description = DateUtils.format(
+                                value = createdAt,
+                                pattern = DateUtils.DATE_TIME_PATTERN,
+                            ),
+                            leadingContent = { Icon(icon = Icons.Default.Schedule) },
+                        ),
+                        SettingItem(
+                            title = stringResource(id = R.string.updated_at),
+                            description = DateUtils.format(
+                                value = updatedAt,
+                                pattern = DateUtils.DATE_TIME_PATTERN,
+                            ),
                             leadingContent = { Icon(icon = Icons.Default.Update) },
                         ),
                         SettingItem(

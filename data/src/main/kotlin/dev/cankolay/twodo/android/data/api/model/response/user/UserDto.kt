@@ -14,7 +14,7 @@ data class UserDto(
     val picture: String?,
     val gender: String?,
     val profileCompleted: Boolean = true,
-    val couple: UserCoupleDto?
+    val couple: UserCoupleDto? = null
 )
 
 @Serializable
@@ -31,7 +31,8 @@ data class UserCoupleDto(
     val id: String,
     val users: List<UserSummaryDto>,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val relationshipStartDate: String? = null,
 )
 
 fun UserDto.toDomain() = User(
@@ -56,5 +57,7 @@ fun UserSummaryDto.toDomain() = User(
 
 fun UserCoupleDto.toDomain() = Couple(
     users = users.map { it.toDomain() },
-    createdAt = createdAt
+    createdAt = createdAt,
+    id = id,
+    relationshipStartDate = relationshipStartDate?.let(java.time.LocalDate::parse),
 )

@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarProjection
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.MarkdownEditor
@@ -30,6 +33,7 @@ import java.time.LocalDate
 internal fun LazyListScope.calendarEntries(
     date: LocalDate,
     entries: List<CalendarEntry>,
+    projections: List<CalendarProjection>,
     canTrackPeriods: Boolean,
     onClick: (CalendarEntry) -> Unit,
 ) {
@@ -50,64 +54,83 @@ internal fun LazyListScope.calendarEntries(
         )
     }
 
-    item {
-        when {
-            events.isEmpty() ->
-                SettingCard(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    title = stringResource(id = R.string.calendar_day_empty_title),
-                    description = stringResource(id = R.string.calendar_day_empty_desc),
-                    leadingContent = { Icon(icon = Icons.Default.CalendarMonth) },
-                )
+    if (events.isNotEmpty() || (entries.isEmpty() && projections.isEmpty())) {
+        item {
+            when {
+                events.isEmpty() ->
+                    SettingCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        title = stringResource(id = R.string.calendar_day_empty_title),
+                        description = stringResource(id = R.string.calendar_day_empty_desc),
+                        leadingContent = { Icon(icon = Icons.Default.CalendarMonth) },
+                    )
 
-            else ->
-                SettingsGroup(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    items =
-                        events.map { entry ->
-                            val parts =
-                                when (entry.type) {
-                                    CalendarEntryType.PERIOD ->
-                                        listOfNotNull(
-                                            entry.period?.event?.let {
-                                                stringResource(id = it.label)
-                                            },
-                                            entry.period?.flowLevel?.let {
-                                                stringResource(id = it.label)
-                                            },
-                                            entry.period
-                                                ?.symptoms
-                                                ?.takeIf { it.isNotEmpty() }
-                                                ?.map { stringResource(id = it.label) }
-                                                ?.joinToString(),
-                                            entry.notes?.takeIf { it.isNotBlank() },
+                else ->
+                    SettingsGroup(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        items =
+                            events.map { entry ->
+                                val parts =
+                                    when (entry.type) {
+                                        CalendarEntryType.PERIOD ->
+                                            listOfNotNull(
+                                                entry.period?.event?.let {
+                                                    stringResource(id = it.label)
+                                                },
+                                                entry.period?.flowLevel?.let {
+                                                    stringResource(id = it.label)
+                                                },
+                                                entry.period
+                                                    ?.symptoms
+                                                    ?.takeIf { it.isNotEmpty() }
+                                                    ?.map { stringResource(id = it.label) }
+                                                    ?.joinToString(),
+                                                entry.notes?.takeIf { it.isNotBlank() },
+                                            )
+
+                                        else -> listOfNotNull(entry.notes)
+                                    }
+
+                                SettingItem(
+                                    title = if (entry.isImportant) stringResource(id = R.string.important_date) + " · " + stringResource(
+                                        id = entry.type.label
+                                    ) else stringResource(id = entry.type.label),
+                                    description =
+                                        parts.joinToString(separator = " · ").ifBlank {
+                                            stringResource(id = R.string.no_notes)
+                                        },
+                                    leadingContent = {
+                                        Icon(
+                                            icon =
+                                                if (entry.isImportant) Icons.Default.Star
+                                                else if (entry.type == CalendarEntryType.OVULATION)
+                                                    Icons.Default.AutoAwesome
+                                                else Icons.Default.CalendarMonth
                                         )
-
-                                    else -> listOfNotNull(entry.notes)
-                                }
-
-                            SettingItem(
-                                title = stringResource(id = entry.type.label),
-                                description =
-                                    parts.joinToString(separator = " · ").ifBlank {
-                                        stringResource(id = R.string.no_notes)
                                     },
-                                leadingContent = {
-                                    Icon(
-                                        icon =
-                                            if (entry.type == CalendarEntryType.OVULATION)
-                                                Icons.Default.AutoAwesome
-                                            else Icons.Default.CalendarMonth
-                                    )
-                                },
-                                onClick =
-                                    if (entry.canManage(canTrackPeriods = canTrackPeriods))
-                                        ({ onClick(entry) })
-                                    else null,
-                            )
-                        },
-                )
+                                    onClick =
+                                        if (entry.canManage(canTrackPeriods = canTrackPeriods))
+                                            ({ onClick(entry) })
+                                        else null,
+                                )
+                            },
+                    )
+
+            }
         }
+    }
+
+    items(
+        items = projections,
+        key = { "projection:${it.type.value}:${it.startDate}:${it.endDate}" },
+    ) { projection ->
+        SettingCard(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            title = projection.label,
+            description = stringResource(id = R.string.calendar_projection_estimate) + " · " +
+                    DateUtils.formatRange(start = projection.startDate, end = projection.endDate),
+            leadingContent = { Icon(icon = Icons.Default.AutoAwesome) },
+        )
     }
 
     if (notes.isNotEmpty()) {
@@ -136,6 +159,14 @@ internal fun LazyListScope.calendarEntries(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+
+                        if (entry.isImportant) {
+                            Text(
+                                text = stringResource(id = R.string.important_date),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
 
                         MarkdownEditor(markdown = entry.notes.orEmpty(), readOnly = true)
                     }

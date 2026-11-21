@@ -8,5 +8,6 @@ data class CalendarEntryInput(
     val date: LocalDate,
     val type: CalendarEntryType,
     val notes: String?,
-    val period: PeriodInput?
+    val period: PeriodInput?,
+    val isImportant: Boolean = false,
 )

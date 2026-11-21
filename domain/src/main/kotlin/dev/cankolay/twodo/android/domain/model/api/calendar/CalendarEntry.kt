@@ -6,7 +6,6 @@ import java.time.LocalDate
 enum class CalendarEntryType(val value: String) {
     NOTE(value = "note"),
     PERIOD(value = "period"),
-    PERIOD_PREDICTION(value = "period_prediction"),
     OVULATION(value = "ovulation");
 
     companion object {
@@ -73,5 +72,6 @@ data class CalendarEntry(
     val createdBy: User? = null,
     val period: PeriodDetails?,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val isImportant: Boolean = false,
 )

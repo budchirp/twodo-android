@@ -8,14 +8,12 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.pager.HorizontalPager
@@ -42,6 +40,7 @@ import dev.cankolay.twodo.android.domain.model.application.SettingsState
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.AppCard
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.LargeSwitchSetting
 import dev.cankolay.twodo.android.presentation.composable.app.SwitchSetting
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
@@ -75,9 +74,8 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
                     )
                 }
 
-                SwitchSetting(
+                LargeSwitchSetting(
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
                     title = stringResource(id = R.string.material_you),
                     checked = state.materialYou != MaterialYou.OFF,
                     onCheckedChange = onClick,
@@ -124,15 +122,12 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
                         }
 
                         repeat(times = colorsPerPage - (end - start)) {
-                            Surface(
-                                modifier = Modifier.sizeIn(maxWidth = 96.dp, maxHeight = 96.dp)
-                            ) {
-                                Spacer(
-                                    modifier = Modifier
-                                        .weight(weight = 1f)
-                                        .height(height = 1.dp)
-                                )
-                            }
+                            Spacer(
+                                modifier = Modifier
+                                    .weight(weight = 1f, fill = false)
+                                    .sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)
+                                    .aspectRatio(ratio = 1f)
+                            )
                         }
                     }
                 }
@@ -173,65 +168,63 @@ private fun RowScope.ColorButton(
     color: Color,
     onClick: (Color) -> Unit = {},
 ) {
-    Surface(modifier = Modifier.sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)) {
-        AppCard(
-            modifier = Modifier
-                .weight(weight = 1f)
-                .aspectRatio(ratio = 1f),
-            contentPadding = PaddingValues(all = 16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shape = MaterialTheme.shapes.medium,
-            onClick = {
-                onClick(color)
-            },
-        ) {
-            val colorScheme =
-                rememberDynamicColorScheme(seedColor = color, isDark = isDark(state = state))
+    AppCard(
+        modifier = Modifier
+            .weight(weight = 1f, fill = false)
+            .sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)
+            .aspectRatio(ratio = 1f),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = MaterialTheme.shapes.medium,
+        onClick = {
+            onClick(color)
+        },
+    ) {
+        val colorScheme =
+            rememberDynamicColorScheme(seedColor = color, isDark = isDark(state = state))
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .align(alignment = Alignment.Center),
-                    color = colorScheme.primaryContainer,
-                    shape = CircleShape,
-                ) {
-                    Row {
-                        Surface(
-                            modifier = Modifier
-                                .weight(weight = 1f)
-                                .aspectRatio(ratio = 1f),
-                            color = colorScheme.onSecondaryContainer,
-                        ) {}
+        Box(modifier = Modifier.fillMaxSize()) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(alignment = Alignment.Center),
+                color = colorScheme.primaryContainer,
+                shape = CircleShape,
+            ) {
+                Row {
+                    Surface(
+                        modifier = Modifier
+                            .weight(weight = 1f)
+                            .aspectRatio(ratio = 1f),
+                        color = colorScheme.onSecondaryContainer,
+                    ) {}
 
-                        Surface(
-                            modifier = Modifier
-                                .weight(weight = 1f)
-                                .aspectRatio(ratio = 1f),
-                            color = colorScheme.primary,
-                        ) {}
-                    }
+                    Surface(
+                        modifier = Modifier
+                            .weight(weight = 1f)
+                            .aspectRatio(ratio = 1f),
+                        color = colorScheme.primary,
+                    ) {}
                 }
+            }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(all = 8.dp)
-                        .align(Alignment.Center)
-                ) {
-                    Row {
-                        AnimatedVisibility(
-                            visible = selected,
-                            enter = fadeIn() + scaleIn(),
-                            exit = scaleOut() + fadeOut(),
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(all = 8.dp)
+                    .align(Alignment.Center)
+            ) {
+                Row {
+                    AnimatedVisibility(
+                        visible = selected,
+                        enter = fadeIn() + scaleIn(),
+                        exit = scaleOut() + fadeOut(),
+                    ) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = CircleShape,
                         ) {
-                            Surface(
-                                modifier = Modifier.fillMaxSize(),
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = CircleShape,
-                            ) {
-                                Icon(icon = Icons.Default.Check)
-                            }
+                            Icon(icon = Icons.Default.Check)
                         }
                     }
                 }

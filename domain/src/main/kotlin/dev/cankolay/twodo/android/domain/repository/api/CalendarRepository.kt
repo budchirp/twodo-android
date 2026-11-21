@@ -1,17 +1,25 @@
 package dev.cankolay.twodo.android.domain.repository.api
 
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarData
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryInput
-import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarPredictionSummary
+import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSummary
 import kotlinx.coroutines.flow.StateFlow
+import java.time.LocalDate
 
 interface CalendarRepository {
-    val entries: StateFlow<List<CalendarEntry>?>
+    val calendar: StateFlow<CalendarData?>
     suspend fun clear()
     suspend fun create(input: CalendarEntryInput): ApiResult<CalendarEntry>
-    suspend fun getAll(forceRefresh: Boolean = false): ApiResult<List<CalendarEntry>>
+    suspend fun get(
+        date: LocalDate,
+        startDate: LocalDate,
+        endDate: LocalDate,
+        forceRefresh: Boolean = false,
+    ): ApiResult<CalendarData>
+
     suspend fun update(id: String, input: CalendarEntryInput): ApiResult<CalendarEntry>
     suspend fun delete(id: String): ApiResult<Unit>
-    suspend fun getPredictionSummary(forceRefresh: Boolean = false): ApiResult<CalendarPredictionSummary>
+    suspend fun getPeriods(date: LocalDate, forceRefresh: Boolean = false): ApiResult<PeriodSummary>
 }

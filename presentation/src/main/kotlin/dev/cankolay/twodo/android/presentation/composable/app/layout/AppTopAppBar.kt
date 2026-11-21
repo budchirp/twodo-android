@@ -8,22 +8,27 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.R
+import dev.cankolay.twodo.android.presentation.composable.app.AppIconButton
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 
 private val routes = listOf(
-    Route.Welcome, Route.CoupleSetup, Route.Notes, Route.Calendar, Route.Settings
+    Route.Welcome,
+    Route.CoupleSetup,
+    Route.Home,
+    Route.Notes,
+    Route.Tasks,
+    Route.Calendar,
+    Route.Settings
 )
 
 enum class AppTopAppBarType {
@@ -59,19 +64,17 @@ fun AppTopAppBar(
         if (!routes.any {
                 it == context.route
             }) {
-            FilledIconButton(
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            AppIconButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(id = R.string.navigate_back),
                 onClick = {
                     if (onBackClick != null) {
                         onBackClick()
                     } else if (navBackStack.size > 1) {
                         navBackStack.removeLastOrNull()
                     }
-                }) {
-                Icon(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                )
-            }
+                },
+            )
         }
     }
 

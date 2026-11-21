@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.map
 import dev.cankolay.twodo.android.domain.model.api.note.Note
+import dev.cankolay.twodo.android.domain.usecase.api.note.CreateNoteUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.note.DeleteNoteUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.note.GetNoteUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.note.UpdateNoteUseCase
@@ -27,6 +28,8 @@ data class NoteEditorUiState(
     val close: ApiResult<Unit>? = null,
     val showActions: Boolean = false,
     val showDelete: Boolean = false,
+    val creating: Boolean = false,
+    val validate: Boolean = false,
 ) {
     val changed: Boolean
         get() {
@@ -41,6 +44,7 @@ data class NoteEditorUiState(
 @HiltViewModel
 class NoteEditorViewModel @Inject constructor(
     private val getNote: GetNoteUseCase,
+    private val createNote: CreateNoteUseCase,
     private val updateNote: UpdateNoteUseCase,
     private val deleteNote: DeleteNoteUseCase,
     private val savedStateHandle: SavedStateHandle,
@@ -51,7 +55,22 @@ class NoteEditorViewModel @Inject constructor(
 
     private var loadJob: Job? = null
 
+    fun createDraft() {
+        if (uiState.value.draft != null) return
+        _uiState.value = NoteEditorUiState(
+            creating = true,
+            draft = Note(
+                id = "",
+                title = savedStateHandle.get<String>("title").orEmpty(),
+                content = savedStateHandle.get<String>("content").orEmpty(),
+                createdAt = "",
+                updatedAt = "",
+            ),
+        )
+    }
+
     private fun schedule() {
+        if (uiState.value.creating) return
         saveJob?.cancel()
 
         saveJob = viewModelScope.launch {
@@ -114,7 +133,7 @@ class NoteEditorViewModel @Inject constructor(
 
         if (updated == draft) return
 
-        _uiState.update { it.copy(draft = updated) }
+        _uiState.update { it.copy(draft = updated, save = null) }
 
         savedStateHandle["noteId"] = updated.id
         savedStateHandle["title"] = updated.title
@@ -140,6 +159,12 @@ class NoteEditorViewModel @Inject constructor(
     fun close() {
         if (uiState.value.close == ApiResult.Loading || uiState.value.delete != null) return
 
+        if (uiState.value.creating) {
+            clearSavedDraft()
+            _uiState.update { it.copy(close = ApiResult.Success(data = Unit)) }
+            return
+        }
+
         _uiState.update { it.copy(close = ApiResult.Loading) }
 
         viewModelScope.launch {
@@ -149,20 +174,26 @@ class NoteEditorViewModel @Inject constructor(
         }
     }
 
-    fun save() {
-        if (
-            uiState.value.save == ApiResult.Loading ||
-            uiState.value.close == ApiResult.Loading || uiState.value.delete != null
+    fun submit() {
+        if (uiState.value.save == ApiResult.Loading || uiState.value.close == ApiResult.Loading ||
+            uiState.value.delete != null
         ) return
 
+        saveJob?.cancel()
         _uiState.update { it.copy(save = ApiResult.Loading) }
-        viewModelScope.launch { saveDraft() }
+
+        viewModelScope.launch {
+            val result = saveDraft()
+            if (result is ApiResult.Success) {
+                _uiState.update { it.copy(close = result) }
+            }
+        }
     }
 
     fun delete() {
         if (uiState.value.delete == ApiResult.Loading) return
 
-        val id = uiState.value.draft?.id ?: return
+        val id = uiState.value.note?.id ?: return
 
         _uiState.update { it.copy(delete = ApiResult.Loading) }
 
@@ -182,16 +213,27 @@ class NoteEditorViewModel @Inject constructor(
         }
     }
 
-    private suspend fun saveDraft(): ApiResult<Unit> = saveMutex.withLock {
+    private suspend fun saveDraft(): ApiResult<Unit>? = saveMutex.withLock {
         if (uiState.value.delete != null || uiState.value.close is ApiResult.Success)
             return@withLock ApiResult.Success(data = Unit)
 
         while (uiState.value.changed && uiState.value.delete == null) {
             val draft = uiState.value.draft ?: break
 
+            if (draft.title.isBlank()) {
+                _uiState.update { it.copy(validate = true, save = null) }
+                return@withLock null
+            }
+
             _uiState.update { it.copy(save = ApiResult.Loading) }
 
-            when (val result = updateNote(id = draft.id, note = draft)) {
+            val result = if (uiState.value.creating) {
+                createNote(title = draft.title.trim(), content = draft.content)
+            } else {
+                updateNote(id = draft.id, note = draft)
+            }
+
+            when (result) {
                 ApiResult.Loading -> return@withLock ApiResult.Loading
 
                 is ApiResult.Failure -> {
@@ -204,6 +246,7 @@ class NoteEditorViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             note = result.data,
+                            creating = false,
                             save = result.map { Unit },
                             draft = if (it.draft == draft) result.data else it.draft,
                         )

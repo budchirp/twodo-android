@@ -18,6 +18,7 @@ fun SwitchSetting(
     description: String? = null,
     enabled: Boolean = true,
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
+    rowSize: SettingRowSize = SettingRowSize.Compact,
 ) {
     SettingCard(
         modifier =
@@ -32,6 +33,7 @@ fun SwitchSetting(
         title = title,
         description = description,
         color = color,
+        rowSize = rowSize,
         trailingContent = { Switch(checked = checked, enabled = enabled, onCheckedChange = null) },
     )
 }

@@ -24,7 +24,6 @@ fun ErrorCard(
         color = MaterialTheme.colorScheme.errorContainer,
         title = title,
         description = error,
-        contentSize = null,
         trailingContent = if (onRefresh != null) {
             {
                 Button(onClick = onRefresh) {

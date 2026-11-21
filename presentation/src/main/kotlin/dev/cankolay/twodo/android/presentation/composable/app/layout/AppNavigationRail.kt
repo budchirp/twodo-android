@@ -25,12 +25,13 @@ import dev.cankolay.twodo.android.presentation.navigation.route.resetTo
 @Composable
 fun AppNavigationRail() {
     val navBackStack = LocalNavBackStack.current
-    val route = navBackStack.lastOrNull() ?: Route.Notes
+    val route = navBackStack.lastOrNull() ?: Route.Home
 
     if (route in onboardingRoutes) return
-    val selectedRoute = navBackStack.firstOrNull { it in navigationRoutes }
+    val selectedRoute = navBackStack.lastOrNull { it in navigationRoutes }
 
     NavigationRail(
+        modifier = Modifier.navigationLayer(),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         windowInsets = WindowInsets.systemBars,
     ) {

@@ -17,6 +17,7 @@ internal class NotesNavigation(
     private val stack: NavBackStack<NavKey>,
     fullscreen: MutableState<Boolean>,
     pending: MutableState<String?>,
+    pendingCreate: MutableState<Boolean>,
     val isExpanded: Boolean,
 ) {
     var isFullscreen by fullscreen
@@ -25,15 +26,30 @@ internal class NotesNavigation(
     var pending by pending
         private set
 
+    private var pendingCreate by pendingCreate
+
+    val isCreating: Boolean
+        get() = stack.lastOrNull() == Route.CreateNote
+
+    val hasPending: Boolean
+        get() = pending != null || pendingCreate
+
+    private val hasDetail: Boolean
+        get() = id != null || isCreating
+
     val id: String?
         get() = (stack.lastOrNull() as? Route.Note)?.id
 
-    fun select(id: String) {
-        if (id == this.id) return
+    val hasListPane: Boolean
+        get() = stack.any { it == Route.Notes }
 
-        if (this.id == null) {
+    fun select(id: String, fullscreen: Boolean = false) {
+        if (id == this.id && !isCreating) return
+
+        isFullscreen = fullscreen
+        pendingCreate = false
+        if (!hasDetail) {
             pending = null
-            isFullscreen = false
 
             stack.add(element = Route.Note(id = id))
         } else {
@@ -41,22 +57,37 @@ internal class NotesNavigation(
         }
     }
 
+    fun create() {
+        if (isCreating) return
+        isFullscreen = false
+        pending = null
+        if (hasDetail) pendingCreate = true
+        else stack.add(element = Route.CreateNote)
+    }
+
     fun close() {
-        val next = pending
+        val next = if (pendingCreate) Route.CreateNote else pending?.let { Route.Note(id = it) }
 
         pending = null
-        isFullscreen = false
+        pendingCreate = false
+        isFullscreen = next != null && isFullscreen
 
-        if (stack.lastOrNull() is Route.Note) stack.removeLastOrNull()
+        if (hasDetail) stack.removeLastOrNull()
 
-        if (next != null) stack.add(element = Route.Note(id = next))
+        if (next != null) stack.add(element = next)
     }
 
     fun cancel() {
         pending = null
+        pendingCreate = false
     }
 
     fun toggle() {
+        if (!isExpanded || !hasDetail) return
+        if (isFullscreen && !hasListPane) {
+            // Home opens a standalone detail; add the list only when leaving full-screen.
+            stack.add(index = stack.lastIndex, element = Route.Notes)
+        }
         isFullscreen = !isFullscreen
     }
 }
@@ -67,6 +98,7 @@ internal fun rememberNotesNavigation(stack: NavBackStack<NavKey>): NotesNavigati
     val fullscreen = rememberSaveable { mutableStateOf(value = false) }
 
     val pending = rememberSaveable { mutableStateOf<String?>(value = null) }
+    val pendingCreate = rememberSaveable { mutableStateOf(value = false) }
 
     val isExpanded = currentPaneDirective().maxHorizontalPartitions > 1
 
@@ -75,6 +107,7 @@ internal fun rememberNotesNavigation(stack: NavBackStack<NavKey>): NotesNavigati
             stack = stack,
             fullscreen = fullscreen,
             pending = pending,
+            pendingCreate = pendingCreate,
             isExpanded = isExpanded,
         )
     }

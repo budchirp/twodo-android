@@ -37,23 +37,19 @@ data class CycleHistory(
 )
 
 data class PeriodPrediction(
-    val hasEnoughData: Boolean = false,
+    val available: Boolean,
     val reliability: PeriodPredictionReliability = PeriodPredictionReliability.UNKNOWN,
     val nextPeriodWindow: DateWindow? = null,
     val ovulationWindow: DateWindow? = null,
-    val expectedPeriodStartDate: LocalDate? = null,
-    val expectedPeriodEndDate: LocalDate? = null,
+    val daysUntil: Int? = null,
     val cycleLengthDays: Int? = null,
     val periodDurationDays: Int? = null,
-    val cycleLengthVariabilityDays: Double? = null,
-    val predictionUncertaintyDays: Int? = null,
-    val recentIrregularity: Boolean = false,
-    val basis: String? = null,
     val disclaimer: String? = null,
 )
 
-data class CalendarPredictionSummary(
-    val cyclePrediction: PeriodPrediction? = null,
+data class PeriodSummary(
+    val date: LocalDate,
+    val prediction: PeriodPrediction,
     val ranges: List<CycleRange> = emptyList(),
     val cycles: List<CycleHistory> = emptyList(),
 )

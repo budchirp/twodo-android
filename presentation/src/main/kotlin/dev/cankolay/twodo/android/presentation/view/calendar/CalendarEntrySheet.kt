@@ -26,7 +26,9 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.RadioOptions
 import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
+import dev.cankolay.twodo.android.presentation.composable.app.SettingRowSize
 import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
+import dev.cankolay.twodo.android.presentation.composable.app.SwitchSetting
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.canCreate
@@ -92,6 +94,15 @@ internal fun CalendarEntrySheet(
                 minLines = 3,
             )
         }
+        item {
+            SwitchSetting(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                title = stringResource(id = R.string.important_date),
+                checked = form.isImportant,
+                enabled = !isLoading,
+                onCheckedChange = { onFormChange(form.copy(isImportant = it)) },
+            )
+        }
         if (form.type == CalendarEntryType.PERIOD) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
@@ -142,6 +153,7 @@ internal fun CalendarEntrySheet(
                             val checked = symptom in form.symptoms
                             SettingItem(
                                 title = stringResource(id = symptom.label),
+                                rowSize = SettingRowSize.Compact,
                                 modifier =
                                     Modifier.toggleable(
                                         value = checked,
@@ -178,8 +190,6 @@ internal val CalendarEntryType.label: Int
             CalendarEntryType.NOTE -> R.string.calendar_type_note
 
             CalendarEntryType.PERIOD -> R.string.calendar_type_period
-
-            CalendarEntryType.PERIOD_PREDICTION -> R.string.expected_period
 
             CalendarEntryType.OVULATION -> R.string.calendar_type_ovulation
         }

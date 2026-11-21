@@ -53,7 +53,7 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .padding(all = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -65,19 +65,20 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
                 ) {
                     Text(
                         text = user.name,
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
                     )
+
                     Text(
                         text = user.username,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         }
+
         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
+
         AppLazyColumn(contentPadding = PaddingValues(vertical = 16.dp)) {
             val failure = state.load as? ApiResult.Failure
             if (failure != null) {
@@ -89,6 +90,7 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
                     )
                 }
             }
+
             item {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -101,6 +103,7 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
                     ) {
                         Text(text = stringResource(id = R.string.refresh_profile))
                     }
+
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
@@ -114,6 +117,7 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
                 }
             }
         }
+
         if (showLogout) {
             LogoutSheet(
                 onDismiss = { showLogout = false },

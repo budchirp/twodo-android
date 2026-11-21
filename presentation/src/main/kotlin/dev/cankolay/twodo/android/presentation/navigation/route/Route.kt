@@ -2,17 +2,21 @@ package dev.cankolay.twodo.android.presentation.navigation.route
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Colorize
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -38,10 +42,22 @@ sealed interface Route : NavKey {
     data object CoupleSetup : Route
 
     @Serializable
+    data object Home : Route
+
+    @Serializable
     data object Notes : Route
 
     @Serializable
+    data object Tasks : Route
+
+    @Serializable
+    data class Task(val id: String? = null) : Route
+
+    @Serializable
     data class Note(val id: String) : Route
+
+    @Serializable
+    data object CreateNote : Route
 
     @Serializable
     data object Calendar : Route
@@ -74,7 +90,22 @@ sealed interface Route : NavKey {
 @Composable
 fun Route.getDetails(): RouteDetail =
     when (this) {
+        Route.Home -> RouteDetail(
+            title = stringResource(id = R.string.home),
+            icon = RouteDetailIcon(default = Icons.Filled.Home, outlined = Icons.Outlined.Home),
+        )
+
+        Route.Tasks,
+        is Route.Task -> RouteDetail(
+            title = stringResource(id = R.string.tasks),
+            icon = RouteDetailIcon(
+                default = Icons.Filled.Checklist,
+                outlined = Icons.Outlined.Checklist
+            ),
+        )
+
         Route.Notes,
+        Route.CreateNote,
         is Route.Note ->
             RouteDetail(
                 title = stringResource(id = R.string.notes),
@@ -186,7 +217,7 @@ fun Route.getDetails(): RouteDetail =
 
 val onboardingRoutes =
     listOf(Route.Welcome, Route.ProfileSetup, Route.StartupError, Route.CoupleSetup)
-val navigationRoutes = listOf(Route.Notes, Route.Calendar, Route.Settings)
+val navigationRoutes = listOf(Route.Home, Route.Notes, Route.Calendar, Route.Tasks, Route.Settings)
 
 fun NavBackStack<NavKey>.resetTo(route: Route) {
     add(element = route)

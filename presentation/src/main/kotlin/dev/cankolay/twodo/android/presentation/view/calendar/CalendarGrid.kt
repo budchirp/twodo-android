@@ -1,6 +1,5 @@
 package dev.cankolay.twodo.android.presentation.view.calendar
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,12 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,16 +17,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarProjection
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarProjectionType
 import dev.cankolay.twodo.android.presentation.R
-import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.AppIconButton
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -42,6 +41,7 @@ internal fun CalendarGrid(
     visibleMonth: YearMonth,
     selectedDate: LocalDate,
     entries: List<CalendarEntry>,
+    projections: List<CalendarProjection>,
     canTrackPeriods: Boolean,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -77,18 +77,22 @@ internal fun CalendarGrid(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            IconButton(onClick = onPreviousMonth) {
-                Icon(icon = Icons.AutoMirrored.Filled.ArrowBack)
-            }
+            AppIconButton(
+                icon = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(id = R.string.previous_month),
+                onClick = onPreviousMonth,
+            )
             Text(
                 text = visibleMonth.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale)),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
             )
-            IconButton(onClick = onNextMonth) {
-                Icon(icon = Icons.AutoMirrored.Filled.ArrowForward)
-            }
+            AppIconButton(
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = stringResource(id = R.string.next_month),
+                onClick = onNextMonth,
+            )
         }
         Row(modifier = Modifier.fillMaxWidth()) {
             weekDays.forEach { day ->
@@ -116,39 +120,11 @@ internal fun CalendarGrid(
                                 selected = date == selectedDate,
                                 isToday = date == today,
                                 entries = entriesByDate[date].orEmpty(),
+                                projections = projections.filter { date in it.startDate..it.endDate },
                                 onClick = { onDateClick(date) },
                             )
                     }
                 }
-            }
-        }
-        if (canTrackPeriods) {
-            Row(horizontalArrangement = Arrangement.spacedBy(space = 16.dp)) {
-                listOf(
-                    MaterialTheme.colorScheme.tertiaryContainer to
-                            R.string.calendar_type_period,
-                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f) to
-                            R.string.expected_period,
-                )
-                    .forEach { (color, label) ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(space = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(size = 10.dp)
-                                        .clip(shape = CircleShape)
-                                        .background(color = color)
-                            )
-                            Text(
-                                text = stringResource(id = label),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
             }
         }
     }
@@ -160,11 +136,16 @@ private fun DayCell(
     selected: Boolean,
     isToday: Boolean,
     entries: List<CalendarEntry>,
+    projections: List<CalendarProjection>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     val types = entries.map { it.type }.toSet()
+    val estimatedTypes = projections.map { it.type }.toSet()
+    val estimateLabel = stringResource(id = R.string.calendar_projection_estimate)
+    val estimatedDescription =
+        projections.joinToString(separator = ", ") { "$estimateLabel · ${it.label}" }
     val containerColor =
         when {
             selected -> colors.primaryContainer
@@ -173,8 +154,11 @@ private fun DayCell(
 
             CalendarEntryType.PERIOD in types -> colors.tertiaryContainer
 
-            CalendarEntryType.PERIOD_PREDICTION in types ->
+            CalendarProjectionType.PERIOD in estimatedTypes ->
                 colors.tertiaryContainer.copy(alpha = 0.5f)
+
+            CalendarProjectionType.OVULATION in estimatedTypes ->
+                colors.secondaryContainer.copy(alpha = 0.5f)
 
             entries.isNotEmpty() -> colors.surfaceContainerHighest
 
@@ -188,13 +172,19 @@ private fun DayCell(
 
             CalendarEntryType.OVULATION in types -> colors.onSecondaryContainer
 
-            CalendarEntryType.PERIOD in types || CalendarEntryType.PERIOD_PREDICTION in types ->
+            CalendarEntryType.PERIOD in types || CalendarProjectionType.PERIOD in estimatedTypes ->
                 colors.onTertiaryContainer
+
+            CalendarProjectionType.OVULATION in estimatedTypes -> colors.onSecondaryContainer
 
             else -> colors.onSurface
         }
     Surface(
-        modifier = modifier.padding(all = 2.dp),
+        modifier = modifier
+            .padding(all = 2.dp)
+            .semantics {
+                if (estimatedDescription.isNotEmpty()) stateDescription = estimatedDescription
+            },
         onClick = onClick,
         shape = MaterialTheme.shapes.medium,
         color = containerColor,
@@ -217,12 +207,13 @@ private fun DayCell(
                     },
                 color = textColor,
             )
-            if (entries.isNotEmpty())
+            if (entries.isNotEmpty()) {
                 Text(
                     text = entries.size.toString(),
                     style = MaterialTheme.typography.labelSmall,
                     color = textColor,
                 )
+            }
         }
     }
 }

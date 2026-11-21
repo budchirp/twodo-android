@@ -1,7 +1,6 @@
 package dev.cankolay.twodo.android.presentation.view.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,7 +13,6 @@ import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +31,7 @@ import dev.cankolay.twodo.android.domain.model.api.invite.InviteType
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
+import dev.cankolay.twodo.android.presentation.composable.app.AppIconButton
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
 import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
@@ -171,15 +170,15 @@ private fun CoupleSetupContent(
                                 received.map { invite ->
                                     SettingItem(
                                         title = invite.user.name,
-                                        contentSize = null,
-                                        contentPadding = PaddingValues(vertical = 16.dp),
                                         trailingContent = {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement =
                                                     Arrangement.spacedBy(space = 8.dp),
                                             ) {
-                                                IconButton(
+                                                AppIconButton(
+                                                    icon = Icons.Default.Close,
+                                                    contentDescription = stringResource(id = R.string.reject_invite),
                                                     onClick = {
                                                         onHandleInvite(
                                                             invite.id,
@@ -187,11 +186,11 @@ private fun CoupleSetupContent(
                                                         )
                                                     },
                                                     enabled = state.action != ApiResult.Loading,
-                                                ) {
-                                                    Icon(icon = Icons.Default.Close)
-                                                }
+                                                )
 
-                                                IconButton(
+                                                AppIconButton(
+                                                    icon = Icons.Default.Check,
+                                                    contentDescription = stringResource(id = R.string.accept_invite),
                                                     enabled = state.action != ApiResult.Loading,
                                                     onClick = {
                                                         onHandleInvite(
@@ -199,9 +198,7 @@ private fun CoupleSetupContent(
                                                             InviteAction.Accept,
                                                         )
                                                     },
-                                                ) {
-                                                    Icon(icon = Icons.Default.Check)
-                                                }
+                                                )
                                             }
                                         },
                                     )

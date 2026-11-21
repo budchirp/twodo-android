@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,17 +43,24 @@ fun AppBottomSheet(
             initialValue = SheetValue.Hidden,
             confirmValueChange = { it != SheetValue.Hidden || !active },
         )
+
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = { if (!isLoading) onDismiss() },
         sheetGesturesEnabled = !isLoading,
     ) {
-        AppLinearProgressIndicator(isLoading = isLoading)
+        Column(
+            verticalArrangement = Arrangement.spacedBy(space = 8.dp)
+        ) {
+            AppLinearProgressIndicator(isLoading = isLoading)
 
-        Column(modifier = Modifier.imePadding()) {
-            Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement
+                    .spacedBy(space = 8.dp)
+            ) {
                 Text(
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
                     text = title,
                     style =
                         MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
@@ -62,40 +68,38 @@ fun AppBottomSheet(
 
                 description?.let {
                     Text(
-                        modifier = Modifier.padding(horizontal = 16.dp),
                         text = it,
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
             }
 
-            if (result is ApiResult.Failure || content != null || actions != null) {
-                AppLazyColumn(fill = false) {
-                    if (result is ApiResult.Failure) {
-                        item {
-                            ErrorCard(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                error = result.error.message,
-                                onRefresh = onRefresh,
-                            )
-                        }
+            AppLazyColumn(fill = false) {
+                if (result is ApiResult.Failure) {
+                    item {
+                        ErrorCard(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            error = result.error.message,
+                            onRefresh = onRefresh,
+                        )
                     }
-                    content?.invoke(this)
+                }
 
-                    actions?.let { sheetActions ->
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                horizontalArrangement =
-                                    Arrangement.spacedBy(
-                                        space = 8.dp,
-                                        alignment = Alignment.End,
-                                    ),
-                            ) {
-                                sheetActions()
-                            }
+                content?.invoke(this)
+
+                actions?.let { sheetActions ->
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement =
+                                Arrangement.spacedBy(
+                                    space = 8.dp,
+                                    alignment = Alignment.End,
+                                ),
+                        ) {
+                            sheetActions()
                         }
                     }
                 }

@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="updated_at">Edited at</string>
+    <string name="calendar_projection_estimate">Estimate</string>
+    <string name="home_feed">Coming up</string>
+    <string name="home_feed_empty">No scheduled tasks or important dates</string>
+    <string name="home_summary">Overview</string>
+    <string name="relationship_paired">Sharing life together</string>
+    <string name="task_assigned">Assigned</string>
+    <string name="period_estimate_active">Estimated window is active</string>
+    <string name="period_reliability_unknown">Reliability unavailable</string>
+    <string name="important_date_not_found">This important date is no longer available.</string>
+    <plurals name="period_recorded_ranges">
+        <item quantity="one">%1$d recorded period</item>
+        <item quantity="other">%1$d recorded periods</item>
+    </plurals>
+    <plurals name="period_recorded_cycles">
+        <item quantity="one">%1$d recorded cycle</item>
+        <item quantity="other">%1$d recorded cycles</item>
+    </plurals>
+    <string name="task_actions">Task actions</string>
+    <string name="created_at">Created at</string>
+    <string name="untitled_note">Untitled note</string>
     <string name="app_name" translatable="false">TwoDo</string>
     <string name="app_github" translatable="false">https://github.com/budchirp/twodo</string>
 
@@ -23,7 +44,6 @@
     <string name="try_again">Try again</string>
     <string name="sign_out">Sign out</string>
     <string name="sign_out_desc">You will need to sign in with Trash again.</string>
-    <string name="days_together">%1$s days together</string>
     <string name="edited_at">Edited at: %1$s</string>
     <string name="username">Username</string>
     <string name="invite">Invite</string>
@@ -133,7 +153,7 @@
     <string name="calendar_type_ovulation">Ovulation</string>
 
     <string name="period_tracker">Period tracker</string>
-    <string name="period_tracker_desc">Expected period, ovulation, and cycle tips</string>
+    <string name="period_tracker_desc">Cycle details</string>
     <string name="period_tracker_averages">Average cycle: %1$s days - period: %2$s days</string>
     <string name="next_period_window">Next estimated period</string>
     <string name="ovulation_window">Estimated ovulation window</string>
@@ -169,4 +189,97 @@
     <string name="default_medical_disclaimer">Predictions are estimates based on your logged history and should not be used as medical advice.</string>
     <string name="profile">Profile</string>
     <string name="refresh_profile">Refresh</string>
+    <string name="home">Home</string>
+    <string name="go_to_all_notes">Go to all notes</string>
+
+    <string name="tasks">Tasks</string>
+    <string name="create_task">Create task</string>
+    <string name="edit_task">Edit task</string>
+    <string name="task_description">Description</string>
+    <string name="tasks_empty_title">No tasks yet</string>
+    <string name="tasks_empty_description">Add something for you and your partner to do.</string>
+    <string name="complete_task">Complete %1$s</string>
+    <string name="reopen_task">Reopen %1$s</string>
+    <string name="delete_task">Delete task</string>
+    <string name="delete_task_description">This task will be permanently deleted for both partners.</string>
+    <string name="task_title_limit">Use 100 characters or fewer for the title.</string>
+    <string name="task_description_limit">Use 500 characters or fewer for the description.</string>
+    <string name="latest_notes">Latest notes</string>
+    <string name="task_completed">Completed</string>
+    <string name="task_incomplete">Not completed</string>
+    <string name="latest_tasks">Latest tasks</string>
+    <string name="go_to_all_tasks">Go to all tasks</string>
+    <string name="home_good_morning">Good morning</string>
+    <string name="home_good_afternoon">Good afternoon</string>
+    <string name="home_good_evening">Good evening</string>
+    <string name="home_good_night">Good night</string>
+    <string name="clear_date">Clear date</string>
+    <string name="date_not_set">No date set</string>
+    <string name="important_date">Important date</string>
+    <string name="relationship_start_date">Relationship start date</string>
+    <string name="relationship_date_missing">Set your relationship date to celebrate your time together.</string>
+    <string name="relationship_set_date">Set relationship date</string>
+    <string name="task_due_date">Due date</string>
+    <string name="task_responsibility">Responsibility</string>
+    <string name="task_shared">Shared</string>
+    <string name="task_me">Me</string>
+    <string name="task_due_today">Due today</string>
+    <string name="task_overdue_date">Overdue · %1$s</string>
+    <string name="overview_pending">Pending</string>
+    <string name="overview_overdue">Overdue</string>
+    <string name="overview_today">Today</string>
+    <string name="overview_due_today">Due today</string>
+    <string name="overview_upcoming">Upcoming</string>
+    <string name="overview_no_scheduled_tasks">No tasks scheduled here</string>
+    <string name="overview_pair_up">Connect with your partner to start sharing.</string>
+    <string name="overview_waiting_partner">Waiting for your partner</string>
+    <string name="overview_invites">Invites</string>
+    <string name="overview_anniversary_today">Your %1$d-year anniversary is today</string>
+    <string name="overview_calendar_empty">Your calendar is clear</string>
+    <string name="overview_calendar_window">Today and the next 30 days</string>
+    <string name="overview_open_calendar">Open calendar</string>
+    <string name="overview_period_estimate">Estimated period</string>
+    <string name="overview_period_no_prediction">No period estimate available yet</string>
+    <string name="overview_reliability_high">High reliability</string>
+    <string name="overview_reliability_medium">Medium reliability</string>
+    <string name="overview_reliability_low">Low reliability</string>
+    <string name="overview_reliability_insufficient">Insufficient cycle history</string>
+    <string name="overview_need_cycles">More recorded cycles are needed for a reliable estimate.</string>
+    <string name="overview_quick_access">Quick access</string>
+    <plurals name="days_together">
+        <item quantity="one">%1$d day together</item>
+        <item quantity="other">%1$d days together</item>
+    </plurals>
+    <plurals name="overview_pending_count">
+        <item quantity="one">%1$d pending</item>
+        <item quantity="other">%1$d pending</item>
+    </plurals>
+    <plurals name="overview_overdue_count">
+        <item quantity="one">%1$d overdue</item>
+        <item quantity="other">%1$d overdue</item>
+    </plurals>
+    <plurals name="overview_today_count">
+        <item quantity="one">%1$d today</item>
+        <item quantity="other">%1$d today</item>
+    </plurals>
+    <plurals name="overview_anniversary_countdown">
+        <item quantity="one">Your %1$d-year anniversary is in %2$d day</item>
+        <item quantity="other">Your %1$d-year anniversary is in %2$d days</item>
+    </plurals>
+    <plurals name="overview_notes_count">
+        <item quantity="one">%1$d shared note</item>
+        <item quantity="other">%1$d shared notes</item>
+    </plurals>
+    <plurals name="overview_in_days">
+        <item quantity="one">In %1$d day</item>
+        <item quantity="other">In %1$d days</item>
+    </plurals>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="enter_fullscreen">Enter full screen</string>
+    <string name="exit_fullscreen">Exit full screen</string>
+    <string name="note_actions">Note actions</string>
+    <string name="accept_invite">Accept invite</string>
+    <string name="reject_invite">Reject invite</string>
+    <string name="navigate_back">Go back</string>
 </resources>

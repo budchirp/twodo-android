@@ -64,7 +64,6 @@ private fun SettingsContent(
                     SettingCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         title = user.name,
-                        description = user.username,
                         leadingContent = { Icon(icon = Icons.Default.Person) },
                         onClick = { onNavigate(Route.Profile) },
                     )
@@ -85,7 +84,7 @@ private fun SettingsContent(
             item {
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
             }
-            
+
             item {
                 val routes = listOf(Route.Appearance, Route.Languages, Route.About)
 

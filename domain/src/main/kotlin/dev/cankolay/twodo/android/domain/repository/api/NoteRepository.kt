@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface NoteRepository {
     val notes: StateFlow<List<Note>?>
     suspend fun clear()
-    suspend fun create(title: String): ApiResult<Note>
+    suspend fun create(title: String, content: String = ""): ApiResult<Note>
 
     suspend fun getAll(forceRefresh: Boolean = false): ApiResult<List<Note>>
     suspend fun get(id: String, forceRefresh: Boolean = false): ApiResult<Note>

@@ -4,5 +4,6 @@ import dev.cankolay.twodo.android.domain.repository.api.NoteRepository
 import javax.inject.Inject
 
 class CreateNoteUseCase @Inject constructor(private val repository: NoteRepository) {
-    suspend operator fun invoke(title: String) = repository.create(title = title)
+    suspend operator fun invoke(title: String, content: String = "") =
+        repository.create(title = title, content = content)
 }

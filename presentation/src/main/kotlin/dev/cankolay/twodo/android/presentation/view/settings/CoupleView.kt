@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -31,15 +32,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
+import dev.cankolay.twodo.android.presentation.composable.app.AppCard
+import dev.cankolay.twodo.android.presentation.composable.app.AppCardDefaults
 import dev.cankolay.twodo.android.presentation.composable.app.AppLinearProgressIndicator
 import dev.cankolay.twodo.android.presentation.composable.app.Avatar
+import dev.cankolay.twodo.android.presentation.composable.app.DateSetting
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
-import dev.cankolay.twodo.android.presentation.util.DateUtils
 import dev.cankolay.twodo.android.presentation.viewmodel.user.CoupleUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.user.CoupleViewModel
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 @Composable
 fun CoupleView(viewModel: CoupleViewModel = hiltViewModel()) {
@@ -47,6 +52,8 @@ fun CoupleView(viewModel: CoupleViewModel = hiltViewModel()) {
     CoupleContent(
         state = state,
         onRefresh = viewModel::refresh,
+        onDate = viewModel::updateRelationshipDate,
+        onRetryDate = viewModel::retryDate,
         onRequestLeave = viewModel::confirm,
         onDismissSheet = viewModel::dismiss,
         onLeave = viewModel::leave,
@@ -58,12 +65,15 @@ fun CoupleView(viewModel: CoupleViewModel = hiltViewModel()) {
 private fun CoupleContent(
     state: CoupleUiState,
     onRefresh: () -> Unit,
+    onDate: (LocalDate?) -> Unit,
+    onRetryDate: () -> Unit,
     onRequestLeave: () -> Unit,
     onDismissSheet: () -> Unit,
     onLeave: () -> Unit,
 ) {
     AppLayout(route = Route.Couple) {
-        AppLinearProgressIndicator(isLoading = state.load == ApiResult.Loading)
+        AppLinearProgressIndicator(isLoading = state.load == ApiResult.Loading || state.dateResult == ApiResult.Loading)
+
         AppLazyColumn {
             val load = state.load
             if (load is ApiResult.Failure) {
@@ -75,7 +85,8 @@ private fun CoupleContent(
                     )
                 }
             }
-            state.user?.couple?.let { couple ->
+
+            state.couple?.let { couple ->
                 item {
                     val first = couple.users.firstOrNull()
                     val second = couple.users.drop(n = 1).firstOrNull()
@@ -124,10 +135,11 @@ private fun CoupleContent(
                                     ),
                             )
 
-                            val daysTogether =
-                                DateUtils.daysSince(value = couple.createdAt).toString()
+                            val daysTogether = couple.relationshipStartDate?.let {
+                                ChronoUnit.DAYS.between(it, LocalDate.now()).toInt()
+                            }
 
-                            Surface(
+                            if (daysTogether != null) Surface(
                                 color = MaterialTheme.colorScheme.primary,
                                 shape = MaterialTheme.shapes.extraLarge,
                             ) {
@@ -142,13 +154,40 @@ private fun CoupleContent(
                                             fontWeight = FontWeight.Medium
                                         ),
                                     text =
-                                        stringResource(
-                                            id = R.string.days_together,
+                                        pluralStringResource(
+                                            R.plurals.days_together,
+                                            daysTogether,
                                             daysTogether,
                                         ),
                                 )
                             }
                         }
+                    }
+                }
+
+                item {
+                    AppCard(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        contentPadding = AppCardDefaults.NoPadding,
+                    ) {
+                        DateSetting(
+                            title = stringResource(id = R.string.relationship_start_date),
+                            value = if (state.hasDateDraft) state.dateDraft else couple.relationshipStartDate,
+                            allowFuture = false,
+                            enabled = state.dateResult != ApiResult.Loading,
+                            onChange = onDate,
+                        )
+                    }
+                }
+
+                val dateResult = state.dateResult
+                if (dateResult is ApiResult.Failure) {
+                    item {
+                        ErrorCard(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            error = dateResult.error.message,
+                            onRefresh = onRetryDate,
+                        )
                     }
                 }
 

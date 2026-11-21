@@ -8,8 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
-import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarPredictionSummary
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodPrediction
+import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSummary
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
 import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
@@ -18,7 +18,7 @@ import dev.cankolay.twodo.android.presentation.util.DateUtils
 
 @Composable
 internal fun CalendarPredictionSheet(
-    prediction: CalendarPredictionSummary?,
+    prediction: PeriodSummary?,
     load: ApiResult<Unit>?,
     onDismiss: () -> Unit,
     onRefresh: () -> Unit,
@@ -31,7 +31,7 @@ internal fun CalendarPredictionSheet(
         content =
             if (prediction != null) {
                 {
-                    val cycle = prediction.cyclePrediction
+                    val cycle = prediction.prediction
 
                     item {
                         SettingsGroup(
@@ -44,7 +44,7 @@ internal fun CalendarPredictionSheet(
                         Text(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             text =
-                                cycle?.disclaimer?.takeIf { it.isNotBlank() }
+                                cycle.disclaimer?.takeIf { it.isNotBlank() }
                                     ?: stringResource(id = R.string.default_medical_disclaimer),
                             style = MaterialTheme.typography.labelSmall,
                             color =
@@ -57,21 +57,19 @@ internal fun CalendarPredictionSheet(
 }
 
 @Composable
-private fun predictionItems(cycle: PeriodPrediction?): List<SettingItem> {
-    if (cycle == null || !cycle.hasEnoughData) {
+private fun predictionItems(cycle: PeriodPrediction): List<SettingItem> {
+    if (!cycle.available) {
         return listOf(
             SettingItem(
                 title = stringResource(id = R.string.prediction_unavailable),
-                description =
-                    cycle?.basis?.takeIf { it.isNotBlank() }
-                        ?: stringResource(id = R.string.prediction_unavailable_desc),
+                description = stringResource(id = R.string.prediction_unavailable_desc),
             )
         )
     }
 
     return buildList {
-        val start = cycle.nextPeriodWindow?.startDate ?: cycle.expectedPeriodStartDate
-        val end = cycle.nextPeriodWindow?.endDate ?: cycle.expectedPeriodEndDate
+        val start = cycle.nextPeriodWindow?.startDate
+        val end = cycle.nextPeriodWindow?.endDate
 
         if (start != null) {
             add(
@@ -111,17 +109,5 @@ private fun predictionItems(cycle: PeriodPrediction?): List<SettingItem> {
                     )
             )
         }
-
-        cycle.basis
-            ?.takeIf { it.isNotBlank() }
-            ?.let { basis ->
-                add(
-                    element =
-                        SettingItem(
-                            title = stringResource(id = R.string.period_tips_title),
-                            description = basis,
-                        )
-                )
-            }
     }
 }

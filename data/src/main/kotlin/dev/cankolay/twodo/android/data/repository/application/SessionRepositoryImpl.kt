@@ -10,6 +10,8 @@ import dev.cankolay.twodo.android.domain.repository.api.CalendarRepository
 import dev.cankolay.twodo.android.domain.repository.api.CoupleRepository
 import dev.cankolay.twodo.android.domain.repository.api.InviteRepository
 import dev.cankolay.twodo.android.domain.repository.api.NoteRepository
+import dev.cankolay.twodo.android.domain.repository.api.OverviewRepository
+import dev.cankolay.twodo.android.domain.repository.api.TaskRepository
 import dev.cankolay.twodo.android.domain.repository.api.UserRepository
 import dev.cankolay.twodo.android.domain.repository.application.AuthStateRepository
 import dev.cankolay.twodo.android.domain.repository.application.SessionRepository
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,6 +42,8 @@ class SessionRepositoryImpl @Inject constructor(
     private val users: UserRepository,
     private val couples: CoupleRepository,
     private val notes: NoteRepository,
+    private val tasks: TaskRepository,
+    private val overview: OverviewRepository,
     private val calendar: CalendarRepository,
     private val invites: InviteRepository,
     @ApplicationScope scope: CoroutineScope
@@ -105,6 +110,18 @@ class SessionRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateRelationshipDate(date: LocalDate?) = inSession {
+        userLock.withLock {
+            couples.updateRelationshipDate(date).also { result ->
+                currentCoroutineContext().ensureActive()
+                val active = _state.value as? SessionState.Active
+                if (result is ApiResult.Success && active != null) {
+                    applyUser(user = active.user.copy(couple = result.data))
+                }
+            }
+        }
+    }
+
     override suspend fun leaveCouple(): ApiResult<Unit> = inSession {
         userLock.withLock {
             couples.leave().also { result ->
@@ -144,7 +161,11 @@ class SessionRepositoryImpl @Inject constructor(
         currentCoroutineContext().ensureActive()
         needsInitialization = false
         val previous = _state.value as? SessionState.Active
-        if (previous != null && previous.user.couple?.createdAt != user.couple?.createdAt) clearData()
+        val previousMembers = previous?.user?.couple?.users?.map { it.id }?.toSet()
+        val currentMembers = user.couple?.users?.map { it.id }?.toSet()
+        if (previous != null && (previous.user.couple?.id != user.couple?.id || previousMembers != currentMembers)) {
+            clearData()
+        }
         currentCoroutineContext().ensureActive()
         _state.value = SessionState.Active(user = user)
     }
@@ -157,6 +178,8 @@ class SessionRepositoryImpl @Inject constructor(
     }
 
     private suspend fun clearData() {
+        overview.clear()
+        tasks.clear()
         notes.clear()
         calendar.clear()
         invites.clear()

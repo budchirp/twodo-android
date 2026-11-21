@@ -13,6 +13,7 @@ import dev.cankolay.twodo.android.presentation.navigation.notes.noteDetailMetada
 import dev.cankolay.twodo.android.presentation.navigation.notes.notesListMetadata
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.view.calendar.CalendarView
+import dev.cankolay.twodo.android.presentation.view.home.HomeView
 import dev.cankolay.twodo.android.presentation.view.note.NoteView
 import dev.cankolay.twodo.android.presentation.view.note.NotesView
 import dev.cankolay.twodo.android.presentation.view.onboarding.CoupleSetupView
@@ -26,6 +27,8 @@ import dev.cankolay.twodo.android.presentation.view.settings.SettingsView
 import dev.cankolay.twodo.android.presentation.view.settings.appearance.AppearanceView
 import dev.cankolay.twodo.android.presentation.view.settings.appearance.MaterialYouView
 import dev.cankolay.twodo.android.presentation.view.settings.appearance.ThemeView
+import dev.cankolay.twodo.android.presentation.view.task.TaskView
+import dev.cankolay.twodo.android.presentation.view.task.TasksView
 
 @Composable
 fun AppNavigation(
@@ -71,14 +74,57 @@ fun AppNavigation(
                     CoupleSetupView(onLogout = onLogout)
                 }
 
+                entry<Route.Home>(metadata = navigationTransition(type = TransitionType.FADE)) {
+                    HomeView(
+                        onNoteClick = { id -> notes.select(id = id, fullscreen = true) },
+                        onNavigate = { route ->
+                            if (navBackStack.lastOrNull() != route) {
+                                navBackStack.add(element = route)
+                            }
+                        },
+                    )
+                }
+
                 entry<Route.Notes>(metadata = notesListMetadata()) {
-                    NotesView(onNoteClick = notes::select)
+                    NotesView(
+                        onNoteClick = { id -> notes.select(id = id) },
+                        onCreate = notes::create,
+                    )
                 }
 
                 entry<Route.Note>(metadata = noteDetailMetadata()) { note ->
                     NoteView(
                         id = note.id,
                         onBack = { if (notes.id == note.id) notes.close() },
+                    )
+                }
+
+                entry<Route.CreateNote>(metadata = noteDetailMetadata()) {
+                    NoteView(
+                        creating = true,
+                        onBack = { if (notes.isCreating) notes.close() },
+                    )
+                }
+
+                entry<Route.Tasks>(metadata = navigationTransition(type = TransitionType.FADE)) {
+                    TasksView(
+                        onTaskClick = { id ->
+                            val destination = Route.Task(id = id)
+                            if (navBackStack.lastOrNull() != destination) {
+                                navBackStack.add(element = destination)
+                            }
+                        },
+                    )
+                }
+
+                entry<Route.Task>(metadata = navigationTransition(type = TransitionType.FADE)) { task ->
+                    TaskView(
+                        id = task.id,
+                        onBack = {
+                            if (navBackStack.lastOrNull() == task) {
+                                navBackStack.removeLastOrNull()
+                            }
+                        },
                     )
                 }
 

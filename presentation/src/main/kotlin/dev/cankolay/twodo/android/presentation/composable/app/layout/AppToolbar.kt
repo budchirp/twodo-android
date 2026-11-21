@@ -1,6 +1,7 @@
 package dev.cankolay.twodo.android.presentation.composable.app.layout
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -15,8 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.composable.app.ItemTransitionDurationMillis
 import dev.cankolay.twodo.android.presentation.composition.LocalNavBackStack
 import dev.cankolay.twodo.android.presentation.motion.slideInY
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
@@ -29,7 +30,7 @@ import dev.cankolay.twodo.android.presentation.navigation.route.resetTo
 fun BoxScope.AppToolbar() {
     val navBackStack = LocalNavBackStack.current
 
-    val route = navBackStack.lastOrNull() ?: Route.Notes
+    val route = navBackStack.lastOrNull() ?: Route.Home
     val isVisible = navigationRoutes.any {
         it == route
     }
@@ -39,10 +40,12 @@ fun BoxScope.AppToolbar() {
             Modifier
                 .align(Alignment.BottomCenter)
                 .offset(y = -ScreenOffset - 16.dp)
-                .zIndex(1f),
+                .navigationLayer(),
         visible = isVisible,
         enter = fadeIn() + scaleIn() + slideInY(),
-        exit = fadeOut(),
+        exit = fadeOut(
+            animationSpec = tween(durationMillis = 100, delayMillis = ItemTransitionDurationMillis),
+        ),
     ) {
         HorizontalFloatingToolbar(
             colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors(),
@@ -52,7 +55,8 @@ fun BoxScope.AppToolbar() {
 
             AppBarRow {
                 appRowRoutes.forEach { (destination, details) ->
-                    val isSelected = navBackStack.lastOrNull() == destination
+                    val isSelected =
+                        navBackStack.lastOrNull { it in navigationRoutes } == destination
 
                     clickableItem(
                         label = details.title,

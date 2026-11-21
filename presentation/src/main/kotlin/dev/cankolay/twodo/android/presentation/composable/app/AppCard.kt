@@ -16,13 +16,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
+object AppCardDefaults {
+    val Spacing = 16.dp
+    val TextSpacing = 2.dp
+    val GroupSpacing = 2.dp
+    val ImageSize = 48.dp
+    val ContentPadding = PaddingValues(all = Spacing)
+    val NoPadding = PaddingValues(all = 0.dp)
+}
+
 @Composable
 fun AppCard(
     modifier: Modifier = Modifier,
     shape: Shape = MaterialTheme.shapes.large,
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
-    contentPadding: PaddingValues = PaddingValues(all = 16.dp),
-    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    contentPadding: PaddingValues = AppCardDefaults.ContentPadding,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(space = AppCardDefaults.Spacing),
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
@@ -38,7 +47,9 @@ fun AppCard(
         colors = CardDefaults.cardColors(containerColor = color),
     ) {
         Column(
-            modifier = Modifier.padding(paddingValues = contentPadding),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(paddingValues = contentPadding),
             verticalArrangement = verticalArrangement,
         ) {
             content()

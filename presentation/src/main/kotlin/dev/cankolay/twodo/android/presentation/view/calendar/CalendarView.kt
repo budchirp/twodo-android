@@ -5,17 +5,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
-import dev.cankolay.twodo.android.presentation.composable.app.Icon
+import dev.cankolay.twodo.android.presentation.R
+import dev.cankolay.twodo.android.presentation.composable.app.AppIconButton
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppTopAppBar
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarUiState
@@ -74,13 +75,19 @@ private fun CalendarContent(
             AppTopAppBar(
                 context = context,
                 trailingContent = {
-                    IconButton(onClick = onPrediction, enabled = !isLoading) {
-                        Icon(icon = Icons.Default.AutoAwesome)
-                    }
+                    AppIconButton(
+                        icon = Icons.Default.AutoAwesome,
+                        contentDescription = stringResource(id = R.string.period_tracker),
+                        onClick = onPrediction,
+                        enabled = !isLoading,
+                    )
 
-                    IconButton(onClick = onCreate, enabled = !isLoading) {
-                        Icon(icon = Icons.Default.Add)
-                    }
+                    AppIconButton(
+                        icon = Icons.Default.Add,
+                        contentDescription = stringResource(id = R.string.create_calendar_entry),
+                        onClick = onCreate,
+                        enabled = !isLoading,
+                    )
                 },
             )
         },
@@ -91,6 +98,7 @@ private fun CalendarContent(
                 visibleMonth = state.month,
                 selectedDate = state.date,
                 entries = entries.orEmpty(),
+                projections = state.projections,
                 canTrackPeriods = state.canTrackPeriods,
                 onPreviousMonth = { onMove(-1) },
                 onNextMonth = { onMove(1) },
@@ -103,6 +111,7 @@ private fun CalendarContent(
                     calendarEntries(
                         date = state.date,
                         entries = entries.filter { it.date == state.date },
+                        projections = state.projections.filter { state.date in it.startDate..it.endDate },
                         canTrackPeriods = state.canTrackPeriods,
                         onClick = onEdit,
                     )

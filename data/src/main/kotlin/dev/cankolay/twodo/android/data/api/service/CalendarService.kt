@@ -4,11 +4,13 @@ import dev.cankolay.twodo.android.data.api.client.KtorClient
 import dev.cankolay.twodo.android.data.api.client.request
 import dev.cankolay.twodo.android.data.api.client.requestUnit
 import dev.cankolay.twodo.android.data.api.model.request.calendar.CalendarEntryRequestDto
+import dev.cankolay.twodo.android.data.api.model.response.calendar.CalendarDataDto
 import dev.cankolay.twodo.android.data.api.model.response.calendar.CalendarEntryDto
-import dev.cankolay.twodo.android.data.api.model.response.calendar.CalendarPredictionSummaryDto
+import dev.cankolay.twodo.android.data.api.model.response.calendar.PeriodSummaryDto
 import dev.cankolay.twodo.android.domain.model.api.ApiConstants
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -29,13 +31,14 @@ constructor(private val client: KtorClient) {
         }
     }
 
-    suspend fun getRange(startDate: LocalDate? = null, endDate: LocalDate? = null) =
-        request<List<CalendarEntryDto>> {
+    suspend fun getRange(date: LocalDate, startDate: LocalDate, endDate: LocalDate) =
+        request<CalendarDataDto> {
             client().get {
                 url {
                     path(ApiConstants.Endpoints.CALENDAR)
-                    startDate?.let { parameters.append(name = "startDate", value = it.toString()) }
-                    endDate?.let { parameters.append(name = "endDate", value = it.toString()) }
+                    parameters.append(name = "date", value = date.toString())
+                    parameters.append(name = "startDate", value = startDate.toString())
+                    parameters.append(name = "endDate", value = endDate.toString())
                 }
             }
         }
@@ -58,11 +61,12 @@ constructor(private val client: KtorClient) {
         }
     }
 
-    suspend fun getPredictionSummary() = request<CalendarPredictionSummaryDto> {
+    suspend fun getPeriods(date: LocalDate) = request<PeriodSummaryDto> {
         client().get {
             url {
-                path(ApiConstants.Endpoints.CALENDAR_PREDICTIONS_SUMMARY)
+                path(ApiConstants.Endpoints.PERIODS)
             }
+            parameter(key = "date", value = date.toString())
         }
     }
 }

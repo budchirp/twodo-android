@@ -3,6 +3,7 @@ package dev.cankolay.twodo.android.data.api.client
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.util.Log
+import androidx.appcompat.app.AppCompatDelegate
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.cankolay.twodo.android.domain.repository.application.AuthStateRepository
 import dev.cankolay.twodo.android.domain.repository.application.EnvironmentConfigRepository
@@ -41,6 +42,9 @@ constructor(
 
         install(plugin = createClientPlugin(name = "Credentials") {
             onRequest { request, _ ->
+                val language = AppCompatDelegate.getApplicationLocales()[0]?.language
+                    ?: context.resources.configuration.locales[0]?.language
+                request.headers[HttpHeaders.AcceptLanguage] = if (language == "tr") "tr" else "en"
                 val token = credentials.state.first().token
                 if (token.isNotBlank()) {
                     request.headers[HttpHeaders.Authorization] = "Bearer $token"

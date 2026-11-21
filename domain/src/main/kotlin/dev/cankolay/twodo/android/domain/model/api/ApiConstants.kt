@@ -13,9 +13,12 @@ object ApiConstants {
         const val INVITES = "invites"
 
         const val NOTES = "notes"
+        const val TASKS = "tasks"
+        const val OVERVIEW = "overview"
+        const val COUPLE_ME = "$COUPLES/me"
 
         const val CALENDAR = "calendar"
-        const val CALENDAR_PREDICTIONS_SUMMARY = "$CALENDAR/predictions/summary"
+        const val PERIODS = "periods"
     }
 }
 

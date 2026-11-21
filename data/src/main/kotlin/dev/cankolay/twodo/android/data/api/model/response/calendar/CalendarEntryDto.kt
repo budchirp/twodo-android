@@ -20,7 +20,8 @@ data class CalendarEntryDto(
     val createdBy: UserSummaryDto? = null,
     val period: PeriodDto? = null,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val isImportant: Boolean = false,
 )
 
 @Serializable
@@ -38,7 +39,8 @@ fun CalendarEntryDto.toDomain() = CalendarEntry(
     createdBy = createdBy?.toDomain(),
     period = period?.toDomain(),
     createdAt = createdAt,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    isImportant = isImportant,
 )
 
 fun PeriodDto.toDomain() = PeriodDetails(

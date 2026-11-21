@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.window.core.layout.WindowSizeClass
 
 @Composable
@@ -28,13 +29,19 @@ fun AppMainLayout(content: @Composable () -> Unit) {
             ) {
                 AppNavigationRail()
 
-                content()
+                Box(modifier = Modifier.weight(weight = 1f)) {
+                    content()
+                }
             }
         } else {
             Box(modifier = Modifier.fillMaxSize()) {
-                AppToolbar()
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(zIndex = 0f)) {
+                    content()
+                }
 
-                content()
+                AppToolbar()
             }
         }
     }

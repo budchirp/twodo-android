@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="updated_at">Düzenlenme tarihi</string>
+    <string name="calendar_projection_estimate">Tahmin</string>
+    <string name="home_feed">Yaklaşanlar</string>
+    <string name="home_feed_empty">Planlanmış görev veya önemli tarih yok</string>
+    <string name="home_summary">Genel bakış</string>
+    <string name="relationship_paired">Hayatı birlikte paylaşıyorsunuz</string>
+    <string name="task_assigned">Atanmış</string>
+    <string name="period_estimate_active">Tahmini dönem devam ediyor</string>
+    <string name="period_reliability_unknown">Güvenilirlik bilgisi yok</string>
+    <string name="important_date_not_found">Bu önemli tarih artık mevcut değil.</string>
+    <plurals name="period_recorded_ranges">
+        <item quantity="one">%1$d kayıtlı regl dönemi</item>
+        <item quantity="other">%1$d kayıtlı regl dönemi</item>
+    </plurals>
+    <plurals name="period_recorded_cycles">
+        <item quantity="one">%1$d kayıtlı döngü</item>
+        <item quantity="other">%1$d kayıtlı döngü</item>
+    </plurals>
+    <string name="task_actions">Görev işlemleri</string>
+    <string name="created_at">Oluşturulma tarihi</string>
+    <string name="untitled_note">Başlıksız not</string>
     <string name="close">Kapat</string>
     <string name="save">Kaydet</string>
 
@@ -43,7 +64,6 @@
     <string name="title_required">Devam etmek için başlık girin.</string>
     <string name="create">Oluştur</string>
     <string name="delete">Sil</string>
-    <string name="days_together">%1$s gündür birlikte</string>
     <string name="edited_at">Düzenlenme: %1$s</string>
     <string name="username">Kullanıcı adı</string>
     <string name="invite">Davet et</string>
@@ -141,4 +161,97 @@
     <string name="default_medical_disclaimer">Tahminler geçmiş kayıtlarınıza dayalı yaklaşık değerlerdir; tıbbi tavsiye yerine kullanılmamalıdır.</string>
     <string name="profile">Profil</string>
     <string name="refresh_profile">Yenile</string>
+    <string name="home">Ana sayfa</string>
+    <string name="go_to_all_notes">Tüm notlara git</string>
+
+    <string name="tasks">Görevler</string>
+    <string name="create_task">Görev oluştur</string>
+    <string name="edit_task">Görevi düzenle</string>
+    <string name="task_description">Açıklama</string>
+    <string name="tasks_empty_title">Henüz görev yok</string>
+    <string name="tasks_empty_description">Birlikte yapacağınız bir görev ekleyin.</string>
+    <string name="complete_task">%1$s görevini tamamla</string>
+    <string name="reopen_task">%1$s görevini yeniden aç</string>
+    <string name="delete_task">Görevi sil</string>
+    <string name="delete_task_description">Bu görev her iki kişi için de kalıcı olarak silinecek.</string>
+    <string name="task_title_limit">Başlık en fazla 100 karakter olabilir.</string>
+    <string name="task_description_limit">Açıklama en fazla 500 karakter olabilir.</string>
+    <string name="latest_notes">Son notlar</string>
+    <string name="task_completed">Tamamlandı</string>
+    <string name="task_incomplete">Tamamlanmadı</string>
+    <string name="latest_tasks">Son görevler</string>
+    <string name="go_to_all_tasks">Tüm görevlere git</string>
+    <string name="home_good_morning">Günaydın</string>
+    <string name="home_good_afternoon">İyi günler</string>
+    <string name="home_good_evening">İyi akşamlar</string>
+    <string name="home_good_night">İyi geceler</string>
+    <string name="clear_date">Tarihi kaldır</string>
+    <string name="date_not_set">Tarih belirlenmedi</string>
+    <string name="important_date">Önemli tarih</string>
+    <string name="relationship_start_date">İlişki başlangıç tarihi</string>
+    <string name="relationship_date_missing">Birlikte geçirdiğiniz zamanı kutlamak için ilişki tarihinizi belirleyin.</string>
+    <string name="relationship_set_date">İlişki tarihini belirle</string>
+    <string name="task_due_date">Son tarih</string>
+    <string name="task_responsibility">Sorumluluk</string>
+    <string name="task_shared">Ortak</string>
+    <string name="task_me">Ben</string>
+    <string name="task_due_today">Bugün yapılacak</string>
+    <string name="task_overdue_date">Gecikmiş · %1$s</string>
+    <string name="overview_pending">Bekleyen</string>
+    <string name="overview_overdue">Gecikmiş</string>
+    <string name="overview_today">Bugün</string>
+    <string name="overview_due_today">Bugün yapılacak</string>
+    <string name="overview_upcoming">Yaklaşan</string>
+    <string name="overview_no_scheduled_tasks">Bu aralıkta planlanmış görev yok</string>
+    <string name="overview_pair_up">Paylaşmaya başlamak için partnerinizle eşleşin.</string>
+    <string name="overview_waiting_partner">Partneriniz bekleniyor</string>
+    <string name="overview_invites">Davetler</string>
+    <string name="overview_anniversary_today">Bugün %1$d. yıl dönümünüz</string>
+    <string name="overview_calendar_empty">Takviminiz boş</string>
+    <string name="overview_calendar_window">Bugün ve önümüzdeki 30 gün</string>
+    <string name="overview_open_calendar">Takvimi aç</string>
+    <string name="overview_period_estimate">Tahmini regl dönemi</string>
+    <string name="overview_period_no_prediction">Henüz regl tahmini yok</string>
+    <string name="overview_reliability_high">Yüksek güvenilirlik</string>
+    <string name="overview_reliability_medium">Orta güvenilirlik</string>
+    <string name="overview_reliability_low">Düşük güvenilirlik</string>
+    <string name="overview_reliability_insufficient">Yetersiz döngü geçmişi</string>
+    <string name="overview_need_cycles">Güvenilir bir tahmin için daha fazla döngü kaydı gerekiyor.</string>
+    <string name="overview_quick_access">Hızlı erişim</string>
+    <plurals name="days_together">
+        <item quantity="one">%1$d gündür birlikte</item>
+        <item quantity="other">%1$d gündür birlikte</item>
+    </plurals>
+    <plurals name="overview_pending_count">
+        <item quantity="one">%1$d bekleyen</item>
+        <item quantity="other">%1$d bekleyen</item>
+    </plurals>
+    <plurals name="overview_overdue_count">
+        <item quantity="one">%1$d gecikmiş</item>
+        <item quantity="other">%1$d gecikmiş</item>
+    </plurals>
+    <plurals name="overview_today_count">
+        <item quantity="one">%1$d bugün</item>
+        <item quantity="other">%1$d bugün</item>
+    </plurals>
+    <plurals name="overview_anniversary_countdown">
+        <item quantity="one">%1$d. yıl dönümünüze %2$d gün kaldı</item>
+        <item quantity="other">%1$d. yıl dönümünüze %2$d gün kaldı</item>
+    </plurals>
+    <plurals name="overview_notes_count">
+        <item quantity="one">%1$d ortak not</item>
+        <item quantity="other">%1$d ortak not</item>
+    </plurals>
+    <plurals name="overview_in_days">
+        <item quantity="one">%1$d gün sonra</item>
+        <item quantity="other">%1$d gün sonra</item>
+    </plurals>
+    <string name="previous_month">Önceki ay</string>
+    <string name="next_month">Sonraki ay</string>
+    <string name="enter_fullscreen">Tam ekranı aç</string>
+    <string name="exit_fullscreen">Tam ekrandan çık</string>
+    <string name="note_actions">Not işlemleri</string>
+    <string name="accept_invite">Daveti kabul et</string>
+    <string name="reject_invite">Daveti reddet</string>
+    <string name="navigate_back">Geri dön</string>
 </resources>

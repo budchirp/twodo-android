@@ -1,10 +1,12 @@
 package dev.cankolay.twodo.android.domain.repository.application
 
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
+import dev.cankolay.twodo.android.domain.model.api.user.Couple
 import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.domain.model.api.user.User
 import dev.cankolay.twodo.android.domain.model.application.SessionState
 import kotlinx.coroutines.flow.StateFlow
+import java.time.LocalDate
 
 interface SessionRepository {
     val state: StateFlow<SessionState>
@@ -14,5 +16,6 @@ interface SessionRepository {
     suspend fun refresh(): ApiResult<User>
     suspend fun refreshProfile(): ApiResult<User>
     suspend fun updateProfile(name: String, gender: Gender): ApiResult<User>
+    suspend fun updateRelationshipDate(date: LocalDate?): ApiResult<Couple>
     suspend fun leaveCouple(): ApiResult<Unit>
 }

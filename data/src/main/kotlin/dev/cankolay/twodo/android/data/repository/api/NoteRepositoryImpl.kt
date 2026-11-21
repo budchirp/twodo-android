@@ -8,6 +8,7 @@ import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.map
 import dev.cankolay.twodo.android.domain.model.api.note.Note
 import dev.cankolay.twodo.android.domain.repository.api.NoteRepository
+import dev.cankolay.twodo.android.domain.repository.api.OverviewRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -17,8 +18,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class NoteRepositoryImpl @Inject constructor(private val noteService: NoteService) :
-    NoteRepository {
+class NoteRepositoryImpl @Inject constructor(
+    private val noteService: NoteService,
+    private val overview: OverviewRepository,
+) : NoteRepository {
     private val _notes = MutableStateFlow<List<Note>?>(value = null)
     override val notes = _notes.asStateFlow()
     private val details = mutableMapOf<String, Note>()
@@ -59,14 +62,15 @@ class NoteRepositoryImpl @Inject constructor(private val noteService: NoteServic
             }
     }
 
-    override suspend fun create(title: String): ApiResult<Note> = mutex.withLock {
+    override suspend fun create(title: String, content: String): ApiResult<Note> = mutex.withLock {
         noteService
-            .create(dto = CreateNoteRequestDto(title = title))
+            .create(dto = CreateNoteRequestDto(title = title, content = content))
             .map { it.toDomain() }
             .also { result ->
                 if (result is ApiResult.Success) {
+                    overview.invalidate()
                     details[result.data.id] = result.data
-                    _notes.update { it?.plus(result.data) }
+                    _notes.update { it?.let { notes -> listOf(result.data) + notes } }
                 }
             }
     }
@@ -77,6 +81,7 @@ class NoteRepositoryImpl @Inject constructor(private val noteService: NoteServic
             .map { it.toDomain() }
             .also { result ->
                 if (result is ApiResult.Success) {
+                    overview.invalidate()
                     details[id] = result.data
                     _notes.update { notes -> notes?.map { if (it.id == id) result.data else it } }
                 }
@@ -86,6 +91,7 @@ class NoteRepositoryImpl @Inject constructor(private val noteService: NoteServic
     override suspend fun delete(id: String): ApiResult<Unit> = mutex.withLock {
         noteService.delete(id = id).also { result ->
             if (result is ApiResult.Success) {
+                overview.invalidate()
                 details.remove(key = id)
                 _notes.update { notes -> notes?.filterNot { it.id == id } }
             }

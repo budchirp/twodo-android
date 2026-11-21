@@ -1,12 +1,12 @@
 package dev.cankolay.twodo.android.data.api.model.response.calendar
 
-import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarPredictionSummary
 import dev.cankolay.twodo.android.domain.model.api.calendar.CycleHistory
 import dev.cankolay.twodo.android.domain.model.api.calendar.CycleRange
 import dev.cankolay.twodo.android.domain.model.api.calendar.DateWindow
 import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodPrediction
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodPredictionReliability
+import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSummary
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
@@ -19,18 +19,13 @@ data class DateWindowDto(
 
 @Serializable
 data class PeriodPredictionDto(
-    val hasEnoughData: Boolean = false,
+    val available: Boolean,
     val reliability: String? = null,
     val nextPeriodWindow: DateWindowDto? = null,
     val ovulationWindow: DateWindowDto? = null,
-    val expectedPeriodStartDate: String? = null,
-    val expectedPeriodEndDate: String? = null,
+    val daysUntil: Int? = null,
     val cycleLengthDays: Int? = null,
     val periodDurationDays: Int? = null,
-    val cycleLengthVariabilityDays: Double? = null,
-    val predictionUncertaintyDays: Int? = null,
-    val recentIrregularity: Boolean = false,
-    val basis: String? = null,
     val disclaimer: String? = null,
 )
 
@@ -53,8 +48,9 @@ data class CycleHistoryDto(
 )
 
 @Serializable
-data class CalendarPredictionSummaryDto(
-    val cyclePrediction: PeriodPredictionDto? = null,
+data class PeriodSummaryDto(
+    val date: String,
+    val prediction: PeriodPredictionDto,
     val ranges: List<CycleRangeDto> = emptyList(),
     val cycles: List<CycleHistoryDto> = emptyList(),
 )
@@ -67,20 +63,15 @@ fun DateWindowDto.toDomain(): DateWindow? {
 
 fun PeriodPredictionDto.toDomain() =
     PeriodPrediction(
-        hasEnoughData = hasEnoughData,
+        available = available,
         reliability =
             reliability?.let { PeriodPredictionReliability.fromValue(value = it) }
                 ?: PeriodPredictionReliability.UNKNOWN,
         nextPeriodWindow = nextPeriodWindow?.toDomain(),
         ovulationWindow = ovulationWindow?.toDomain(),
-        expectedPeriodStartDate = expectedPeriodStartDate?.let { parseDate(value = it) },
-        expectedPeriodEndDate = expectedPeriodEndDate?.let { parseDate(value = it) },
+        daysUntil = daysUntil,
         cycleLengthDays = cycleLengthDays,
         periodDurationDays = periodDurationDays,
-        cycleLengthVariabilityDays = cycleLengthVariabilityDays,
-        predictionUncertaintyDays = predictionUncertaintyDays,
-        recentIrregularity = recentIrregularity,
-        basis = basis,
         disclaimer = disclaimer,
     )
 
@@ -108,9 +99,10 @@ fun CycleHistoryDto.toDomain(): CycleHistory? {
     )
 }
 
-fun CalendarPredictionSummaryDto.toDomain() =
-    CalendarPredictionSummary(
-        cyclePrediction = cyclePrediction?.toDomain(),
+fun PeriodSummaryDto.toDomain() =
+    PeriodSummary(
+        date = LocalDate.parse(date),
+        prediction = prediction.toDomain(),
         ranges = ranges.mapNotNull { it.toDomain() },
         cycles = cycles.mapNotNull { it.toDomain() },
     )

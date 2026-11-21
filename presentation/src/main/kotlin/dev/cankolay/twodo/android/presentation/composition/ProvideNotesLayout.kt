@@ -27,13 +27,13 @@ fun ProvideNotesLayout(content: @Composable () -> Unit) {
 
     SharedTransitionLayout {
         CompositionLocalProvider(
-            value =
-                LocalNotesLayout provides
-                        NotesLayout(
-                            navigation = navigation,
-                            strategy = strategy,
-                            transition = this@SharedTransitionLayout,
-                        ),
+            LocalNotesLayout provides
+                    NotesLayout(
+                        navigation = navigation,
+                        strategy = strategy,
+                        transition = this@SharedTransitionLayout,
+                    ),
+            LocalItemTransitionScope provides this@SharedTransitionLayout,
             content = content,
         )
     }

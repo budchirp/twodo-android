@@ -22,6 +22,7 @@ fun <T> RadioOptions(
                 val onClick = { onSelected(item) }
                 SettingItem(
                     title = label(item),
+                    rowSize = SettingRowSize.Compact,
                     modifier =
                         Modifier.selectable(
                             selected = selected == item,

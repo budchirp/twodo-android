@@ -2,13 +2,12 @@ package dev.cankolay.twodo.android.presentation.composable.app
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,102 +15,83 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+enum class SettingRowSize(val minHeight: Dp, val verticalPadding: Dp) {
+    Compact(minHeight = 64.dp, verticalPadding = 12.dp),
+    Comfortable(minHeight = 80.dp, verticalPadding = 16.dp);
+
+    companion object {
+        fun forContent(description: String?, hasTrailingContent: Boolean): SettingRowSize =
+            if (description.isNullOrEmpty() && !hasTrailingContent) Compact else Comfortable
+    }
+}
+
 @Composable
 fun SettingRow(
-    modifier: Modifier = Modifier,
     title: String,
+    modifier: Modifier = Modifier,
     description: String? = null,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = onClick != null,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
-    contentPadding: PaddingValues? = null,
-    contentSize: Dp? = 24.dp,
+    rowSize: SettingRowSize = SettingRowSize.forContent(
+        description = description,
+        hasTrailingContent = trailingContent != null,
+    ),
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .then(
-                        other = if (enabled) Modifier.clickable { onClick?.invoke() } else Modifier
-                    )
-                    .padding(
-                        paddingValues =
-                            contentPadding
-                                ?: PaddingValues(
-                                    vertical = 16.dp
-                                )
-                    ),
-            verticalAlignment = Alignment.CenterVertically,
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                other = if (onClick != null) Modifier.clickable(
+                    enabled = enabled,
+                    onClick = onClick
+                )
+                else Modifier
+            )
+            .heightIn(min = rowSize.minHeight)
+            .padding(
+                horizontal = AppCardDefaults.Spacing,
+                vertical = rowSize.verticalPadding,
+            ),
+        horizontalArrangement = Arrangement.spacedBy(space = AppCardDefaults.Spacing),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (leadingContent != null) {
+            Box(contentAlignment = Alignment.Center) {
+                CompositionLocalProvider(
+                    value = LocalContentColor provides MaterialTheme.colorScheme.primary
+                ) {
+                    leadingContent()
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(weight = 1f),
+            verticalArrangement = Arrangement.spacedBy(
+                space = AppCardDefaults.TextSpacing,
+                alignment = Alignment.CenterVertically,
+            ),
         ) {
-            leadingContent?.let {
-                Row(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 16.dp)
-                            .then(
-                                other =
-                                    if (contentSize != null) Modifier.size(size = contentSize)
-                                    else Modifier
-                            ),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(
-                            space = 8.dp,
-                            alignment = Alignment.CenterHorizontally,
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CompositionLocalProvider(
-                        value = LocalContentColor provides MaterialTheme.colorScheme.primary
-                    ) {
-                        leadingContent()
-                    }
-                }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!description.isNullOrEmpty()) {
+                Text(text = description, style = MaterialTheme.typography.bodyMedium)
             }
+        }
 
-            Column(
-                modifier =
-                    Modifier
-                        .padding(
-                            start = if (leadingContent == null) 16.dp else 0.dp,
-                            end = if (trailingContent == null) 16.dp else 0.dp,
-                        )
-                        .weight(weight = 1f),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium, maxLines = 2)
-
-                if (!description.isNullOrEmpty()) {
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
-
-            trailingContent?.let {
-                Row(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 16.dp)
-                            .then(
-                                other =
-                                    if (contentSize != null) Modifier.height(height = contentSize)
-                                    else Modifier
-                            ),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(
-                            space = 8.dp,
-                            alignment = Alignment.CenterHorizontally,
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    trailingContent()
-                }
+        if (trailingContent != null) {
+            Box(contentAlignment = Alignment.Center) {
+                trailingContent()
             }
         }
     }
