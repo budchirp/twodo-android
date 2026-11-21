@@ -55,39 +55,38 @@ private val ColorList =
 fun MaterialYouView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val state by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
-    MaterialYouContent(state = state.settings, onChange = settingsViewModel::update)
+    MaterialYouContent(
+        state = state.settings,
+        actions = MaterialYouActions(onChange = settingsViewModel::update),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -> Unit) {
+private fun MaterialYouContent(state: SettingsState, actions: MaterialYouActions) {
+    val colorsPerPage = 4
+    val pagerState = rememberPagerState { (ColorList.size + colorsPerPage - 1) / colorsPerPage }
+
     AppLayout(route = Route.MaterialYou) {
         AppLazyColumn {
             item {
-                val onClick = { materialYou: Boolean ->
-                    onChange(
-                        state.copy(
-                            materialYou =
-                                if (materialYou) MaterialYou.SEED(color = ColorList.first())
-                                else MaterialYou.OFF
-                        )
-                    )
-                }
-
                 LargeSwitchSetting(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     title = stringResource(id = R.string.material_you),
                     checked = state.materialYou != MaterialYou.OFF,
-                    onCheckedChange = onClick,
+                    onCheckedChange = { materialYou: Boolean ->
+                        actions.onChange(
+                            state.copy(
+                                materialYou =
+                                    if (materialYou) MaterialYou.SEED(color = ColorList.first())
+                                    else MaterialYou.OFF
+                            )
+                        )
+                    },
                 )
             }
 
             item {
-                val colorsPerPage = 4
-                val pagerState = rememberPagerState {
-                    (ColorList.size + colorsPerPage - 1) / colorsPerPage
-                }
-
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -99,10 +98,7 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement =
-                            Arrangement.spacedBy(
-                                8.dp,
-                                alignment = Alignment.CenterHorizontally,
-                            ),
+                            Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally),
                     ) {
                         for (index in start until end) {
                             ColorButton(
@@ -112,7 +108,7 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
                                             state.materialYou.color == ColorList[index],
                                 color = ColorList[index],
                                 onClick = {
-                                    onChange(
+                                    actions.onChange(
                                         state.copy(
                                             materialYou = MaterialYou.SEED(color = ColorList[index])
                                         )
@@ -123,10 +119,11 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
 
                         repeat(times = colorsPerPage - (end - start)) {
                             Spacer(
-                                modifier = Modifier
-                                    .weight(weight = 1f, fill = false)
-                                    .sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)
-                                    .aspectRatio(ratio = 1f)
+                                modifier =
+                                    Modifier
+                                        .weight(weight = 1f, fill = false)
+                                        .sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)
+                                        .aspectRatio(ratio = 1f)
                             )
                         }
                     }
@@ -134,16 +131,6 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
             }
 
             item {
-                val onClick = { useWallpaperColors: Boolean ->
-                    onChange(
-                        state.copy(
-                            materialYou =
-                                if (useWallpaperColors) MaterialYou.WALLPAPER
-                                else MaterialYou.SEED(color = ColorList.first())
-                        )
-                    )
-                }
-
                 val isEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
                 SwitchSetting(
@@ -154,7 +141,15 @@ private fun MaterialYouContent(state: SettingsState, onChange: (SettingsState) -
                         else null,
                     enabled = isEnabled,
                     checked = isEnabled && state.materialYou is MaterialYou.WALLPAPER,
-                    onCheckedChange = onClick,
+                    onCheckedChange = { useWallpaperColors: Boolean ->
+                        actions.onChange(
+                            state.copy(
+                                materialYou =
+                                    if (useWallpaperColors) MaterialYou.WALLPAPER
+                                    else MaterialYou.SEED(color = ColorList.first())
+                            )
+                        )
+                    },
                 )
             }
         }
@@ -169,15 +164,14 @@ private fun RowScope.ColorButton(
     onClick: (Color) -> Unit = {},
 ) {
     AppCard(
-        modifier = Modifier
-            .weight(weight = 1f, fill = false)
-            .sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)
-            .aspectRatio(ratio = 1f),
+        modifier =
+            Modifier
+                .weight(weight = 1f, fill = false)
+                .sizeIn(maxWidth = 72.dp, maxHeight = 72.dp)
+                .aspectRatio(ratio = 1f),
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = MaterialTheme.shapes.medium,
-        onClick = {
-            onClick(color)
-        },
+        onClick = { onClick(color) },
     ) {
         val colorScheme =
             rememberDynamicColorScheme(seedColor = color, isDark = isDark(state = state))
@@ -232,3 +226,5 @@ private fun RowScope.ColorButton(
         }
     }
 }
+
+internal data class MaterialYouActions(val onChange: (SettingsState) -> Unit)

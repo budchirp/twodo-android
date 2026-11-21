@@ -37,9 +37,11 @@ import dev.cankolay.twodo.android.presentation.composable.app.AppCardDefaults
 import dev.cankolay.twodo.android.presentation.composable.app.AppLinearProgressIndicator
 import dev.cankolay.twodo.android.presentation.composable.app.Avatar
 import dev.cankolay.twodo.android.presentation.composable.app.DateSetting
+import dev.cankolay.twodo.android.presentation.composable.app.DateSettingState
 import dev.cankolay.twodo.android.presentation.composable.app.Icon
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLayout
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppLazyColumn
+import dev.cankolay.twodo.android.presentation.composable.app.rememberDateSettingState
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import dev.cankolay.twodo.android.presentation.viewmodel.user.CoupleUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.user.CoupleViewModel
@@ -51,12 +53,16 @@ fun CoupleView(viewModel: CoupleViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     CoupleContent(
         state = state,
-        onRefresh = viewModel::refresh,
-        onDate = viewModel::updateRelationshipDate,
-        onRetryDate = viewModel::retryDate,
-        onRequestLeave = viewModel::confirm,
-        onDismissSheet = viewModel::dismiss,
-        onLeave = viewModel::leave,
+        actions =
+            CoupleActions(
+                onRefresh = viewModel::refresh,
+                onDate = viewModel::updateRelationshipDate,
+                onRetryDate = viewModel::retryDate,
+                onRequestLeave = viewModel::confirm,
+                onDismissSheet = viewModel::dismiss,
+                onLeave = viewModel::leave,
+            ),
+        pickerState = rememberDateSettingState(allowFuture = false),
     )
 }
 
@@ -64,15 +70,13 @@ fun CoupleView(viewModel: CoupleViewModel = hiltViewModel()) {
 @Composable
 private fun CoupleContent(
     state: CoupleUiState,
-    onRefresh: () -> Unit,
-    onDate: (LocalDate?) -> Unit,
-    onRetryDate: () -> Unit,
-    onRequestLeave: () -> Unit,
-    onDismissSheet: () -> Unit,
-    onLeave: () -> Unit,
+    actions: CoupleActions,
+    pickerState: DateSettingState,
 ) {
     AppLayout(route = Route.Couple) {
-        AppLinearProgressIndicator(isLoading = state.load == ApiResult.Loading || state.dateResult == ApiResult.Loading)
+        AppLinearProgressIndicator(
+            isLoading = state.load == ApiResult.Loading || state.dateResult == ApiResult.Loading
+        )
 
         AppLazyColumn {
             val load = state.load
@@ -81,7 +85,7 @@ private fun CoupleContent(
                     ErrorCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         error = load.error.message,
-                        onRefresh = onRefresh,
+                        onRefresh = actions.onRefresh,
                     )
                 }
             }
@@ -123,10 +127,7 @@ private fun CoupleContent(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Text(
-                                text =
-                                    couple.users.joinToString(separator = " & ") {
-                                        it.name
-                                    },
+                                text = couple.users.joinToString(separator = " & ") { it.name },
                                 textAlign = TextAlign.Center,
                                 style =
                                     MaterialTheme.typography.titleLarge.copy(
@@ -135,32 +136,31 @@ private fun CoupleContent(
                                     ),
                             )
 
-                            val daysTogether = couple.relationshipStartDate?.let {
-                                ChronoUnit.DAYS.between(it, LocalDate.now()).toInt()
-                            }
+                            val daysTogether =
+                                couple.relationshipStartDate?.let {
+                                    ChronoUnit.DAYS.between(it, LocalDate.now()).toInt()
+                                }
 
-                            if (daysTogether != null) Surface(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = MaterialTheme.shapes.extraLarge,
-                            ) {
-                                Text(
-                                    modifier =
-                                        Modifier.padding(
-                                            horizontal = 16.dp,
-                                            vertical = 4.dp,
-                                        ),
-                                    style =
-                                        LocalTextStyle.current.copy(
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                    text =
-                                        pluralStringResource(
-                                            R.plurals.days_together,
-                                            daysTogether,
-                                            daysTogether,
-                                        ),
-                                )
-                            }
+                            if (daysTogether != null)
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = MaterialTheme.shapes.extraLarge,
+                                ) {
+                                    Text(
+                                        modifier =
+                                            Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                        style =
+                                            LocalTextStyle.current.copy(
+                                                fontWeight = FontWeight.Medium
+                                            ),
+                                        text =
+                                            pluralStringResource(
+                                                R.plurals.days_together,
+                                                daysTogether,
+                                                daysTogether,
+                                            ),
+                                    )
+                                }
                         }
                     }
                 }
@@ -171,11 +171,14 @@ private fun CoupleContent(
                         contentPadding = AppCardDefaults.NoPadding,
                     ) {
                         DateSetting(
+                            pickerState = pickerState,
                             title = stringResource(id = R.string.relationship_start_date),
-                            value = if (state.hasDateDraft) state.dateDraft else couple.relationshipStartDate,
+                            value =
+                                if (state.hasDateDraft) state.dateDraft
+                                else couple.relationshipStartDate,
                             allowFuture = false,
                             enabled = state.dateResult != ApiResult.Loading,
-                            onChange = onDate,
+                            onChange = actions.onDate,
                         )
                     }
                 }
@@ -186,14 +189,12 @@ private fun CoupleContent(
                         ErrorCard(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             error = dateResult.error.message,
-                            onRefresh = onRetryDate,
+                            onRefresh = actions.onRetryDate,
                         )
                     }
                 }
 
-                item {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
-                }
+                item { HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer) }
 
                 item {
                     Button(
@@ -206,7 +207,7 @@ private fun CoupleContent(
                                 contentColor = MaterialTheme.colorScheme.onError,
                             ),
                         enabled = state.result != ApiResult.Loading,
-                        onClick = onRequestLeave,
+                        onClick = actions.onRequestLeave,
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
@@ -222,11 +223,16 @@ private fun CoupleContent(
         }
 
         if (state.showLeave) {
-            LeaveCoupleSheet(
-                result = state.result,
-                onDismiss = onDismissSheet,
-                onLeave = onLeave,
-            )
+            LeaveCoupleSheet(result = state.result, actions = actions)
         }
     }
 }
+
+internal data class CoupleActions(
+    val onRefresh: () -> Unit,
+    val onDate: (LocalDate?) -> Unit,
+    val onRetryDate: () -> Unit,
+    val onRequestLeave: () -> Unit,
+    val onDismissSheet: () -> Unit,
+    val onLeave: () -> Unit,
+)

@@ -30,41 +30,34 @@ import dev.cankolay.twodo.android.presentation.composable.app.SettingRowSize
 import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
 import dev.cankolay.twodo.android.presentation.composable.app.SwitchSetting
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
-import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryFormState
+import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.canCreate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CalendarEntrySheet(
-    form: CalendarEntryFormState,
-    result: ApiResult<*>?,
-    canTrackPeriods: Boolean,
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit,
-    onSave: () -> Unit,
-    onFormChange: (CalendarEntryFormState) -> Unit,
-) {
-    val isLoading = result == ApiResult.Loading
+internal fun CalendarEntrySheet(state: CalendarUiState, actions: CalendarActions) {
+
+    val isLoading = state.result == ApiResult.Loading
 
     AppBottomSheet(
         title =
             stringResource(
                 id =
-                    if (form.editing) R.string.edit_calendar_entry
+                    if (state.form.editing) R.string.edit_calendar_entry
                     else R.string.create_calendar_entry
             ),
-        onDismiss = onDismiss,
-        result = result,
-        onRefresh = onSave,
+        onDismiss = actions.onDismiss,
+        result = state.result,
+        onRefresh = actions.onSave,
         actions = {
-            if (form.editing)
-                TextButton(onClick = onDelete, enabled = !isLoading) {
+            if (state.form.editing)
+                TextButton(onClick = actions.onAskDelete, enabled = !isLoading) {
                     Text(text = stringResource(id = R.string.delete))
                 }
-            TextButton(onClick = onDismiss, enabled = !isLoading) {
+            TextButton(onClick = actions.onDismiss, enabled = !isLoading) {
                 Text(text = stringResource(id = R.string.cancel))
             }
-            Button(onClick = onSave, enabled = !isLoading) {
+            Button(onClick = actions.onSave, enabled = !isLoading) {
                 Text(text = stringResource(id = R.string.save))
             }
         },
@@ -74,12 +67,12 @@ internal fun CalendarEntrySheet(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 items =
                     CalendarEntryType.entries.filter {
-                        it.canCreate(canTrackPeriods = canTrackPeriods)
+                        it.canCreate(canTrackPeriods = state.canTrackPeriods)
                     },
-                selected = form.type,
+                selected = state.form.type,
                 enabled = !isLoading,
                 label = { stringResource(id = it.label) },
-                onSelected = { onFormChange(form.copy(type = it)) },
+                onSelected = { actions.onFormChange(state.form.copy(type = it)) },
             )
         }
         item {
@@ -87,9 +80,9 @@ internal fun CalendarEntrySheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                value = form.notes,
+                value = state.form.notes,
                 enabled = !isLoading,
-                onValueChange = { onFormChange(form.copy(notes = it)) },
+                onValueChange = { actions.onFormChange(state.form.copy(notes = it)) },
                 label = { Text(text = stringResource(id = R.string.notes_field)) },
                 minLines = 3,
             )
@@ -98,12 +91,12 @@ internal fun CalendarEntrySheet(
             SwitchSetting(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 title = stringResource(id = R.string.important_date),
-                checked = form.isImportant,
+                checked = state.form.isImportant,
                 enabled = !isLoading,
-                onCheckedChange = { onFormChange(form.copy(isImportant = it)) },
+                onCheckedChange = { actions.onFormChange(state.form.copy(isImportant = it)) },
             )
         }
-        if (form.type == CalendarEntryType.PERIOD) {
+        if (state.form.type == CalendarEntryType.PERIOD) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
                     Text(
@@ -114,10 +107,10 @@ internal fun CalendarEntrySheet(
                     RadioOptions(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         items = PeriodEvent.entries,
-                        selected = form.periodEvent,
+                        selected = state.form.periodEvent,
                         enabled = !isLoading,
                         label = { stringResource(id = it.label) },
-                        onSelected = { onFormChange(form.copy(periodEvent = it)) },
+                        onSelected = { actions.onFormChange(state.form.copy(periodEvent = it)) },
                     )
                 }
             }
@@ -131,10 +124,10 @@ internal fun CalendarEntrySheet(
                     RadioOptions(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         items = FlowLevel.entries,
-                        selected = form.flowLevel,
+                        selected = state.form.flowLevel,
                         enabled = !isLoading,
                         label = { stringResource(id = it.label) },
-                        onSelected = { onFormChange(form.copy(flowLevel = it)) },
+                        onSelected = { actions.onFormChange(state.form.copy(flowLevel = it)) },
                     )
                 }
             }
@@ -150,7 +143,7 @@ internal fun CalendarEntrySheet(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     items =
                         PeriodSymptom.entries.map { symptom ->
-                            val checked = symptom in form.symptoms
+                            val checked = symptom in state.form.symptoms
                             SettingItem(
                                 title = stringResource(id = symptom.label),
                                 rowSize = SettingRowSize.Compact,
@@ -160,11 +153,11 @@ internal fun CalendarEntrySheet(
                                         enabled = !isLoading,
                                         role = Role.Checkbox,
                                     ) { selected ->
-                                        onFormChange(
-                                            form.copy(
+                                        actions.onFormChange(
+                                            state.form.copy(
                                                 symptoms =
-                                                    if (selected) form.symptoms + symptom
-                                                    else form.symptoms - symptom
+                                                    if (selected) state.form.symptoms + symptom
+                                                    else state.form.symptoms - symptom
                                             )
                                         )
                                     },

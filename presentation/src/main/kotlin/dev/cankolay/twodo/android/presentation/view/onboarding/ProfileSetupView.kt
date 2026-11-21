@@ -32,22 +32,19 @@ fun ProfileSetupView(viewModel: ProfileSetupViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     ProfileSetupContent(
         state = state,
-        onRefresh = viewModel::fetch,
-        onNameChange = viewModel::updateName,
-        onGenderChange = viewModel::updateGender,
-        onSubmit = viewModel::save,
+        actions =
+            ProfileSetupActions(
+                onRefresh = viewModel::fetch,
+                onNameChange = viewModel::updateName,
+                onGenderChange = viewModel::updateGender,
+                onSubmit = viewModel::save,
+            ),
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ProfileSetupContent(
-    state: ProfileSetupUiState,
-    onRefresh: () -> Unit,
-    onNameChange: (String) -> Unit,
-    onGenderChange: (Gender) -> Unit,
-    onSubmit: () -> Unit,
-) {
+private fun ProfileSetupContent(state: ProfileSetupUiState, actions: ProfileSetupActions) {
     val form = state.form
 
     val isLoading = state.load == ApiResult.Loading || state.result == ApiResult.Loading
@@ -59,12 +56,12 @@ private fun ProfileSetupContent(
         title = stringResource(id = R.string.profile_setup_title),
         description = stringResource(id = R.string.profile_setup_desc),
         isLoading = isLoading,
-        onRefresh = onRefresh,
+        onRefresh = actions.onRefresh,
         actions = {
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading && form.canSubmit,
-                onClick = onSubmit,
+                onClick = actions.onSubmit,
             ) {
                 Text(text = stringResource(id = R.string.save))
             }
@@ -76,7 +73,7 @@ private fun ProfileSetupContent(
                     ErrorCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         error = load.error.message,
-                        onRefresh = onRefresh,
+                        onRefresh = actions.onRefresh,
                     )
                 }
             }
@@ -86,7 +83,7 @@ private fun ProfileSetupContent(
                     ErrorCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         error = result.error.message,
-                        onRefresh = onSubmit,
+                        onRefresh = actions.onSubmit,
                     )
                 }
             }
@@ -96,19 +93,15 @@ private fun ProfileSetupContent(
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth(),
                     field = form.name,
-                    onValueChange = onNameChange,
+                    onValueChange = actions.onNameChange,
                     enabled = !isLoading,
                     label = stringResource(id = R.string.name),
-                    onSubmit = onSubmit,
+                    onSubmit = actions.onSubmit,
                 )
             }
 
             item {
-                val genders =
-                    mapOf(
-                        Gender.FEMALE to R.string.female,
-                        Gender.MALE to R.string.male,
-                    )
+                val genders = mapOf(Gender.FEMALE to R.string.female, Gender.MALE to R.string.male)
 
                 Column(verticalArrangement = Arrangement.spacedBy(space = 8.dp)) {
                     RadioOptions(
@@ -116,7 +109,7 @@ private fun ProfileSetupContent(
                         items = genders.keys.toList(),
                         selected = selectedGender,
                         label = { gender -> stringResource(id = genders.getValue(gender)) },
-                        onSelected = onGenderChange,
+                        onSelected = actions.onGenderChange,
                         enabled = !isLoading,
                     )
 
@@ -132,3 +125,10 @@ private fun ProfileSetupContent(
         },
     )
 }
+
+internal data class ProfileSetupActions(
+    val onRefresh: () -> Unit,
+    val onNameChange: (String) -> Unit,
+    val onGenderChange: (Gender) -> Unit,
+    val onSubmit: () -> Unit,
+)

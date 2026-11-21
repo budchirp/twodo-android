@@ -49,34 +49,25 @@ fun CoupleSetupView(onLogout: () -> Unit, viewModel: CoupleSetupViewModel = hilt
 
     CoupleSetupContent(
         state = state,
-        onLogout = onLogout,
-        onRefresh = viewModel::refresh,
-        onRefreshUser = viewModel::refreshUser,
-        onRefreshInvites = { viewModel.fetch(forceRefresh = true) },
-        onOpenInvite = viewModel::openForm,
-        onDismissSheet = viewModel::dismiss,
-        onUsernameChange = viewModel::updateUsername,
-        onInvite = viewModel::create,
-        onHandleInvite = viewModel::handle,
-        onRetryAction = viewModel::retryAction,
+        actions =
+            CoupleSetupActions(
+                onLogout = onLogout,
+                onRefresh = viewModel::refresh,
+                onRefreshUser = viewModel::refreshUser,
+                onRefreshInvites = { viewModel.fetch(forceRefresh = true) },
+                onOpenInvite = viewModel::openForm,
+                onDismissSheet = viewModel::dismiss,
+                onUsernameChange = viewModel::updateUsername,
+                onInvite = viewModel::create,
+                onHandleInvite = viewModel::handle,
+                onRetryAction = viewModel::retryAction,
+            ),
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun CoupleSetupContent(
-    state: CoupleSetupUiState,
-    onLogout: () -> Unit,
-    onRefresh: () -> Unit,
-    onRefreshUser: () -> Unit,
-    onRefreshInvites: () -> Unit,
-    onOpenInvite: () -> Unit,
-    onDismissSheet: () -> Unit,
-    onUsernameChange: (String) -> Unit,
-    onInvite: () -> Unit,
-    onHandleInvite: (String, InviteAction) -> Unit,
-    onRetryAction: () -> Unit,
-) {
+private fun CoupleSetupContent(state: CoupleSetupUiState, actions: CoupleSetupActions) {
     OnboardingLayout(
         route = Route.CoupleSetup,
         title = stringResource(id = R.string.couple_setup_title),
@@ -85,12 +76,9 @@ private fun CoupleSetupContent(
             state.userLoad == ApiResult.Loading ||
                     state.invitesLoad == ApiResult.Loading ||
                     state.action == ApiResult.Loading,
-        onRefresh = onRefresh,
+        onRefresh = actions.onRefresh,
         actions = {
-            OutlinedButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onLogout,
-            ) {
+            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = actions.onLogout) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(space = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -108,7 +96,7 @@ private fun CoupleSetupContent(
                     ErrorCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         error = userLoad.error.message,
-                        onRefresh = onRefreshUser,
+                        onRefresh = actions.onRefreshUser,
                     )
                 }
             }
@@ -118,7 +106,7 @@ private fun CoupleSetupContent(
                     ErrorCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         error = invitesLoad.error.message,
-                        onRefresh = onRefreshInvites,
+                        onRefresh = actions.onRefreshInvites,
                     )
                 }
             }
@@ -128,7 +116,7 @@ private fun CoupleSetupContent(
                     ErrorCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         error = action.error.message,
-                        onRefresh = onRetryAction,
+                        onRefresh = actions.onRetryAction,
                     )
                 }
             }
@@ -161,9 +149,7 @@ private fun CoupleSetupContent(
                                         title = stringResource(id = R.string.no_received_invites),
                                         description =
                                             stringResource(id = R.string.no_received_invites_desc),
-                                        leadingContent = {
-                                            Icon(icon = Icons.Default.Mail)
-                                        },
+                                        leadingContent = { Icon(icon = Icons.Default.Mail) },
                                     )
                                 )
                             else
@@ -178,9 +164,10 @@ private fun CoupleSetupContent(
                                             ) {
                                                 AppIconButton(
                                                     icon = Icons.Default.Close,
-                                                    contentDescription = stringResource(id = R.string.reject_invite),
+                                                    contentDescription =
+                                                        stringResource(id = R.string.reject_invite),
                                                     onClick = {
-                                                        onHandleInvite(
+                                                        actions.onHandleInvite(
                                                             invite.id,
                                                             InviteAction.Reject,
                                                         )
@@ -190,10 +177,11 @@ private fun CoupleSetupContent(
 
                                                 AppIconButton(
                                                     icon = Icons.Default.Check,
-                                                    contentDescription = stringResource(id = R.string.accept_invite),
+                                                    contentDescription =
+                                                        stringResource(id = R.string.accept_invite),
                                                     enabled = state.action != ApiResult.Loading,
                                                     onClick = {
-                                                        onHandleInvite(
+                                                        actions.onHandleInvite(
                                                             invite.id,
                                                             InviteAction.Accept,
                                                         )
@@ -229,10 +217,8 @@ private fun CoupleSetupContent(
                                         title = stringResource(id = R.string.create_couple),
                                         description =
                                             stringResource(id = R.string.create_couple_desc),
-                                        leadingContent = {
-                                            Icon(icon = Icons.Default.PersonAdd)
-                                        },
-                                        onClick = onOpenInvite,
+                                        leadingContent = { Icon(icon = Icons.Default.PersonAdd) },
+                                        onClick = actions.onOpenInvite,
                                     )
                             ),
                     )
@@ -241,13 +227,20 @@ private fun CoupleSetupContent(
         },
     ) {
         if (state.showForm) {
-            InvitePartnerSheet(
-                form = state.form,
-                result = state.result,
-                onDismiss = onDismissSheet,
-                onUsernameChange = onUsernameChange,
-                onInvite = onInvite,
-            )
+            InvitePartnerSheet(state = state, actions = actions)
         }
     }
 }
+
+internal data class CoupleSetupActions(
+    val onLogout: () -> Unit,
+    val onRefresh: () -> Unit,
+    val onRefreshUser: () -> Unit,
+    val onRefreshInvites: () -> Unit,
+    val onOpenInvite: () -> Unit,
+    val onDismissSheet: () -> Unit,
+    val onUsernameChange: (String) -> Unit,
+    val onInvite: () -> Unit,
+    val onHandleInvite: (String, InviteAction) -> Unit,
+    val onRetryAction: () -> Unit,
+)

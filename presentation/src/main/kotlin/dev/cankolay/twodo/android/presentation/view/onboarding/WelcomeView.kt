@@ -29,70 +29,69 @@ fun WelcomeView(authUrl: String) {
     val context = LocalContext.current
 
     WelcomeContent(
-        onLogin = {
-            val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
+        actions =
+            WelcomeActions(
+                onLogin = {
+                    val intent = CustomTabsIntent.Builder().setShowTitle(true).build()
 
-            intent.launchUrl(context, authUrl.toUri())
-        }
+                    intent.launchUrl(context, authUrl.toUri())
+                }
+            )
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun WelcomeContent(onLogin: () -> Unit) {
+private fun WelcomeContent(actions: WelcomeActions) {
     OnboardingLayout(
         route = Route.Welcome,
         title = stringResource(id = R.string.welcome),
         description = stringResource(id = R.string.welcome_desc),
         actions = {
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onLogin,
-            ) {
+            Button(modifier = Modifier.fillMaxWidth(), onClick = actions.onLogin) {
                 Text(text = stringResource(id = R.string.continue_with_trash))
             }
         },
         lazyContent = {
             item {
-                data class FeatureItem(
-                    val title: String,
-                    val description: String? = null,
-                    val icon: ImageVector,
-                )
-
-                val features =
-                    listOf(
-                        FeatureItem(
-                            title = stringResource(id = R.string.feature_1),
-                            description = stringResource(id = R.string.feature_1_desc),
-                            icon = Icons.Default.Check,
-                        ),
-                        FeatureItem(
-                            title = stringResource(id = R.string.feature_2),
-                            description = stringResource(id = R.string.feature_2_desc),
-                            icon = ImageVector.vectorResource(id = R.drawable.wand_stars_24px),
-                        ),
-                        FeatureItem(
-                            title = stringResource(id = R.string.feature_3),
-                            description = stringResource(id = R.string.feature_3_desc),
-                            icon = ImageVector.vectorResource(id = R.drawable.partner_heart_24px),
-                        ),
-                    )
-
                 SettingsGroup(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     items =
-                        features.map { feature ->
+                        listOf(
                             SettingItem(
-                                title = feature.title,
-                                description = feature.description,
+                                title = stringResource(id = R.string.feature_1),
+                                description = stringResource(id = R.string.feature_1_desc),
+                                leadingContent = { Icon(icon = Icons.Default.Check) },
+                            ),
+                            SettingItem(
+                                title = stringResource(id = R.string.feature_2),
+                                description = stringResource(id = R.string.feature_2_desc),
                                 leadingContent = {
-                                    Icon(icon = feature.icon)
+                                    Icon(
+                                        icon =
+                                            ImageVector.vectorResource(
+                                                id = R.drawable.wand_stars_24px
+                                            )
+                                    )
                                 },
-                            )
-                        },
+                            ),
+                            SettingItem(
+                                title = stringResource(id = R.string.feature_3),
+                                description = stringResource(id = R.string.feature_3_desc),
+                                leadingContent = {
+                                    Icon(
+                                        icon =
+                                            ImageVector.vectorResource(
+                                                id = R.drawable.partner_heart_24px
+                                            )
+                                    )
+                                },
+                            ),
+                        ),
                 )
             }
         },
     )
 }
+
+internal data class WelcomeActions(val onLogin: () -> Unit)

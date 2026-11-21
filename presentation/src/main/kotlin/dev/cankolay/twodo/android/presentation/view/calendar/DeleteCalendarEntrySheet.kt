@@ -7,17 +7,14 @@ import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 
 @Composable
-internal fun DeleteCalendarEntrySheet(
-    result: ApiResult<*>?,
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit,
-) {
+internal fun DeleteCalendarEntrySheet(result: ApiResult<*>?, actions: CalendarActions) {
+
     DestructiveConfirmationSheet(
         title = stringResource(id = R.string.delete_calendar_entry),
         description = stringResource(id = R.string.delete_calendar_entry_desc),
         confirmText = stringResource(id = R.string.delete),
         result = result,
-        onDismiss = onDismiss,
-        onConfirm = onDelete,
+        onDismiss = actions.onDismiss,
+        onConfirm = actions.onDelete,
     )
 }

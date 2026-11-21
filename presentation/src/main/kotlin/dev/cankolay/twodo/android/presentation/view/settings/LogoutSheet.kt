@@ -6,12 +6,12 @@ import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.layout.DestructiveConfirmationSheet
 
 @Composable
-internal fun LogoutSheet(onDismiss: () -> Unit, onLogout: () -> Unit) {
+internal fun LogoutSheet(actions: ProfileActions) {
     DestructiveConfirmationSheet(
         title = stringResource(id = R.string.sign_out),
         description = stringResource(id = R.string.sign_out_desc),
         confirmText = stringResource(id = R.string.sign_out),
-        onDismiss = onDismiss,
-        onConfirm = onLogout,
+        onDismiss = actions.onDismissLogout,
+        onConfirm = actions.onLogout,
     )
 }

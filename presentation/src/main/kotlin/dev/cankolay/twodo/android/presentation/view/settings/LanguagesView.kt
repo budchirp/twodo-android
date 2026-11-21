@@ -21,27 +21,26 @@ fun LanguagesView() {
 
     LanguagesContent(
         language = currentLanguage,
-        onChange = { language ->
-            AppCompatDelegate.setApplicationLocales(
-                if (language == "system") LocaleListCompat.getEmptyLocaleList()
-                else LocaleListCompat.forLanguageTags(language)
-            )
-        },
+        actions =
+            LanguagesActions(
+                onChange = { language ->
+                    AppCompatDelegate.setApplicationLocales(
+                        if (language == "system") LocaleListCompat.getEmptyLocaleList()
+                        else LocaleListCompat.forLanguageTags(language)
+                    )
+                }
+            ),
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LanguagesContent(language: String, onChange: (String) -> Unit) {
+private fun LanguagesContent(language: String, actions: LanguagesActions) {
     AppLayout(route = Route.Languages) {
         AppLazyColumn {
             item {
                 val languages =
-                    mapOf(
-                        "system" to R.string.system,
-                        "en" to R.string.en,
-                        "tr" to R.string.tr,
-                    )
+                    mapOf("system" to R.string.system, "en" to R.string.en, "tr" to R.string.tr)
 
                 RadioOptions(
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -51,9 +50,11 @@ private fun LanguagesContent(language: String, onChange: (String) -> Unit) {
                             language.contains(value, ignoreCase = true)
                         },
                     label = { language -> stringResource(id = languages.getValue(language)) },
-                    onSelected = onChange,
+                    onSelected = actions.onChange,
                 )
             }
         }
     }
 }
+
+internal data class LanguagesActions(val onChange: (String) -> Unit)

@@ -23,12 +23,15 @@ import dev.cankolay.twodo.android.presentation.viewmodel.application.SettingsVie
 fun ThemeView(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val state by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
-    ThemeContent(state = state.settings, onChange = settingsViewModel::update)
+    ThemeContent(
+        state = state.settings,
+        actions = ThemeActions(onChange = settingsViewModel::update),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ThemeContent(state: SettingsState, onChange: (SettingsState) -> Unit) {
+private fun ThemeContent(state: SettingsState, actions: ThemeActions) {
     AppLayout(route = Route.Theme) {
         AppLazyColumn {
             item {
@@ -48,25 +51,23 @@ private fun ThemeContent(state: SettingsState, onChange: (SettingsState) -> Unit
                                 }
                         )
                     },
-                    onSelected = { theme ->
-                        onChange(state.copy(theme = theme))
-                    },
+                    onSelected = { theme -> actions.onChange(state.copy(theme = theme)) },
                 )
             }
 
             item {
-                val onClick = { isAmoled: Boolean ->
-                    onChange(state.copy(isAmoled = isAmoled))
-                }
-
                 SwitchSetting(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     title = stringResource(id = R.string.amoled),
                     enabled = state.theme != Theme.LIGHT,
                     checked = state.theme != Theme.LIGHT && state.isAmoled,
-                    onCheckedChange = onClick,
+                    onCheckedChange = { isAmoled: Boolean ->
+                        actions.onChange(state.copy(isAmoled = isAmoled))
+                    },
                 )
             }
         }
     }
 }
+
+internal data class ThemeActions(val onChange: (SettingsState) -> Unit)

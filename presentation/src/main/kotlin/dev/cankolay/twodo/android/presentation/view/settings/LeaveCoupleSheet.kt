@@ -9,17 +9,14 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.Destructive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun LeaveCoupleSheet(
-    result: ApiResult<*>?,
-    onDismiss: () -> Unit,
-    onLeave: () -> Unit,
-) {
+internal fun LeaveCoupleSheet(result: ApiResult<*>?, actions: CoupleActions) {
+
     DestructiveConfirmationSheet(
         title = stringResource(id = R.string.break_up),
         description = stringResource(id = R.string.break_up_desc),
         confirmText = stringResource(id = R.string.break_up),
-        onDismiss = onDismiss,
-        onConfirm = onLeave,
+        onDismiss = actions.onDismissSheet,
+        onConfirm = actions.onLeave,
         result = result,
     )
 }

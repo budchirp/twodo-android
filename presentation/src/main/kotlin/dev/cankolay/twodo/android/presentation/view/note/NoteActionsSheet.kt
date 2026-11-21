@@ -16,19 +16,16 @@ import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
 import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.util.DateUtils
+import dev.cankolay.twodo.android.presentation.viewmodel.note.NoteEditorUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun NoteActionsSheet(
-    title: String,
-    createdAt: String,
-    updatedAt: String,
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit,
-) {
+internal fun NoteActionsSheet(state: NoteEditorUiState, actions: NoteActions) {
+    val note = state.note ?: return
+
     AppBottomSheet(
-        title = title,
-        onDismiss = onDismiss,
+        title = (state.draft ?: note).title.ifBlank { stringResource(id = R.string.notes) },
+        onDismiss = actions.onDismissSheet,
     ) {
         item {
             SettingsGroup(
@@ -37,23 +34,25 @@ internal fun NoteActionsSheet(
                     listOf(
                         SettingItem(
                             title = stringResource(id = R.string.created_at),
-                            description = DateUtils.format(
-                                value = createdAt,
-                                pattern = DateUtils.DATE_TIME_PATTERN,
-                            ),
+                            description =
+                                DateUtils.format(
+                                    value = note.createdAt,
+                                    pattern = DateUtils.DATE_TIME_PATTERN,
+                                ),
                             leadingContent = { Icon(icon = Icons.Default.Schedule) },
                         ),
                         SettingItem(
                             title = stringResource(id = R.string.updated_at),
-                            description = DateUtils.format(
-                                value = updatedAt,
-                                pattern = DateUtils.DATE_TIME_PATTERN,
-                            ),
+                            description =
+                                DateUtils.format(
+                                    value = note.updatedAt,
+                                    pattern = DateUtils.DATE_TIME_PATTERN,
+                                ),
                             leadingContent = { Icon(icon = Icons.Default.Update) },
                         ),
                         SettingItem(
                             title = stringResource(id = R.string.delete),
-                            onClick = onDelete,
+                            onClick = actions.onRequestDelete,
                             leadingContent = { Icon(icon = Icons.Default.Delete) },
                         ),
                     ),

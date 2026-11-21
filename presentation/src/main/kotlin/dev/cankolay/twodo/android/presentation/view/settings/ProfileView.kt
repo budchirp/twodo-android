@@ -38,13 +38,27 @@ import dev.cankolay.twodo.android.presentation.viewmodel.user.ProfileViewModel
 @Composable
 fun ProfileView(onLogout: () -> Unit, viewModel: ProfileViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ProfileContent(state = state, onRefresh = viewModel::refresh, onLogout = onLogout)
+    var showLogout by rememberSaveable { mutableStateOf(value = false) }
+
+    ProfileContent(
+        state = state,
+        showLogout = showLogout,
+        actions =
+            ProfileActions(
+                onRefresh = viewModel::refresh,
+                onLogout = {
+                    showLogout = false
+                    onLogout()
+                },
+                onRequestLogout = { showLogout = true },
+                onDismissLogout = { showLogout = false },
+            ),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogout: () -> Unit) {
-    var showLogout by rememberSaveable { mutableStateOf(value = false) }
+private fun ProfileContent(state: ProfileUiState, showLogout: Boolean, actions: ProfileActions) {
 
     AppLayout(route = Route.Profile) {
         AppLinearProgressIndicator(isLoading = state.load == ApiResult.Loading)
@@ -69,10 +83,7 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
                         fontWeight = FontWeight.SemiBold,
                     )
 
-                    Text(
-                        text = user.username,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
+                    Text(text = user.username, style = MaterialTheme.typography.bodyLarge)
                 }
             }
         }
@@ -86,7 +97,7 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
                     ErrorCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         error = failure.error.message,
-                        onRefresh = onRefresh,
+                        onRefresh = actions.onRefresh,
                     )
                 }
             }
@@ -99,18 +110,19 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = state.user != null && state.load != ApiResult.Loading,
-                        onClick = onRefresh,
+                        onClick = actions.onRefresh,
                     ) {
                         Text(text = stringResource(id = R.string.refresh_profile))
                     }
 
                     Button(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError,
-                        ),
-                        onClick = { showLogout = true },
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError,
+                            ),
+                        onClick = actions.onRequestLogout,
                     ) {
                         Text(text = stringResource(id = R.string.sign_out))
                     }
@@ -119,13 +131,14 @@ private fun ProfileContent(state: ProfileUiState, onRefresh: () -> Unit, onLogou
         }
 
         if (showLogout) {
-            LogoutSheet(
-                onDismiss = { showLogout = false },
-                onLogout = {
-                    showLogout = false
-                    onLogout()
-                },
-            )
+            LogoutSheet(actions = actions)
         }
     }
 }
+
+internal data class ProfileActions(
+    val onRefresh: () -> Unit,
+    val onLogout: () -> Unit,
+    val onRequestLogout: () -> Unit,
+    val onDismissLogout: () -> Unit,
+)

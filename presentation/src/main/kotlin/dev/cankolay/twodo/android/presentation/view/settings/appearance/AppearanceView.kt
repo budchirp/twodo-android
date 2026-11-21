@@ -15,20 +15,16 @@ import dev.cankolay.twodo.android.presentation.navigation.route.getDetails
 
 @Composable
 fun AppearanceView(onNavigate: (Route) -> Unit) {
-    AppearanceContent(onNavigate = onNavigate)
+    AppearanceContent(actions = AppearanceActions(onNavigate = onNavigate))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppearanceContent(onNavigate: (Route) -> Unit) {
+private fun AppearanceContent(actions: AppearanceActions) {
     AppLayout(route = Route.Appearance) {
         AppLazyColumn {
             item {
-                val routes =
-                    listOf(
-                        Route.Theme,
-                        Route.MaterialYou,
-                    )
+                val routes = listOf(Route.Theme, Route.MaterialYou)
 
                 SettingsGroup(
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -39,12 +35,8 @@ private fun AppearanceContent(onNavigate: (Route) -> Unit) {
                             SettingItem(
                                 title = details.title,
                                 description = details.description,
-                                onClick = {
-                                    onNavigate(route)
-                                },
-                                leadingContent = {
-                                    Icon(icon = details.icon.default)
-                                },
+                                onClick = { actions.onNavigate(route) },
+                                leadingContent = { Icon(icon = details.icon.default) },
                             )
                         },
                 )
@@ -52,3 +44,5 @@ private fun AppearanceContent(onNavigate: (Route) -> Unit) {
         }
     }
 }
+
+internal data class AppearanceActions(val onNavigate: (Route) -> Unit)

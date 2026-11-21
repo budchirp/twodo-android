@@ -9,17 +9,14 @@ import dev.cankolay.twodo.android.presentation.composable.app.layout.Destructive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun DeleteNoteSheet(
-    result: ApiResult<*>?,
-    onDismiss: () -> Unit,
-    onDelete: () -> Unit,
-) {
+internal fun DeleteNoteSheet(result: ApiResult<*>?, actions: NoteActions) {
+
     DestructiveConfirmationSheet(
         title = stringResource(id = R.string.delete_note),
         description = stringResource(id = R.string.delete_note_desc),
         confirmText = stringResource(id = R.string.delete),
-        onDismiss = onDismiss,
-        onConfirm = onDelete,
+        onDismiss = actions.onDismissSheet,
+        onConfirm = actions.onDelete,
         result = result,
     )
 }

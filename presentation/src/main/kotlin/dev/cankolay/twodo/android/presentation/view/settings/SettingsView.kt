@@ -27,24 +27,16 @@ import dev.cankolay.twodo.android.presentation.viewmodel.user.AccountUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.user.AccountViewModel
 
 @Composable
-fun SettingsView(
-    onNavigate: (Route) -> Unit,
-    viewModel: AccountViewModel = hiltViewModel(),
-) {
+fun SettingsView(onNavigate: (Route) -> Unit, viewModel: AccountViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     SettingsContent(
         state = state,
-        onRefresh = viewModel::refresh,
-        onNavigate = onNavigate,
+        actions = SettingsActions(onRefresh = viewModel::refresh, onNavigate = onNavigate),
     )
 }
 
 @Composable
-private fun SettingsContent(
-    state: AccountUiState,
-    onRefresh: () -> Unit,
-    onNavigate: (Route) -> Unit,
-) {
+private fun SettingsContent(state: AccountUiState, actions: SettingsActions) {
     AppLayout(route = Route.Settings) {
         AppLinearProgressIndicator(isLoading = state.load == ApiResult.Loading)
 
@@ -55,7 +47,7 @@ private fun SettingsContent(
                     ErrorCard(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         error = load.error.message,
-                        onRefresh = onRefresh,
+                        onRefresh = actions.onRefresh,
                     )
                 }
             }
@@ -65,7 +57,7 @@ private fun SettingsContent(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         title = user.name,
                         leadingContent = { Icon(icon = Icons.Default.Person) },
-                        onClick = { onNavigate(Route.Profile) },
+                        onClick = { actions.onNavigate(Route.Profile) },
                     )
                 }
             }
@@ -77,13 +69,11 @@ private fun SettingsContent(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     title = details.title,
                     leadingContent = { Icon(icon = details.icon.default) },
-                    onClick = { onNavigate(Route.Couple) },
+                    onClick = { actions.onNavigate(Route.Couple) },
                 )
             }
 
-            item {
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
-            }
+            item { HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer) }
 
             item {
                 val routes = listOf(Route.Appearance, Route.Languages, Route.About)
@@ -97,12 +87,8 @@ private fun SettingsContent(
                             SettingItem(
                                 title = details.title,
                                 description = details.description,
-                                leadingContent = {
-                                    Icon(icon = details.icon.default)
-                                },
-                                onClick = {
-                                    onNavigate(route)
-                                },
+                                leadingContent = { Icon(icon = details.icon.default) },
+                                onClick = { actions.onNavigate(route) },
                             )
                         },
                 )
@@ -110,3 +96,5 @@ private fun SettingsContent(
         }
     }
 }
+
+internal data class SettingsActions(val onRefresh: () -> Unit, val onNavigate: (Route) -> Unit)

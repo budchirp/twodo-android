@@ -7,31 +7,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodPrediction
-import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSummary
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
 import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.util.DateUtils
+import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarUiState
 
 @Composable
-internal fun CalendarPredictionSheet(
-    prediction: PeriodSummary?,
-    load: ApiResult<Unit>?,
-    onDismiss: () -> Unit,
-    onRefresh: () -> Unit,
-) {
+internal fun CalendarPredictionSheet(state: CalendarUiState, actions: CalendarActions) {
+
     AppBottomSheet(
         title = stringResource(id = R.string.period_tracker),
-        onDismiss = onDismiss,
-        result = load,
-        onRefresh = onRefresh,
+        onDismiss = actions.onDismiss,
+        result = state.predictionLoad,
+        onRefresh = actions.onRefreshPrediction,
         content =
-            if (prediction != null) {
+            if (state.prediction != null) {
                 {
-                    val cycle = prediction.prediction
+                    val cycle = state.prediction.prediction
 
                     item {
                         SettingsGroup(
@@ -47,8 +42,7 @@ internal fun CalendarPredictionSheet(
                                 cycle.disclaimer?.takeIf { it.isNotBlank() }
                                     ?: stringResource(id = R.string.default_medical_disclaimer),
                             style = MaterialTheme.typography.labelSmall,
-                            color =
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         )
                     }
                 }
@@ -101,11 +95,7 @@ private fun predictionItems(cycle: PeriodPrediction): List<SettingItem> {
                     SettingItem(
                         title = stringResource(id = R.string.period_tracker_desc),
                         description =
-                            stringResource(
-                                id = R.string.period_tracker_averages,
-                                length,
-                                duration,
-                            ),
+                            stringResource(id = R.string.period_tracker_averages, length, duration),
                     )
             )
         }

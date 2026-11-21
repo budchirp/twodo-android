@@ -17,16 +17,13 @@ import dev.cankolay.twodo.android.presentation.composable.OnboardingLayout
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
 @Composable
-fun StartupErrorView(
-    result: ApiResult<*>?,
-    onRetry: () -> Unit,
-) {
-    StartupErrorContent(result = result, onRetry = onRetry)
+fun StartupErrorView(result: ApiResult<*>?, onRetry: () -> Unit) {
+    StartupErrorContent(result = result, actions = StartupErrorActions(onRetry = onRetry))
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun StartupErrorContent(result: ApiResult<*>?, onRetry: () -> Unit) {
+private fun StartupErrorContent(result: ApiResult<*>?, actions: StartupErrorActions) {
     val isLoading = result == ApiResult.Loading
 
     OnboardingLayout(
@@ -34,12 +31,12 @@ private fun StartupErrorContent(result: ApiResult<*>?, onRetry: () -> Unit) {
         title = stringResource(id = R.string.startup_error_title),
         description = stringResource(id = R.string.startup_error_desc),
         isLoading = isLoading,
-        onRefresh = onRetry,
+        onRefresh = actions.onRetry,
         actions = {
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading,
-                onClick = onRetry,
+                onClick = actions.onRetry,
             ) {
                 Text(text = stringResource(id = R.string.try_again))
             }
@@ -69,3 +66,5 @@ private fun StartupErrorContent(result: ApiResult<*>?, onRetry: () -> Unit) {
         },
     )
 }
+
+internal data class StartupErrorActions(val onRetry: () -> Unit)

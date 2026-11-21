@@ -26,80 +26,86 @@ import dev.cankolay.twodo.android.presentation.navigation.route.Route
 
 @Composable
 fun AboutView() {
-    AboutContent()
+    val handler = LocalUriHandler.current
+    AboutContent(actions = AboutActions(onOpenUri = handler::openUri))
 }
 
 @Composable
-private fun AboutContent() {
+private fun AboutContent(actions: AboutActions) {
     AppLayout(route = Route.About) {
         AppLazyColumn {
-            item { AppInfoCard(modifier = Modifier.padding(horizontal = 16.dp)) }
+            item { AppInfoCard(modifier = Modifier.padding(horizontal = 16.dp), actions = actions) }
 
-            item { DeveloperCard(modifier = Modifier.padding(horizontal = 16.dp)) }
+            item {
+                DeveloperCard(modifier = Modifier.padding(horizontal = 16.dp), actions = actions)
+            }
         }
     }
 }
 
 @Composable
-private fun AppInfoCard(modifier: Modifier) {
+private fun AppInfoCard(modifier: Modifier, actions: AboutActions) {
     val context = LocalContext.current
-    val handler = LocalUriHandler.current
     val url = stringResource(id = R.string.app_github)
 
-    val appIcon = remember(context) {
-        context.packageManager.getApplicationIcon(context.packageName)
-    }
-    val version = remember(context) {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.0"
-    }
+    val appIcon =
+        remember(context) { context.packageManager.getApplicationIcon(context.packageName) }
+    val version =
+        remember(context) {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.0"
+        }
 
     SettingsGroup(
         modifier = modifier,
-        items = listOf(
-            SettingItem(
-                title = stringResource(id = R.string.app_name),
-                description = version,
-                leadingContent = {
-                    AsyncImage(
-                        model = appIcon,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(size = AppCardDefaults.ImageSize)
-                            .clip(shape = CircleShape),
-                    )
-                },
+        items =
+            listOf(
+                SettingItem(
+                    title = stringResource(id = R.string.app_name),
+                    description = version,
+                    leadingContent = {
+                        AsyncImage(
+                            model = appIcon,
+                            contentDescription = null,
+                            modifier =
+                                Modifier
+                                    .size(size = AppCardDefaults.ImageSize)
+                                    .clip(shape = CircleShape),
+                        )
+                    },
+                ),
+                SettingItem(
+                    title = stringResource(id = R.string.about_view_on, "GitHub"),
+                    description = stringResource(id = R.string.about_view_on_desc, "GitHub"),
+                    onClick = { actions.onOpenUri(url) },
+                    leadingContent = { Icon(icon = painterResource(id = R.drawable.ic_github)) },
+                ),
             ),
-            SettingItem(
-                title = stringResource(id = R.string.about_view_on, "GitHub"),
-                description = stringResource(id = R.string.about_view_on_desc, "GitHub"),
-                onClick = { handler.openUri(uri = url) },
-                leadingContent = { Icon(icon = painterResource(id = R.drawable.ic_github)) },
-            ),
-        ),
     )
 }
 
 @Composable
-private fun DeveloperCard(modifier: Modifier) {
-    val handler = LocalUriHandler.current
+private fun DeveloperCard(modifier: Modifier, actions: AboutActions) {
     val website = stringResource(id = R.string.dev_website)
     val github = stringResource(id = R.string.dev_github)
 
     SettingsGroup(
         modifier = modifier,
-        items = listOf(
-            SettingItem(
-                title = stringResource(id = R.string.dev_name),
-                description = "@" + stringResource(id = R.string.dev_username),
-                onClick = { handler.openUri(uri = website) },
-                leadingContent = { Icon(icon = Icons.Default.Person) },
+        items =
+            listOf(
+                SettingItem(
+                    title = stringResource(id = R.string.dev_name),
+                    description = "@" + stringResource(id = R.string.dev_username),
+                    onClick = { actions.onOpenUri(website) },
+                    leadingContent = { Icon(icon = Icons.Default.Person) },
+                ),
+                SettingItem(
+                    title = stringResource(id = R.string.about_follow_on, "GitHub"),
+                    description = stringResource(id = R.string.about_follow_on_desc, "GitHub"),
+                    onClick = { actions.onOpenUri(github) },
+                    leadingContent = { Icon(icon = painterResource(id = R.drawable.ic_github)) },
+                ),
             ),
-            SettingItem(
-                title = stringResource(id = R.string.about_follow_on, "GitHub"),
-                description = stringResource(id = R.string.about_follow_on_desc, "GitHub"),
-                onClick = { handler.openUri(uri = github) },
-                leadingContent = { Icon(icon = painterResource(id = R.drawable.ic_github)) },
-            ),
-        ),
     )
 }
+
+internal data class AboutActions(val onOpenUri: (String) -> Unit)

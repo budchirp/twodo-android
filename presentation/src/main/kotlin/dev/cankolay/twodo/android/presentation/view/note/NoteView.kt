@@ -54,91 +54,88 @@ fun NoteView(
     val close = (id != null || creating) && visible && navigation?.hasPending == true
 
     HandleNavigation(
-        result = Unit.takeIf { state.close is ApiResult.Success || state.delete is ApiResult.Success },
-    ) { onBack() }
+        result =
+            Unit.takeIf { state.close is ApiResult.Success || state.delete is ApiResult.Success }
+    ) {
+        onBack()
+    }
 
     LaunchedEffect(id, creating) {
-        if (creating) viewModel?.createDraft()
-        else if (id != null) viewModel?.load(id = id)
+        if (creating) viewModel?.createDraft() else if (id != null) viewModel?.load(id = id)
     }
 
-    LaunchedEffect(close) {
-        if (close) viewModel?.close()
-    }
+    LaunchedEffect(close) { if (close) viewModel?.close() }
 
     LaunchedEffect(state.close, state.validate) {
-        if (state.close is ApiResult.Failure ||
+        if (
+            state.close is ApiResult.Failure ||
             (state.validate && state.draft?.title.isNullOrBlank())
-        ) navigation?.cancel()
-    }
-
-    val content: @Composable () -> Unit = {
-        NoteContent(
-            id = id,
-            creating = creating,
-            state = state,
-            visible = visible && (id != null || creating),
-            onRetry = { if (id != null) viewModel?.load(id = id, forceRefresh = true) },
-            onBack = {
-                if (navigation?.isExpanded == true && navigation.isFullscreen && navigation.hasListPane) {
-                    navigation.toggle()
-                } else viewModel?.close()
-            },
-            isExpanded = navigation?.isExpanded == true,
-            isFullscreen = navigation?.isFullscreen == true,
-            onToggle = { navigation?.toggle() },
-            onTitleChange = { viewModel?.updateTitle(title = it) },
-            onContentChange = { viewModel?.updateContent(content = it) },
-            onOpenActions = { viewModel?.openActions() },
-            onDismissSheet = { viewModel?.dismiss() },
-            onRequestDelete = { viewModel?.askDelete() },
-            onDelete = { viewModel?.delete() },
-            onSave = { viewModel?.submit() },
         )
+            navigation?.cancel()
     }
 
-    if (id == null) {
-        content()
-    } else {
-        NoteTransition(id = id, detail = true, modifier = Modifier.fillMaxSize(), content = content)
+    NoteContent(
+        state = state,
+        actions =
+            NoteActions(
+                onRetry = { if (id != null) viewModel?.load(id = id, forceRefresh = true) },
+                onBack = {
+                    if (
+                        navigation?.isExpanded == true &&
+                        navigation.isFullscreen &&
+                        navigation.hasListPane
+                    ) {
+                        navigation.toggle()
+                    } else viewModel?.close()
+                },
+                onToggle = { navigation?.toggle() },
+                onTitleChange = { viewModel?.updateTitle(title = it) },
+                onContentChange = { viewModel?.updateContent(content = it) },
+                onOpenActions = { viewModel?.openActions() },
+                onDismissSheet = { viewModel?.dismiss() },
+                onRequestDelete = { viewModel?.askDelete() },
+                onDelete = { viewModel?.delete() },
+                onSave = { viewModel?.submit() },
+            ),
+        layout =
+            NoteLayout(
+                id = id,
+                creating = creating,
+                visible = visible && (id != null || creating),
+                isExpanded = navigation?.isExpanded == true,
+                isFullscreen = navigation?.isFullscreen == true,
+            ),
+    )
+}
+
+@Composable
+private fun NoteContent(state: NoteEditorUiState, layout: NoteLayout, actions: NoteActions) {
+    NoteTransition(id = layout.id, detail = true, modifier = Modifier.fillMaxSize()) {
+        NoteEditorContent(state = state, layout = layout, actions = actions)
     }
 }
 
 @Composable
-private fun NoteContent(
-    id: String?,
-    creating: Boolean,
-    state: NoteEditorUiState,
-    visible: Boolean,
-    onRetry: () -> Unit,
-    onBack: () -> Unit,
-    isExpanded: Boolean,
-    isFullscreen: Boolean,
-    onToggle: () -> Unit,
-    onTitleChange: (String) -> Unit,
-    onContentChange: (String) -> Unit,
-    onOpenActions: () -> Unit,
-    onDismissSheet: () -> Unit,
-    onRequestDelete: () -> Unit,
-    onDelete: () -> Unit,
-    onSave: () -> Unit,
-) {
+private fun NoteEditorContent(state: NoteEditorUiState, layout: NoteLayout, actions: NoteActions) {
     val draft = state.draft ?: state.note
-    val readOnly = state.close == ApiResult.Loading || state.delete == ApiResult.Loading ||
-            (state.creating && state.save == ApiResult.Loading)
+    val readOnly =
+        state.close == ApiResult.Loading ||
+                state.delete == ApiResult.Loading ||
+                (state.creating && state.save == ApiResult.Loading)
     val canEdit = !readOnly && draft != null
     val focus = LocalFocusManager.current
     val fields = (state.save as? ApiResult.Failure)?.error?.fieldErrors.orEmpty()
-    val titleError = if (state.validate && draft?.title.isNullOrBlank()) {
-        stringResource(id = R.string.title_required)
-    } else fields.firstOrNull { it.field == "title" }?.messages?.joinToString(separator = "\n")
+    val titleError =
+        if (state.validate && draft?.title.isNullOrBlank()) {
+            stringResource(id = R.string.title_required)
+        } else fields.firstOrNull { it.field == "title" }?.messages?.joinToString(separator = "\n")
 
-    BackHandler(enabled = visible) {
-        if (state.showActions || state.showDelete) onDismissSheet() else onBack()
+    BackHandler(enabled = layout.visible) {
+        if (state.showActions || state.showDelete) actions.onDismissSheet() else actions.onBack()
     }
 
     AppPane(modifier = Modifier.fillMaxSize()) {
-        if (id == null && !creating) {
+        if (layout.id == null && !layout.creating) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -149,11 +146,13 @@ private fun NoteContent(
             }
         } else {
             EditorLayout(
-                route = if (creating) Route.CreateNote else Route.Note(id = requireNotNull(id)),
+                route =
+                    if (layout.creating) Route.CreateNote
+                    else Route.Note(id = requireNotNull(layout.id)),
                 title = {
                     EditorTextInput(
                         value = draft?.title.orEmpty(),
-                        onValueChange = onTitleChange,
+                        onValueChange = actions.onTitleChange,
                         label = stringResource(id = R.string.title),
                         style = MaterialTheme.typography.headlineSmall,
                         enabled = canEdit,
@@ -161,26 +160,35 @@ private fun NoteContent(
                         minLines = 1,
                         maxLines = 1,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
+                        keyboardActions =
+                            KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }),
                     )
                 },
-                onBack = onBack,
-                onSave = onSave,
-                saveLabel = stringResource(id = if (creating) R.string.create else R.string.save),
+                onBack = actions.onBack,
+                onSave = actions.onSave,
+                saveLabel =
+                    stringResource(id = if (layout.creating) R.string.create else R.string.save),
                 actionsLabel = stringResource(id = R.string.note_actions),
-                onOpenActions = onOpenActions,
+                onOpenActions = actions.onOpenActions,
                 canEdit = canEdit && state.save != ApiResult.Loading,
-                isLoading = state.load == ApiResult.Loading || state.save == ApiResult.Loading ||
-                        state.close == ApiResult.Loading,
+                isLoading =
+                    state.load == ApiResult.Loading ||
+                            state.save == ApiResult.Loading ||
+                            state.close == ApiResult.Loading,
                 showActions = state.note != null,
                 trailingContent = {
-                    if (isExpanded) {
+                    if (layout.isExpanded) {
                         AppIconButton(
-                            icon = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                            contentDescription = stringResource(
-                                id = if (isFullscreen) R.string.exit_fullscreen else R.string.enter_fullscreen,
-                            ),
-                            onClick = onToggle,
+                            icon =
+                                if (layout.isFullscreen) Icons.Default.FullscreenExit
+                                else Icons.Default.Fullscreen,
+                            contentDescription =
+                                stringResource(
+                                    id =
+                                        if (layout.isFullscreen) R.string.exit_fullscreen
+                                        else R.string.enter_fullscreen
+                                ),
+                            onClick = actions.onToggle,
                             enabled = !readOnly,
                         )
                     }
@@ -188,7 +196,7 @@ private fun NoteContent(
             ) {
                 AppLazyColumn(
                     contentPadding = PaddingValues(all = 0.dp),
-                    userScrollEnabled = false
+                    userScrollEnabled = false,
                 ) {
                     item {
                         Column(
@@ -202,7 +210,7 @@ private fun NoteContent(
                                 ErrorCard(
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                     error = load.error.message,
-                                    onRefresh = onRetry,
+                                    onRefresh = actions.onRetry,
                                 )
                             }
 
@@ -211,19 +219,20 @@ private fun NoteContent(
                                 ErrorCard(
                                     modifier = Modifier.padding(horizontal = 16.dp),
                                     error = save.error.message,
-                                    onRefresh = onSave,
+                                    onRefresh = actions.onSave,
                                 )
                             }
 
                             if (draft != null) {
                                 MarkdownEditor(
-                                    modifier = Modifier
-                                        .weight(weight = 1f)
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp),
+                                    modifier =
+                                        Modifier
+                                            .weight(weight = 1f)
+                                            .fillMaxSize()
+                                            .padding(horizontal = 16.dp),
                                     markdown = draft.content,
                                     readOnly = !canEdit,
-                                    onContentChange = onContentChange,
+                                    onContentChange = actions.onContentChange,
                                 )
                             }
                         }
@@ -233,19 +242,32 @@ private fun NoteContent(
         }
     }
 
-    state.note?.let { note ->
-        if (state.showActions) {
-            NoteActionsSheet(
-                title = draft?.title?.ifBlank { stringResource(id = R.string.notes) } ?: note.title,
-                createdAt = note.createdAt,
-                updatedAt = note.updatedAt,
-                onDismiss = onDismissSheet,
-                onDelete = onRequestDelete,
-            )
-        }
+    if (state.showActions && state.note != null) {
+        NoteActionsSheet(state = state, actions = actions)
     }
 
     if (state.showDelete) {
-        DeleteNoteSheet(result = state.delete, onDismiss = onDismissSheet, onDelete = onDelete)
+        DeleteNoteSheet(result = state.delete, actions = actions)
     }
 }
+
+internal data class NoteActions(
+    val onRetry: () -> Unit,
+    val onBack: () -> Unit,
+    val onToggle: () -> Unit,
+    val onTitleChange: (String) -> Unit,
+    val onContentChange: (String) -> Unit,
+    val onOpenActions: () -> Unit,
+    val onDismissSheet: () -> Unit,
+    val onRequestDelete: () -> Unit,
+    val onDelete: () -> Unit,
+    val onSave: () -> Unit,
+)
+
+internal data class NoteLayout(
+    val id: String?,
+    val creating: Boolean,
+    val visible: Boolean,
+    val isExpanded: Boolean,
+    val isFullscreen: Boolean,
+)

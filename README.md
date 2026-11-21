@@ -21,6 +21,15 @@ Stateful features use `FeatureView` to collect ViewModel state and connect callb
 rendering helpers. `AppNavigation` only declares destinations and navigation callbacks; it does not
 load data or coordinate repositories.
 
+Every destination calls its private `FeatureContent`. Content receives typed state and a
+feature-specific actions bundle, with a narrow route/layout input when necessary; keep content
+signatures to four parameters or fewer. Action bundles are declared beside their owning view and
+shared with that feature's sheets. They contain callbacks rather than a generic event dispatcher.
+Resolve UI labels, resource IDs, greetings, and formatted dates where they are rendered. Pass domain
+models instead of separate title/date/message strings between view components. IDs, URLs, language
+codes, and string-valued edit callbacks are data and remain valid inputs. Login errors use a typed
+value; their resource mapping belongs to the login sheet.
+
 Repositories own cached data. ViewModels own drafts, validation, and request state. Each feature
 keeps nullable data separate from its nullable `ApiResult<Unit>` load status. Mutation results keep
 returned data only when needed for navigation. Cache observations stay active during requests;
@@ -33,6 +42,12 @@ HTTP status description. An authenticated `401` atomically invalidates only the 
 request; session observation cancels the old session, clears cached data, and returns to sign-in. A
 late rejection must never clear credentials from a newer login. Other HTTP failures stay with the
 relevant page or sheet and do not sign the user out.
+
+Debuggable builds log HTTP methods, URLs, request/response headers and bodies, status, and transport
+failures under the `KtorClient` Logcat tag. Authorization, proxy authorization, cookie, and
+set-cookie headers are redacted case-insensitively. Long messages use numbered Unicode-safe chunks
+small enough for Logcat, written together to avoid interleaving chunks. Release builds do not
+install HTTP logging.
 
 Pages use 16 dp horizontal insets, list top/bottom padding, section gaps, and card padding. Related
 controls use 8 dp gaps; profile names and usernames use 2 dp. Apply each inset once. Full-width
@@ -64,6 +79,18 @@ collect state and connect callbacks; content renders the scaffold, loader, optio
 scrolling content, and finally sheets. Use `if` for single conditions and `when` for multiple
 meaningful branches. Prefer named arguments for Kotlin calls. Reuse the existing layout and UI
 components without introducing a generic screen or action framework.
+
+Keep feature helpers in the owning view file rather than one file per small component. Collection
+views own reusable list/grid/card rendering; editor views own editor-specific helpers. Keep the
+substantial calendar grid separate. Every sheet has its own file, with sheet-specific helpers in
+that file. Inline one-use forwarding components and redundant layout wrappers; retain genuinely
+reused styling or substantial behavior. File names match the primary component: singular entities
+and editors (`NoteView`, `TaskView`), plural collections (`NotesView`, `TasksView`). Supporting
+feature types follow the rendering helpers.
+
+Lazy `item`, `items`, and `itemsIndexed` calls in views use positional identity without explicit
+keys. Drafts and selection belong to ViewModels or route-owned state, never lazy-item positions.
+Preserve navigation keys, shared-transition identities, and non-lazy composition keys.
 
 Presentation consumes constructor-injected domain use cases for actions and state observation. Use
 cases delegate to repositories, which retain session and cache ownership. Navigation after an

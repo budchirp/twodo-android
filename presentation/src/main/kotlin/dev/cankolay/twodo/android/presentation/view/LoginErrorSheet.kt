@@ -1,6 +1,5 @@
 package dev.cankolay.twodo.android.presentation.view
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -11,22 +10,27 @@ import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
+import dev.cankolay.twodo.android.presentation.viewmodel.application.LoginError
 
 @Composable
-internal fun LoginErrorSheet(@StringRes error: Int, onDismiss: () -> Unit) {
+internal fun LoginErrorSheet(error: LoginError, onDismiss: () -> Unit) {
     AppBottomSheet(
         title = stringResource(id = R.string.error),
         onDismiss = onDismiss,
         actions = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(id = R.string.close))
-            }
+            TextButton(onClick = onDismiss) { Text(text = stringResource(id = R.string.close)) }
         },
     ) {
         item {
             ErrorCard(
                 modifier = Modifier.padding(horizontal = 16.dp),
-                error = stringResource(id = error),
+                error =
+                    stringResource(
+                        id =
+                            when (error) {
+                                LoginError.MissingToken -> R.string.auth_missing_token
+                            }
+                    ),
             )
         }
     }

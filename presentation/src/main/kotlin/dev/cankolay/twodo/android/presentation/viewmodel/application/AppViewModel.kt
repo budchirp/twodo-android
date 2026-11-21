@@ -12,7 +12,6 @@ import dev.cankolay.twodo.android.domain.usecase.application.session.LogoutUseCa
 import dev.cankolay.twodo.android.domain.usecase.application.session.ObserveSessionInitializedUseCase
 import dev.cankolay.twodo.android.domain.usecase.application.session.ObserveSessionUseCase
 import dev.cankolay.twodo.android.domain.usecase.application.session.RefreshSessionUseCase
-import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
 import dev.cankolay.twodo.android.presentation.navigation.route.Route
 import kotlinx.coroutines.flow.update
@@ -28,15 +27,21 @@ enum class AppPhase(val route: Route?) {
     Failed(route = Route.StartupError),
 }
 
+enum class LoginError {
+    MissingToken
+}
+
 data class AppUiState(
     val phase: AppPhase = AppPhase.Starting,
     val id: String? = null,
     val result: ApiResult<Unit>? = null,
-    val error: Int? = null,
+    val error: LoginError? = null,
 )
 
 @HiltViewModel
-class AppViewModel @Inject constructor(
+class AppViewModel
+@Inject
+constructor(
     private val observeSession: ObserveSessionUseCase,
     private val observeInitialized: ObserveSessionInitializedUseCase,
     private val refreshSession: RefreshSessionUseCase,
@@ -86,7 +91,7 @@ class AppViewModel @Inject constructor(
         val token = uri.getQueryParameter("token")
 
         if (token.isNullOrBlank()) {
-            _uiState.update { it.copy(error = R.string.auth_missing_token) }
+            _uiState.update { it.copy(error = LoginError.MissingToken) }
             return
         }
 
@@ -109,7 +114,7 @@ class AppViewModel @Inject constructor(
         viewModelScope.launch {
             val result = refreshSession()
 
-            _uiState.update { it.copy(result = result.map { }) }
+            _uiState.update { it.copy(result = result.map {}) }
         }
     }
 }
