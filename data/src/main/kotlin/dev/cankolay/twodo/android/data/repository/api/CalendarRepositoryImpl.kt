@@ -23,12 +23,17 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class CalendarRepositoryImpl @Inject constructor(
+class CalendarRepositoryImpl
+@Inject
+constructor(
     private val calendarService: CalendarService,
     private val overview: OverviewRepository,
 ) : CalendarRepository {
     private val data = MutableStateFlow<CalendarData?>(value = null)
     override val calendar = data.asStateFlow()
+    private val changes = MutableStateFlow(0L)
+    override val revision = changes.asStateFlow()
+    private var stale = true
     private var period: PeriodSummary? = null
     private val cacheLock = Any()
     private val requestLock = Mutex()
@@ -39,6 +44,7 @@ class CalendarRepositoryImpl @Inject constructor(
             generation++
             data.value = null
             period = null
+            stale = true
         }
     }
 
@@ -50,55 +56,77 @@ class CalendarRepositoryImpl @Inject constructor(
     ): ApiResult<CalendarData> {
         if (!forceRefresh) {
             synchronized(cacheLock) {
-                data.value?.takeIf {
-                    it.date == date && it.startDate == startDate && it.endDate == endDate
-                }?.let { return ApiResult.Success(data = it) }
+                data.value
+                    ?.takeIf {
+                        !stale &&
+                                it.date == date &&
+                                it.startDate == startDate &&
+                                it.endDate == endDate
+                    }
+                    ?.let {
+                        return ApiResult.Success(data = it)
+                    }
             }
         }
 
+        val revision = changes.value
+
         return request(
             block = {
-                calendarService.getRange(date = date, startDate = startDate, endDate = endDate)
+                calendarService
+                    .getRange(date = date, startDate = startDate, endDate = endDate)
                     .map { it.toDomain(startDate = startDate, endDate = endDate) }
             },
-            publish = { data.value = it },
+            publish = {
+                data.value = it
+                stale = changes.value != revision
+            },
         )
     }
 
-    override suspend fun create(input: CalendarEntryInput): ApiResult<CalendarEntry> = request(
-        block = { calendarService.create(dto = input.toDto()).map { it.toDomain() } },
-        publish = { entry ->
-            replace(entry = entry)
-            invalidate()
-        },
-    )
+    override suspend fun create(input: CalendarEntryInput): ApiResult<CalendarEntry> =
+        request(
+            block = {
+                calendarService.create(dto = input.toDto(creating = true)).map { it.toDomain() }
+            },
+            publish = { invalidate() },
+        )
 
     override suspend fun update(id: String, input: CalendarEntryInput): ApiResult<CalendarEntry> =
         request(
-            block = { calendarService.update(id = id, dto = input.toDto()).map { it.toDomain() } },
-            publish = { entry ->
-                replace(entry = entry)
+            block = {
+                calendarService.update(id = id, dto = input.toDto(creating = false)).map {
+                    it.toDomain()
+                }
+            },
+            publish = { invalidate() },
+        )
+
+    override suspend fun delete(id: String): ApiResult<Unit> =
+        request(
+            block = { calendarService.delete(id = id) },
+            publish = {
+                data.value =
+                    data.value?.let { current ->
+                        current.copy(
+                            entries = current.entries.filterNot { it.key == "calendar:$id" }
+                        )
+                    }
                 invalidate()
             },
         )
 
-    override suspend fun delete(id: String): ApiResult<Unit> = request(
-        block = { calendarService.delete(id = id) },
-        publish = {
-            data.value = data.value?.let { current ->
-                current.copy(entries = current.entries.filterNot { it.id == id })
-            }
-            invalidate()
-        },
-    )
-
     override suspend fun getPeriods(
         date: LocalDate,
-        forceRefresh: Boolean
+        forceRefresh: Boolean,
     ): ApiResult<PeriodSummary> {
         if (!forceRefresh) {
             synchronized(cacheLock) {
-                period?.takeIf { it.date == date }?.let { return ApiResult.Success(data = it) }
+                period
+                    ?.takeIf { it.date == date }
+                    ?.let {
+                        return ApiResult.Success(data = it)
+                    }
             }
         }
 
@@ -108,23 +136,12 @@ class CalendarRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun replace(entry: CalendarEntry) {
-        data.value = data.value?.let { current ->
-            val entries = current.entries.filterNot { it.id == entry.id }.toMutableList()
-            if (entry.date in current.startDate..current.endDate) entries.add(entry)
-            current.copy(
-                entries = entries.sortedWith(
-                    compareBy(
-                        { it.date },
-                        { it.createdAt },
-                        { it.id })
-                )
-            )
+    override fun invalidate() {
+        synchronized(cacheLock) {
+            stale = true
+            period = null
+            changes.value++
         }
-    }
-
-    private fun invalidate() {
-        period = null
         overview.invalidate()
     }
 

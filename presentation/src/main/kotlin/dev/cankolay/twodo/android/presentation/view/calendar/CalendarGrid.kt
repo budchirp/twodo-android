@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarItem
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarProjection
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarProjectionType
 import dev.cankolay.twodo.android.presentation.R
@@ -129,7 +130,7 @@ internal fun CalendarGrid(
 @Composable
 private fun CalendarDay(day: CalendarDayState, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    val types = day.entries.map { it.type }.toSet()
+    val types = day.entries.filterIsInstance<CalendarEntry>().map { it.type }.toSet()
     val estimatedTypes = day.projections.map { it.type }.toSet()
     val estimateLabel = stringResource(id = R.string.calendar_projection_estimate)
     val estimatedDescription =
@@ -137,8 +138,6 @@ private fun CalendarDay(day: CalendarDayState, onClick: () -> Unit, modifier: Mo
     val containerColor =
         when {
             day.selected -> colors.primaryContainer
-
-            CalendarEntryType.OVULATION in types -> colors.secondaryContainer
 
             CalendarEntryType.PERIOD in types -> colors.tertiaryContainer
 
@@ -157,8 +156,6 @@ private fun CalendarDay(day: CalendarDayState, onClick: () -> Unit, modifier: Mo
             day.selected -> colors.onPrimaryContainer
 
             day.isToday -> colors.primary
-
-            CalendarEntryType.OVULATION in types -> colors.onSecondaryContainer
 
             CalendarEntryType.PERIOD in types || CalendarProjectionType.PERIOD in estimatedTypes ->
                 colors.onTertiaryContainer
@@ -211,6 +208,6 @@ private data class CalendarDayState(
     val date: LocalDate,
     val selected: Boolean,
     val isToday: Boolean,
-    val entries: List<CalendarEntry>,
+    val entries: List<CalendarItem>,
     val projections: List<CalendarProjection>,
 )

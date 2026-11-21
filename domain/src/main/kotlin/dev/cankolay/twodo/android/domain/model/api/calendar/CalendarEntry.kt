@@ -1,17 +1,17 @@
 package dev.cankolay.twodo.android.domain.model.api.calendar
 
+import dev.cankolay.twodo.android.domain.model.api.task.Task
 import dev.cankolay.twodo.android.domain.model.api.user.User
 import java.time.LocalDate
 
 enum class CalendarEntryType(val value: String) {
     NOTE(value = "note"),
     PERIOD(value = "period"),
-    OVULATION(value = "ovulation");
+    EVENT(value = "event");
 
     companion object {
         fun fromValue(value: String) =
-            entries.firstOrNull { it.value == value }
-                ?: error("Unknown CalendarEntryType: $value")
+            entries.firstOrNull { it.value == value } ?: error("Unknown CalendarEntryType: $value")
     }
 }
 
@@ -22,8 +22,7 @@ enum class PeriodEvent(val value: String) {
 
     companion object {
         fun fromValue(value: String) =
-            entries.firstOrNull { it.value == value }
-                ?: error("Unknown PeriodEvent: $value")
+            entries.firstOrNull { it.value == value } ?: error("Unknown PeriodEvent: $value")
     }
 }
 
@@ -35,8 +34,7 @@ enum class FlowLevel(val value: String) {
 
     companion object {
         fun fromValue(value: String) =
-            entries.firstOrNull { it.value == value }
-                ?: error("Unknown FlowLevel: $value")
+            entries.firstOrNull { it.value == value } ?: error("Unknown FlowLevel: $value")
     }
 }
 
@@ -53,25 +51,37 @@ enum class PeriodSymptom(val value: String) {
 
     companion object {
         fun fromValue(value: String) =
-            entries.firstOrNull { it.value == value }
-                ?: error("Unknown PeriodSymptom: $value")
+            entries.firstOrNull { it.value == value } ?: error("Unknown PeriodSymptom: $value")
     }
 }
 
 data class PeriodDetails(
     val event: PeriodEvent,
     val flowLevel: FlowLevel,
-    val symptoms: List<PeriodSymptom>
+    val symptoms: List<PeriodSymptom>,
 )
+
+sealed interface CalendarItem {
+    val date: LocalDate
+    val key: String
+}
+
+data class CalendarTask(override val date: LocalDate, val task: Task) : CalendarItem {
+    override val key: String
+        get() = "task:${task.id}"
+}
 
 data class CalendarEntry(
     val id: String,
-    val date: LocalDate,
+    override val date: LocalDate,
     val type: CalendarEntryType,
     val notes: String?,
     val createdBy: User? = null,
     val period: PeriodDetails?,
     val createdAt: String,
     val updatedAt: String,
-    val isImportant: Boolean = false,
-)
+    val title: String? = null,
+) : CalendarItem {
+    override val key: String
+        get() = "calendar:$id"
+}

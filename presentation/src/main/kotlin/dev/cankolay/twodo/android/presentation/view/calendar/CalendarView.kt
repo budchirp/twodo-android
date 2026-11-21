@@ -22,7 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
@@ -33,14 +34,23 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarTask
+import dev.cankolay.twodo.android.domain.model.api.task.Task
 import dev.cankolay.twodo.android.presentation.R
 import dev.cankolay.twodo.android.presentation.composable.ErrorCard
 import dev.cankolay.twodo.android.presentation.composable.app.AppIconButton
@@ -62,11 +72,28 @@ import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarEntryF
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarViewModel
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.canManage
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 
 @Composable
-fun CalendarView(viewModel: CalendarViewModel = hiltViewModel()) {
+fun CalendarView(onTaskClick: (String) -> Unit, viewModel: CalendarViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+
+    LaunchedEffect(lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.fetch()
+            var date = LocalDate.now()
+
+            while (true) {
+                delay(60_000)
+                if (date != LocalDate.now()) {
+                    date = LocalDate.now()
+                    viewModel.fetch(forceRefresh = true)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(key1 = state.result) {
         if (state.result is ApiResult.Success) viewModel.dismiss()
@@ -88,6 +115,9 @@ fun CalendarView(viewModel: CalendarViewModel = hiltViewModel()) {
                 onAskDelete = viewModel::askDelete,
                 onSave = viewModel::save,
                 onFormChange = viewModel::updateForm,
+                onTask = { onTaskClick(it.id) },
+                onToggleTask = viewModel::toggleTask,
+                onRetryTask = viewModel::retryTask,
             ),
     )
 }
@@ -138,7 +168,7 @@ private fun CalendarPanes(
     entries: (LazyListScope.() -> Unit)?,
 ) {
     val error = (state.load as? ApiResult.Failure)?.error
-    val isLoading = state.result == ApiResult.Loading
+    val isLoading = state.result == ApiResult.Loading || state.taskResult == ApiResult.Loading
 
     val isExpanded = currentPaneDirective().maxHorizontalPartitions > 1
 
@@ -167,7 +197,9 @@ private fun CalendarPanes(
                 )
             },
         ) {
-            AppLinearProgressIndicator(isLoading = (state.load == ApiResult.Loading))
+            AppLinearProgressIndicator(
+                isLoading = state.load == ApiResult.Loading || state.taskResult == ApiResult.Loading
+            )
 
             PullToRefreshBox(
                 isRefreshing = (state.load == ApiResult.Loading),
@@ -239,7 +271,17 @@ private fun LazyListScope.calendarEntries(state: CalendarUiState, actions: Calen
     val entries = state.entries.orEmpty().filter { it.date == state.date }
     val projections = state.projections.filter { state.date in it.startDate..it.endDate }
 
-    val (notes, events) = entries.partition { it.type == CalendarEntryType.NOTE }
+    val taskError = (state.taskResult as? ApiResult.Failure)?.error
+
+    if (taskError != null) {
+        item {
+            ErrorCard(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                error = taskError.message,
+                onRefresh = actions.onRetryTask,
+            )
+        }
+    }
 
     item {
         Text(
@@ -256,25 +298,96 @@ private fun LazyListScope.calendarEntries(state: CalendarUiState, actions: Calen
         )
     }
 
-    if (events.isNotEmpty() || (entries.isEmpty() && projections.isEmpty())) {
+    if (entries.isEmpty() && projections.isEmpty()) {
         item {
-            when {
-                events.isEmpty() ->
-                    SettingCard(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        title = stringResource(id = R.string.calendar_day_empty_title),
-                        description = stringResource(id = R.string.calendar_day_empty_desc),
-                        leadingContent = { Icon(icon = Icons.Default.CalendarMonth) },
-                    )
+            SettingCard(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                title = stringResource(id = R.string.calendar_day_empty_title),
+                description = stringResource(id = R.string.calendar_day_empty_desc),
+                leadingContent = { Icon(icon = Icons.Default.CalendarMonth) },
+            )
+        }
+    }
 
-                else ->
-                    SettingsGroup(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        items =
-                            events.map { entry ->
-                                val parts =
-                                    when (entry.type) {
-                                        CalendarEntryType.PERIOD ->
+    items(
+        items =
+            entries
+                .groupBy {
+                    when (it) {
+                        is CalendarEntry -> it.type.value
+                        is CalendarTask -> "task"
+                    }
+                }
+                .values
+                .toList()
+    ) { group ->
+        if ((group.first() as? CalendarEntry)?.type == CalendarEntryType.NOTE) {
+            CalendarNotes(
+                entries = group.filterIsInstance<CalendarEntry>(),
+                state = state,
+                actions = actions,
+            )
+        } else {
+            SettingsGroup(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                items =
+                    group.map { entry ->
+                        when (entry) {
+                            is CalendarTask -> {
+                                val task = entry.task
+                                val completion =
+                                    stringResource(
+                                        id =
+                                            if (task.completed) R.string.task_completed
+                                            else R.string.task_incomplete
+                                    )
+                                val toggle =
+                                    stringResource(
+                                        id =
+                                            if (task.completed) R.string.reopen_task
+                                            else R.string.complete_task,
+                                        task.title,
+                                    )
+
+                                SettingItem(
+                                    title = task.title,
+                                    enabled = state.taskResult != ApiResult.Loading,
+                                    description =
+                                        listOfNotNull(
+                                            task.description.takeIf { it.isNotBlank() },
+                                            if (task.assignedToUserId == null)
+                                                stringResource(id = R.string.task_shared)
+                                            else
+                                                task.assignedTo?.name
+                                                    ?: stringResource(
+                                                        id = R.string.task_assigned
+                                                    ),
+                                        )
+                                            .joinToString(separator = " · "),
+                                    onClick = { actions.onTask(task) },
+                                    leadingContent = {
+                                        Checkbox(
+                                            modifier =
+                                                Modifier.semantics {
+                                                    contentDescription = toggle
+                                                    stateDescription = completion
+                                                },
+                                            checked = task.completed,
+                                            enabled = state.taskResult != ApiResult.Loading,
+                                            onCheckedChange = { actions.onToggleTask(task) },
+                                        )
+                                    },
+                                )
+                            }
+
+                            is CalendarEntry ->
+                                SettingItem(
+                                    title =
+                                        if (entry.type == CalendarEntryType.EVENT)
+                                            entry.title.orEmpty()
+                                        else stringResource(id = R.string.calendar_type_period),
+                                    description =
+                                        if (entry.type == CalendarEntryType.PERIOD) {
                                             listOfNotNull(
                                                 entry.period?.event?.let {
                                                     stringResource(id = it.label)
@@ -289,30 +402,10 @@ private fun LazyListScope.calendarEntries(state: CalendarUiState, actions: Calen
                                                     ?.joinToString(),
                                                 entry.notes?.takeIf { it.isNotBlank() },
                                             )
-
-                                        else -> listOfNotNull(entry.notes)
-                                    }
-
-                                SettingItem(
-                                    title =
-                                        if (entry.isImportant)
-                                            stringResource(id = R.string.important_date) +
-                                                    " · " +
-                                                    stringResource(id = entry.type.label)
-                                        else stringResource(id = entry.type.label),
-                                    description =
-                                        parts.joinToString(separator = " · ").ifBlank {
-                                            stringResource(id = R.string.no_notes)
-                                        },
-                                    leadingContent = {
-                                        Icon(
-                                            icon =
-                                                if (entry.isImportant) Icons.Default.Star
-                                                else if (entry.type == CalendarEntryType.OVULATION)
-                                                    Icons.Default.AutoAwesome
-                                                else Icons.Default.CalendarMonth
-                                        )
-                                    },
+                                                .joinToString(separator = " · ")
+                                                .ifBlank { stringResource(id = R.string.no_notes) }
+                                        } else null,
+                                    leadingContent = { Icon(icon = Icons.Default.Event) },
                                     onClick =
                                         if (
                                             entry.canManage(canTrackPeriods = state.canTrackPeriods)
@@ -320,9 +413,9 @@ private fun LazyListScope.calendarEntries(state: CalendarUiState, actions: Calen
                                             ({ actions.onEdit(entry) })
                                         else null,
                                 )
-                            },
-                    )
-            }
+                        }
+                    },
+            )
         }
     }
 
@@ -340,49 +433,41 @@ private fun LazyListScope.calendarEntries(state: CalendarUiState, actions: Calen
             leadingContent = { Icon(icon = Icons.Default.AutoAwesome) },
         )
     }
+}
 
-    if (notes.isNotEmpty()) {
-        item {
-            Column(modifier = Modifier.fillMaxWidth()) {
+@Composable
+private fun CalendarNotes(
+    entries: List<CalendarEntry>,
+    state: CalendarUiState,
+    actions: CalendarActions,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        entries.forEach { entry ->
+            key(entry.key) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
 
-                notes.forEachIndexed { index, entry ->
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    enabled =
-                                        entry.canManage(canTrackPeriods = state.canTrackPeriods),
-                                    onClick = { actions.onEdit(entry) },
-                                )
-                                .padding(all = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(space = 8.dp),
-                    ) {
-                        Text(
-                            text =
-                                DateUtils.format(
-                                    value = entry.createdAt,
-                                    pattern = DateUtils.TIME_PATTERN,
-                                ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-
-                        if (entry.isImportant) {
-                            Text(
-                                text = stringResource(id = R.string.important_date),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                enabled = entry.canManage(canTrackPeriods = state.canTrackPeriods),
+                                onClick = { actions.onEdit(entry) },
                             )
-                        }
+                            .padding(all = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(space = 8.dp),
+                ) {
+                    Text(
+                        text =
+                            DateUtils.format(
+                                value = entry.createdAt,
+                                pattern = DateUtils.TIME_PATTERN,
+                            ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
-                        MarkdownEditor(markdown = entry.notes.orEmpty(), readOnly = true)
-                    }
-
-                    if (index < notes.lastIndex) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceContainer)
-                    }
+                    MarkdownEditor(markdown = entry.notes.orEmpty(), readOnly = true)
                 }
             }
         }
@@ -402,4 +487,7 @@ internal data class CalendarActions(
     val onAskDelete: () -> Unit,
     val onSave: () -> Unit,
     val onFormChange: (CalendarEntryFormState) -> Unit,
+    val onTask: (Task) -> Unit,
+    val onToggleTask: (Task) -> Unit,
+    val onRetryTask: () -> Unit,
 )

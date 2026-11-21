@@ -10,8 +10,14 @@ import java.time.LocalDate
 
 interface CalendarRepository {
     val calendar: StateFlow<CalendarData?>
+    val revision: StateFlow<Long>
+
+    fun invalidate()
+
     suspend fun clear()
+
     suspend fun create(input: CalendarEntryInput): ApiResult<CalendarEntry>
+
     suspend fun get(
         date: LocalDate,
         startDate: LocalDate,
@@ -20,6 +26,8 @@ interface CalendarRepository {
     ): ApiResult<CalendarData>
 
     suspend fun update(id: String, input: CalendarEntryInput): ApiResult<CalendarEntry>
+
     suspend fun delete(id: String): ApiResult<Unit>
+
     suspend fun getPeriods(date: LocalDate, forceRefresh: Boolean = false): ApiResult<PeriodSummary>
 }

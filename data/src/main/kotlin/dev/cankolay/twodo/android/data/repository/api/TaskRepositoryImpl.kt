@@ -7,7 +7,7 @@ import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.map
 import dev.cankolay.twodo.android.domain.model.api.task.FieldChange
 import dev.cankolay.twodo.android.domain.model.api.task.Task
-import dev.cankolay.twodo.android.domain.repository.api.OverviewRepository
+import dev.cankolay.twodo.android.domain.repository.api.CalendarRepository
 import dev.cankolay.twodo.android.domain.repository.api.TaskRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
@@ -25,10 +25,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TaskRepositoryImpl @Inject constructor(
-    private val service: TaskService,
-    private val overview: OverviewRepository,
-) : TaskRepository {
+class TaskRepositoryImpl
+@Inject
+constructor(private val service: TaskService, private val calendar: CalendarRepository) :
+    TaskRepository {
     private val _tasks = MutableStateFlow<List<Task>?>(value = null)
     override val tasks = _tasks.asStateFlow()
 
@@ -46,7 +46,9 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun getAll(forceRefresh: Boolean): ApiResult<List<Task>> {
         if (!forceRefresh) {
-            _tasks.value?.let { return ApiResult.Success(data = it) }
+            _tasks.value?.let {
+                return ApiResult.Success(data = it)
+            }
         }
 
         return request(
@@ -55,32 +57,34 @@ class TaskRepositoryImpl @Inject constructor(
         )
     }
 
-    override suspend fun get(id: String): ApiResult<Task> = request(
-        block = { service.get(id = id).map { it.toDomain() } },
-        publish = ::replace,
-    )
+    override suspend fun get(id: String): ApiResult<Task> =
+        request(block = { service.get(id = id).map { it.toDomain() } }, publish = ::replace)
 
     override suspend fun create(
         title: String,
         description: String,
         dueDate: LocalDate?,
         assignedToUserId: String?,
-    ): ApiResult<Task> = request(
-        block = {
-            service.create(
-                dto = CreateTaskRequestDto(
-                    title = title,
-                    description = description,
-                    dueDate = dueDate?.toString(),
-                    assignedToUserId = assignedToUserId,
-                ),
-            ).map { it.toDomain() }
-        },
-        publish = { task ->
-            overview.invalidate()
-            _tasks.value = _tasks.value?.let { listOf(task) + it }
-        },
-    )
+    ): ApiResult<Task> =
+        request(
+            block = {
+                service
+                    .create(
+                        dto =
+                            CreateTaskRequestDto(
+                                title = title,
+                                description = description,
+                                dueDate = dueDate?.toString(),
+                                assignedToUserId = assignedToUserId,
+                            )
+                    )
+                    .map { it.toDomain() }
+            },
+            publish = { task ->
+                calendar.invalidate()
+                _tasks.value = _tasks.value?.let { listOf(task) + it }
+            },
+        )
 
     override suspend fun update(
         id: String,
@@ -89,42 +93,47 @@ class TaskRepositoryImpl @Inject constructor(
         completed: Boolean?,
         dueDate: FieldChange<LocalDate?>?,
         assignedToUserId: FieldChange<String?>?,
-    ): ApiResult<Task> = request(
-        block = {
-            service.update(
-                id = id,
-                dto = buildJsonObject {
-                    title?.let { put("title", it) }
-                    description?.let { put("description", it) }
-                    completed?.let { put("completed", it) }
-                    dueDate?.let {
-                        put(
-                            "dueDate",
-                            it.value?.toString()?.let(::JsonPrimitive) ?: JsonNull
-                        )
-                    }
-                    assignedToUserId?.let {
-                        put(
-                            "assignedToUserId",
-                            it.value?.let(::JsonPrimitive) ?: JsonNull
-                        )
-                    }
-                },
-            ).map { it.toDomain() }
-        },
-        publish = {
-            replace(it)
-            overview.invalidate()
-        },
-    )
+    ): ApiResult<Task> =
+        request(
+            block = {
+                service
+                    .update(
+                        id = id,
+                        dto =
+                            buildJsonObject {
+                                title?.let { put("title", it) }
+                                description?.let { put("description", it) }
+                                completed?.let { put("completed", it) }
+                                dueDate?.let {
+                                    put(
+                                        "dueDate",
+                                        it.value?.toString()?.let(::JsonPrimitive) ?: JsonNull,
+                                    )
+                                }
+                                assignedToUserId?.let {
+                                    put(
+                                        "assignedToUserId",
+                                        it.value?.let(::JsonPrimitive) ?: JsonNull,
+                                    )
+                                }
+                            },
+                    )
+                    .map { it.toDomain() }
+            },
+            publish = {
+                replace(it)
+                calendar.invalidate()
+            },
+        )
 
-    override suspend fun delete(id: String): ApiResult<Unit> = request(
-        block = { service.delete(id = id) },
-        publish = {
-            overview.invalidate()
-            _tasks.value = _tasks.value?.filterNot { it.id == id }
-        },
-    )
+    override suspend fun delete(id: String): ApiResult<Unit> =
+        request(
+            block = { service.delete(id = id) },
+            publish = {
+                calendar.invalidate()
+                _tasks.value = _tasks.value?.filterNot { it.id == id }
+            },
+        )
 
     private fun replace(task: Task) {
         _tasks.value = _tasks.value?.map { if (it.id == task.id) task else it }

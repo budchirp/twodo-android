@@ -1,35 +1,36 @@
 package dev.cankolay.twodo.android.data.api.model.request.calendar
 
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryInput
-import kotlinx.serialization.Serializable
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
-@Serializable
-data class CalendarEntryRequestDto(
-    val date: String,
-    val type: String,
-    val notes: String? = null,
-    val period: PeriodRequestDto? = null,
-    val isImportant: Boolean
-)
+fun CalendarEntryInput.toDto(creating: Boolean) = buildJsonObject {
+    put("date", date.toString())
 
-@Serializable
-data class PeriodRequestDto(
-    val event: String,
-    val flowLevel: String,
-    val symptoms: List<String>,
-    val endDate: String? = null
-)
+    if (creating || type != CalendarEntryType.EVENT) put("type", type.value)
 
-fun CalendarEntryInput.toDto() = CalendarEntryRequestDto(
-    date = date.toString(),
-    type = type.value,
-    notes = notes,
-    isImportant = isImportant,
-    period = period?.let { period ->
-        PeriodRequestDto(
-            event = period.event.value,
-            flowLevel = period.flowLevel.value,
-            symptoms = period.symptoms.map { it.value }
-        )
+    if (type == CalendarEntryType.EVENT) {
+        put("title", requireNotNull(title).trim())
+    } else {
+        put("notes", notes.orEmpty())
+
+        if (type == CalendarEntryType.PERIOD) {
+            period?.let {
+                put(
+                    "period",
+                    buildJsonObject {
+                        put("event", it.event.value)
+                        put("flowLevel", it.flowLevel.value)
+                        put(
+                            "symptoms",
+                            JsonArray(it.symptoms.map { symptom -> JsonPrimitive(symptom.value) }),
+                        )
+                    },
+                )
+            }
+        }
     }
-)
+}

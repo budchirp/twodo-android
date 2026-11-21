@@ -2,14 +2,11 @@
 <resources>
     <string name="updated_at">Düzenlenme tarihi</string>
     <string name="calendar_projection_estimate">Tahmin</string>
-    <string name="home_feed">Yaklaşanlar</string>
-    <string name="home_feed_empty">Planlanmış görev veya önemli tarih yok</string>
     <string name="home_summary">Genel bakış</string>
     <string name="relationship_paired">Hayatı birlikte paylaşıyorsunuz</string>
     <string name="task_assigned">Atanmış</string>
     <string name="period_estimate_active">Tahmini dönem devam ediyor</string>
     <string name="period_reliability_unknown">Güvenilirlik bilgisi yok</string>
-    <string name="important_date_not_found">Bu önemli tarih artık mevcut değil.</string>
     <plurals name="period_recorded_ranges">
         <item quantity="one">%1$d kayıtlı regl dönemi</item>
         <item quantity="other">%1$d kayıtlı regl dönemi</item>
@@ -122,7 +119,9 @@
 
     <string name="calendar_type_note">Not</string>
     <string name="calendar_type_period">Regl</string>
-    <string name="calendar_type_ovulation">Yumurtlama</string>
+    <string name="calendar_type_event">Etkinlik</string>
+    <string name="calendar_title_limit">Başlık en fazla 1.000 karakter olmalıdır.</string>
+    <string name="calendar_notes_limit">Notlar en fazla 1.000 karakter olmalıdır.</string>
 
     <string name="period_tracker">Regl takibi</string>
     <string name="period_tracker_desc">Tahmini regl, yumurtlama ve döngü önerileri</string>
@@ -187,7 +186,6 @@
     <string name="home_good_night">İyi geceler</string>
     <string name="clear_date">Tarihi kaldır</string>
     <string name="date_not_set">Tarih belirlenmedi</string>
-    <string name="important_date">Önemli tarih</string>
     <string name="relationship_start_date">İlişki başlangıç tarihi</string>
     <string name="relationship_date_missing">Birlikte geçirdiğiniz zamanı kutlamak için ilişki tarihinizi belirleyin.</string>
     <string name="relationship_set_date">İlişki tarihini belirle</string>

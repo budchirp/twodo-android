@@ -9,7 +9,7 @@ import java.time.LocalDate
 @Serializable
 data class CalendarDataDto(
     val date: String,
-    val entries: List<CalendarEntryDto>,
+    val entries: List<CalendarItemDto>,
     val projections: List<CalendarProjectionDto>,
     val prediction: PeriodPredictionDto,
 )
@@ -23,19 +23,21 @@ data class CalendarProjectionDto(
     val peakDate: String? = null,
 )
 
-fun CalendarDataDto.toDomain(startDate: LocalDate, endDate: LocalDate) = CalendarData(
-    date = LocalDate.parse(date),
-    startDate = startDate,
-    endDate = endDate,
-    entries = entries.map { it.toDomain() },
-    projections = projections.map {
-        CalendarProjection(
-            type = CalendarProjectionType.fromValue(it.type),
-            startDate = LocalDate.parse(it.startDate),
-            endDate = LocalDate.parse(it.endDate),
-            label = it.label,
-            peakDate = it.peakDate?.let(LocalDate::parse),
-        )
-    },
-    prediction = prediction.toDomain(),
-)
+fun CalendarDataDto.toDomain(startDate: LocalDate, endDate: LocalDate) =
+    CalendarData(
+        date = LocalDate.parse(date),
+        startDate = startDate,
+        endDate = endDate,
+        entries = entries.map { it.toDomain() },
+        projections =
+            projections.map {
+                CalendarProjection(
+                    type = CalendarProjectionType.fromValue(it.type),
+                    startDate = LocalDate.parse(it.startDate),
+                    endDate = LocalDate.parse(it.endDate),
+                    label = it.label,
+                    peakDate = it.peakDate?.let(LocalDate::parse),
+                )
+            },
+        prediction = prediction.toDomain(),
+    )

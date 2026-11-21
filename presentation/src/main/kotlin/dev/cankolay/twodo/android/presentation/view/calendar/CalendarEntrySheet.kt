@@ -28,7 +28,6 @@ import dev.cankolay.twodo.android.presentation.composable.app.RadioOptions
 import dev.cankolay.twodo.android.presentation.composable.app.SettingItem
 import dev.cankolay.twodo.android.presentation.composable.app.SettingRowSize
 import dev.cankolay.twodo.android.presentation.composable.app.SettingsGroup
-import dev.cankolay.twodo.android.presentation.composable.app.SwitchSetting
 import dev.cankolay.twodo.android.presentation.composable.app.layout.AppBottomSheet
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.CalendarUiState
 import dev.cankolay.twodo.android.presentation.viewmodel.calendar.canCreate
@@ -38,6 +37,7 @@ import dev.cankolay.twodo.android.presentation.viewmodel.calendar.canCreate
 internal fun CalendarEntrySheet(state: CalendarUiState, actions: CalendarActions) {
 
     val isLoading = state.result == ApiResult.Loading
+    val fields = (state.result as? ApiResult.Failure)?.error?.fieldErrors.orEmpty()
 
     AppBottomSheet(
         title =
@@ -62,38 +62,60 @@ internal fun CalendarEntrySheet(state: CalendarUiState, actions: CalendarActions
             }
         },
     ) {
+        if (!state.form.editing)
+            item {
+                RadioOptions(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    items =
+                        CalendarEntryType.entries.filter {
+                            it.canCreate(canTrackPeriods = state.canTrackPeriods)
+                        },
+                    selected = state.form.type,
+                    enabled = !isLoading,
+                    label = { stringResource(id = it.label) },
+                    onSelected = { actions.onFormChange(state.form.copy(type = it)) },
+                )
+            }
         item {
-            RadioOptions(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                items =
-                    CalendarEntryType.entries.filter {
-                        it.canCreate(canTrackPeriods = state.canTrackPeriods)
-                    },
-                selected = state.form.type,
-                enabled = !isLoading,
-                label = { stringResource(id = it.label) },
-                onSelected = { actions.onFormChange(state.form.copy(type = it)) },
-            )
-        }
-        item {
+            val event = state.form.type == CalendarEntryType.EVENT
+            val error =
+                when {
+                    event && state.form.submitted && state.form.title.isBlank() ->
+                        stringResource(id = R.string.title_required)
+
+                    event && state.form.titleLength > 1000 ->
+                        stringResource(id = R.string.calendar_title_limit)
+
+                    !event && state.form.notesLength > 1000 ->
+                        stringResource(id = R.string.calendar_notes_limit)
+
+                    else ->
+                        fields
+                            .firstOrNull { it.field == if (event) "title" else "notes" }
+                            ?.messages
+                            ?.joinToString(separator = "\n")
+                }
+
             TextField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                value = state.form.notes,
+                value = if (event) state.form.title else state.form.notes,
                 enabled = !isLoading,
-                onValueChange = { actions.onFormChange(state.form.copy(notes = it)) },
-                label = { Text(text = stringResource(id = R.string.notes_field)) },
-                minLines = 3,
-            )
-        }
-        item {
-            SwitchSetting(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                title = stringResource(id = R.string.important_date),
-                checked = state.form.isImportant,
-                enabled = !isLoading,
-                onCheckedChange = { actions.onFormChange(state.form.copy(isImportant = it)) },
+                onValueChange = {
+                    actions.onFormChange(
+                        if (event) state.form.copy(title = it) else state.form.copy(notes = it)
+                    )
+                },
+                label = {
+                    Text(
+                        text =
+                            stringResource(id = if (event) R.string.title else R.string.notes_field)
+                    )
+                },
+                minLines = if (event) 1 else 3,
+                isError = error != null,
+                supportingText = if (error != null) ({ Text(text = error) }) else null,
             )
         }
         if (state.form.type == CalendarEntryType.PERIOD) {
@@ -184,7 +206,7 @@ internal val CalendarEntryType.label: Int
 
             CalendarEntryType.PERIOD -> R.string.calendar_type_period
 
-            CalendarEntryType.OVULATION -> R.string.calendar_type_ovulation
+            CalendarEntryType.EVENT -> R.string.calendar_type_event
         }
 
 @get:StringRes

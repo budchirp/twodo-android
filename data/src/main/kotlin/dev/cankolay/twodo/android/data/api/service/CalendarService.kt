@@ -3,7 +3,6 @@ package dev.cankolay.twodo.android.data.api.service
 import dev.cankolay.twodo.android.data.api.client.KtorClient
 import dev.cankolay.twodo.android.data.api.client.request
 import dev.cankolay.twodo.android.data.api.client.requestUnit
-import dev.cankolay.twodo.android.data.api.model.request.calendar.CalendarEntryRequestDto
 import dev.cankolay.twodo.android.data.api.model.response.calendar.CalendarDataDto
 import dev.cankolay.twodo.android.data.api.model.response.calendar.CalendarEntryDto
 import dev.cankolay.twodo.android.data.api.model.response.calendar.PeriodSummaryDto
@@ -15,21 +14,19 @@ import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.path
+import kotlinx.serialization.json.JsonObject
 import java.time.LocalDate
 import javax.inject.Inject
 
-class CalendarService
-@Inject
-constructor(private val client: KtorClient) {
-    suspend fun create(dto: CalendarEntryRequestDto) = request<CalendarEntryDto> {
-        client().post {
-            url {
-                path(ApiConstants.Endpoints.CALENDAR)
-            }
+class CalendarService @Inject constructor(private val client: KtorClient) {
+    suspend fun create(dto: JsonObject) =
+        request<CalendarEntryDto> {
+            client().post {
+                url { path(ApiConstants.Endpoints.CALENDAR) }
 
-            setBody(body = dto)
+                setBody(body = dto)
+            }
         }
-    }
 
     suspend fun getRange(date: LocalDate, startDate: LocalDate, endDate: LocalDate) =
         request<CalendarDataDto> {
@@ -43,30 +40,24 @@ constructor(private val client: KtorClient) {
             }
         }
 
-    suspend fun update(id: String, dto: CalendarEntryRequestDto) = request<CalendarEntryDto> {
-        client().patch {
-            url {
-                path(ApiConstants.Endpoints.CALENDAR, id)
-            }
+    suspend fun update(id: String, dto: JsonObject) =
+        request<CalendarEntryDto> {
+            client().patch {
+                url { path(ApiConstants.Endpoints.CALENDAR, id) }
 
-            setBody(body = dto)
+                setBody(body = dto)
+            }
         }
-    }
 
     suspend fun delete(id: String) = requestUnit {
-        client().delete {
-            url {
-                path(ApiConstants.Endpoints.CALENDAR, id)
-            }
-        }
+        client().delete { url { path(ApiConstants.Endpoints.CALENDAR, id) } }
     }
 
-    suspend fun getPeriods(date: LocalDate) = request<PeriodSummaryDto> {
-        client().get {
-            url {
-                path(ApiConstants.Endpoints.PERIODS)
+    suspend fun getPeriods(date: LocalDate) =
+        request<PeriodSummaryDto> {
+            client().get {
+                url { path(ApiConstants.Endpoints.PERIODS) }
+                parameter(key = "date", value = date.toString())
             }
-            parameter(key = "date", value = date.toString())
         }
-    }
 }

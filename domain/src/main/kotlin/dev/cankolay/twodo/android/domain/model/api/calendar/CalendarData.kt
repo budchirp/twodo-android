@@ -6,7 +6,7 @@ data class CalendarData(
     val date: LocalDate,
     val startDate: LocalDate,
     val endDate: LocalDate,
-    val entries: List<CalendarEntry>,
+    val entries: List<CalendarItem>,
     val projections: List<CalendarProjection>,
     val prediction: PeriodPrediction,
 )

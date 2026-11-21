@@ -6,6 +6,7 @@ import dev.cankolay.twodo.android.domain.model.api.ApiResult
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntry
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryInput
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarEntryType
+import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarItem
 import dev.cankolay.twodo.android.domain.model.api.calendar.CalendarProjection
 import dev.cankolay.twodo.android.domain.model.api.calendar.FlowLevel
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodEvent
@@ -13,17 +14,21 @@ import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodInput
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSummary
 import dev.cankolay.twodo.android.domain.model.api.calendar.PeriodSymptom
 import dev.cankolay.twodo.android.domain.model.api.map
+import dev.cankolay.twodo.android.domain.model.api.task.Task
 import dev.cankolay.twodo.android.domain.model.api.user.Gender
 import dev.cankolay.twodo.android.domain.model.application.SessionState
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.CreateCalendarEntryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.DeleteCalendarEntryUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetCalendarUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.GetPeriodsUseCase
+import dev.cankolay.twodo.android.domain.usecase.api.calendar.ObserveCalendarRevisionUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.ObserveCalendarUseCase
 import dev.cankolay.twodo.android.domain.usecase.api.calendar.UpdateCalendarEntryUseCase
+import dev.cankolay.twodo.android.domain.usecase.api.task.UpdateTaskUseCase
 import dev.cankolay.twodo.android.domain.usecase.application.session.ObserveSessionUseCase
 import dev.cankolay.twodo.android.presentation.core.BaseViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -38,19 +43,28 @@ data class CalendarEntryFormState(
     val periodEvent: PeriodEvent = PeriodEvent.DAY,
     val flowLevel: FlowLevel = FlowLevel.MEDIUM,
     val symptoms: Set<PeriodSymptom> = emptySet(),
-    val isImportant: Boolean = false,
+    val title: String = "",
+    val submitted: Boolean = false,
 ) {
     val editing: Boolean
         get() = entry != null
+
+    val titleLength: Int
+        get() = title.trim().let { it.codePointCount(0, it.length) }
+
+    val notesLength: Int
+        get() = notes.codePointCount(0, notes.length)
 }
 
 data class CalendarUiState(
-    val entries: List<CalendarEntry>? = null,
+    val entries: List<CalendarItem>? = null,
     val projections: List<CalendarProjection> = emptyList(),
     val load: ApiResult<Unit>? = null,
     val prediction: PeriodSummary? = null,
     val predictionLoad: ApiResult<Unit>? = null,
     val result: ApiResult<Unit>? = null,
+    val taskResult: ApiResult<Unit>? = null,
+    val changingTask: Task? = null,
     val month: YearMonth = YearMonth.now(),
     val date: LocalDate = LocalDate.now(),
     val form: CalendarEntryFormState = CalendarEntryFormState(date = LocalDate.now()),
@@ -61,7 +75,9 @@ data class CalendarUiState(
 )
 
 @HiltViewModel
-class CalendarViewModel @Inject constructor(
+class CalendarViewModel
+@Inject
+constructor(
     private val observeEntries: ObserveCalendarUseCase,
     private val getEntries: GetCalendarUseCase,
     private val getPrediction: GetPeriodsUseCase,
@@ -69,15 +85,37 @@ class CalendarViewModel @Inject constructor(
     private val updateEntry: UpdateCalendarEntryUseCase,
     private val deleteEntry: DeleteCalendarEntryUseCase,
     private val observeSession: ObserveSessionUseCase,
-) : BaseViewModel<CalendarUiState>(
-    initialState = CalendarUiState()
-) {
+    observeRevision: ObserveCalendarRevisionUseCase,
+    private val updateTask: UpdateTaskUseCase,
+) : BaseViewModel<CalendarUiState>(initialState = CalendarUiState()) {
     private var loadJob: Job? = null
+    private var requestDate: LocalDate? = null
     private var predictionJob: Job? = null
+    private var mutationJob: Job? = null
+    private var owner: Triple<String, String?, List<String>>? = null
 
     init {
         viewModelScope.launch {
             observeSession().collect { state ->
+                val user = (state as? SessionState.Active)?.user
+                val next =
+                    user?.let {
+                        Triple(
+                            it.id,
+                            it.couple?.id,
+                            it.couple?.users.orEmpty().map { member -> member.id }.sorted(),
+                        )
+                    }
+
+                if (owner != null && next != owner) {
+                    loadJob?.cancel()
+                    predictionJob?.cancel()
+                    mutationJob?.cancel()
+                    _uiState.value = CalendarUiState()
+                }
+
+                owner = next
+
                 _uiState.update {
                     it.copy(
                         canTrackPeriods =
@@ -88,19 +126,34 @@ class CalendarViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            observeRevision().drop(1).collect {
+                loadJob?.cancel()
+                predictionJob?.cancel()
+                fetch(forceRefresh = true)
+                if (uiState.value.showPrediction) openPrediction(forceRefresh = true)
+            }
+        }
+
+        viewModelScope.launch {
             observeEntries().collect { data ->
                 _uiState.update {
                     when {
-                        data == null -> it.copy(
-                            entries = null,
-                            projections = emptyList(),
-                            load = if (it.entries != null) null else it.load,
-                            prediction = null,
-                            predictionLoad = if (it.entries != null) null else it.predictionLoad,
-                        )
+                        data == null ->
+                            it.copy(
+                                entries = null,
+                                projections = emptyList(),
+                                load = if (it.entries != null) null else it.load,
+                                prediction = null,
+                                predictionLoad = if (it.entries != null) null else it.predictionLoad,
+                            )
 
-                        data.startDate == it.month.atDay(1) && data.endDate == it.month.atEndOfMonth() ->
-                            it.copy(entries = data.entries, projections = data.projections)
+                        data.startDate == it.month.atDay(1) &&
+                                data.endDate == it.month.atEndOfMonth() ->
+                            it.copy(
+                                entries = data.entries,
+                                projections =
+                                    if (data.prediction.available) data.projections else emptyList(),
+                            )
 
                         else -> it
                     }
@@ -114,41 +167,35 @@ class CalendarViewModel @Inject constructor(
     fun openPrediction(forceRefresh: Boolean = false) {
         if (predictionJob?.isActive == true) return
 
-        if (uiState.value.result == ApiResult.Loading) return
-
         _uiState.update { it.copy(showPrediction = true) }
-
-        if (uiState.value.predictionLoad == ApiResult.Loading) return
 
         _uiState.update { it.copy(predictionLoad = ApiResult.Loading) }
 
-        predictionJob = viewModelScope.launch {
-            val result = getPrediction(date = LocalDate.now(), forceRefresh = forceRefresh)
+        predictionJob =
+            viewModelScope.launch {
+                val result = getPrediction(date = LocalDate.now(), forceRefresh = forceRefresh)
 
-            _uiState.update {
-                it.copy(
-                    prediction = if (result is ApiResult.Success) result.data else it.prediction,
-                    predictionLoad = result.map { },
-                )
+                _uiState.update {
+                    it.copy(
+                        prediction =
+                            if (result is ApiResult.Success) result.data else it.prediction,
+                        predictionLoad = result.map {},
+                    )
+                }
             }
-        }
     }
 
     fun openForm() {
-        if (uiState.value.result == ApiResult.Loading) return
+        if (mutationJob?.isActive == true) return
 
         _uiState.update {
-            it.copy(
-                form = CalendarEntryFormState(date = it.date),
-                showForm = true,
-                result = null,
-            )
+            it.copy(form = CalendarEntryFormState(date = it.date), showForm = true, result = null)
         }
     }
 
     fun openForm(entry: CalendarEntry) {
         if (
-            uiState.value.result == ApiResult.Loading ||
+            mutationJob?.isActive == true ||
             !entry.canManage(canTrackPeriods = uiState.value.canTrackPeriods)
         )
             return
@@ -164,7 +211,7 @@ class CalendarViewModel @Inject constructor(
                         date = entry.date,
                         type = entry.type,
                         notes = entry.notes.orEmpty(),
-                        isImportant = entry.isImportant,
+                        title = entry.title.orEmpty(),
                         periodEvent = entry.period?.event ?: PeriodEvent.DAY,
                         flowLevel = entry.period?.flowLevel ?: FlowLevel.MEDIUM,
                         symptoms = entry.period?.symptoms.orEmpty().toSet(),
@@ -176,7 +223,7 @@ class CalendarViewModel @Inject constructor(
     fun updateForm(form: CalendarEntryFormState) {
         if (uiState.value.result == ApiResult.Loading || !uiState.value.showForm) return
 
-        _uiState.update { it.copy(form = form) }
+        _uiState.update { it.copy(form = form, result = null) }
     }
 
     fun dismiss() {
@@ -190,13 +237,7 @@ class CalendarViewModel @Inject constructor(
     fun askDelete() {
         if (uiState.value.result == ApiResult.Loading || uiState.value.form.entry == null) return
 
-        _uiState.update {
-            it.copy(
-                showForm = false,
-                showDelete = true,
-                result = null,
-            )
-        }
+        _uiState.update { it.copy(showForm = false, showDelete = true, result = null) }
     }
 
     fun select(date: LocalDate) {
@@ -222,21 +263,32 @@ class CalendarViewModel @Inject constructor(
     }
 
     fun fetch(forceRefresh: Boolean = false) {
-        if (loadJob?.isActive == true) return
+        val date = LocalDate.now()
+        if (loadJob?.isActive == true && requestDate == date) return
+
+        loadJob?.cancel()
+        requestDate = date
 
         val month = uiState.value.month
+
+        if (uiState.value.showPrediction && uiState.value.prediction?.date != date) {
+            openPrediction(forceRefresh = true)
+        }
+
         _uiState.update { it.copy(load = ApiResult.Loading) }
 
-        loadJob = viewModelScope.launch {
-            val result = getEntries(
-                date = LocalDate.now(),
-                startDate = month.atDay(1),
-                endDate = month.atEndOfMonth(),
-                forceRefresh = forceRefresh,
-            )
+        loadJob =
+            viewModelScope.launch {
+                val result =
+                    getEntries(
+                        date = date,
+                        startDate = month.atDay(1),
+                        endDate = month.atEndOfMonth(),
+                        forceRefresh = forceRefresh,
+                    )
 
-            _uiState.update { it.copy(load = result.map { }) }
-        }
+                _uiState.update { it.copy(load = result.map {}) }
+            }
     }
 
     fun save() {
@@ -246,12 +298,22 @@ class CalendarViewModel @Inject constructor(
 
         if (!form.type.canCreate(canTrackPeriods = uiState.value.canTrackPeriods)) return
 
+        _uiState.update { it.copy(form = it.form.copy(submitted = true)) }
+
+        if (
+            form.type == CalendarEntryType.EVENT &&
+            (form.title.isBlank() || form.titleLength > 1000)
+        )
+            return
+
+        if (form.type != CalendarEntryType.EVENT && form.notesLength > 1000) return
+
         val input =
             CalendarEntryInput(
                 date = form.date,
                 type = form.type,
-                notes = form.notes.ifBlank { null },
-                isImportant = form.isImportant,
+                notes = if (form.type == CalendarEntryType.EVENT) null else form.notes,
+                title = if (form.type == CalendarEntryType.EVENT) form.title.trim() else null,
                 period =
                     if (form.type == CalendarEntryType.PERIOD)
                         PeriodInput(
@@ -273,42 +335,45 @@ class CalendarViewModel @Inject constructor(
 
         if (!entry.canManage(canTrackPeriods = uiState.value.canTrackPeriods)) return
 
-        submit {
-            deleteEntry(id = entry.id)
-        }
+        submit { deleteEntry(id = entry.id) }
+    }
+
+    fun toggleTask(task: Task) {
+        if (mutationJob?.isActive == true || uiState.value.result == ApiResult.Loading) return
+
+        _uiState.update { it.copy(changingTask = task, taskResult = ApiResult.Loading) }
+
+        mutationJob =
+            viewModelScope.launch {
+                val result = updateTask(id = task.id, completed = !task.completed)
+                _uiState.update { it.copy(taskResult = result.map {}) }
+            }
+    }
+
+    fun retryTask() {
+        uiState.value.changingTask?.let(::toggleTask)
     }
 
     private fun submit(block: suspend () -> ApiResult<*>) {
-        if (uiState.value.result == ApiResult.Loading) return
+        if (mutationJob?.isActive == true) return
 
         _uiState.update { it.copy(result = ApiResult.Loading) }
 
-        viewModelScope.launch {
-            val result = block()
+        mutationJob =
+            viewModelScope.launch {
+                val result = block()
 
-            _uiState.update {
-                it.copy(
-                    result = result.map { },
-                    prediction = if (result is ApiResult.Success) null else it.prediction,
-                    predictionLoad = if (result is ApiResult.Success) null else it.predictionLoad,
-                )
+                _uiState.update { it.copy(result = result.map {}) }
             }
-
-            if (result is ApiResult.Success) {
-                loadJob?.cancel()
-                fetch(forceRefresh = true)
-            }
-        }
     }
 }
 
 fun CalendarEntryType.canCreate(canTrackPeriods: Boolean): Boolean =
     when (this) {
-        CalendarEntryType.NOTE -> true
+        CalendarEntryType.NOTE,
+        CalendarEntryType.EVENT -> true
 
         CalendarEntryType.PERIOD -> canTrackPeriods
-
-        CalendarEntryType.OVULATION -> false
     }
 
 fun CalendarEntry.canManage(canTrackPeriods: Boolean): Boolean =

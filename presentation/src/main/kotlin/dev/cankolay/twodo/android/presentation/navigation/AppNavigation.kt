@@ -31,11 +31,7 @@ import dev.cankolay.twodo.android.presentation.view.task.TaskView
 import dev.cankolay.twodo.android.presentation.view.task.TasksView
 
 @Composable
-fun AppNavigation(
-    authUrl: String,
-    onLogout: () -> Unit,
-    startup: @Composable () -> Unit,
-) {
+fun AppNavigation(authUrl: String, onLogout: () -> Unit, startup: @Composable () -> Unit) {
     val navBackStack = LocalNavBackStack.current
 
     val layout = requireNotNull(value = LocalNotesLayout.current)
@@ -62,13 +58,9 @@ fun AppNavigation(
                     WelcomeView(authUrl = authUrl)
                 }
 
-                entry<Route.StartupError>(metadata = navigationTransition()) {
-                    startup()
-                }
+                entry<Route.StartupError>(metadata = navigationTransition()) { startup() }
 
-                entry<Route.ProfileSetup>(metadata = navigationTransition()) {
-                    ProfileSetupView()
-                }
+                entry<Route.ProfileSetup>(metadata = navigationTransition()) { ProfileSetupView() }
 
                 entry<Route.CoupleSetup>(metadata = navigationTransition()) {
                     CoupleSetupView(onLogout = onLogout)
@@ -93,17 +85,11 @@ fun AppNavigation(
                 }
 
                 entry<Route.Note>(metadata = noteDetailMetadata()) { note ->
-                    NoteView(
-                        id = note.id,
-                        onBack = { if (notes.id == note.id) notes.close() },
-                    )
+                    NoteView(id = note.id, onBack = { if (notes.id == note.id) notes.close() })
                 }
 
                 entry<Route.CreateNote>(metadata = noteDetailMetadata()) {
-                    NoteView(
-                        creating = true,
-                        onBack = { if (notes.isCreating) notes.close() },
-                    )
+                    NoteView(creating = true, onBack = { if (notes.isCreating) notes.close() })
                 }
 
                 entry<Route.Tasks>(metadata = navigationTransition(type = TransitionType.FADE)) {
@@ -113,7 +99,7 @@ fun AppNavigation(
                             if (navBackStack.lastOrNull() != destination) {
                                 navBackStack.add(element = destination)
                             }
-                        },
+                        }
                     )
                 }
 
@@ -129,42 +115,37 @@ fun AppNavigation(
                 }
 
                 entry<Route.Calendar>(metadata = navigationTransition(type = TransitionType.FADE)) {
-                    CalendarView()
+                    CalendarView(
+                        onTaskClick = { id ->
+                            val destination = Route.Task(id = id)
+                            if (navBackStack.lastOrNull() != destination) {
+                                navBackStack.add(element = destination)
+                            }
+                        }
+                    )
                 }
 
                 entry<Route.Settings>(metadata = navigationTransition(type = TransitionType.FADE)) {
-                    SettingsView(
-                        onNavigate = { route -> navBackStack.add(element = route) },
-                    )
+                    SettingsView(onNavigate = { route -> navBackStack.add(element = route) })
                 }
 
                 entry<Route.Profile>(metadata = navigationTransition()) {
                     ProfileView(onLogout = onLogout)
                 }
 
-                entry<Route.Couple>(metadata = navigationTransition()) {
-                    CoupleView()
-                }
+                entry<Route.Couple>(metadata = navigationTransition()) { CoupleView() }
 
-                entry<Route.Languages>(metadata = navigationTransition()) {
-                    LanguagesView()
-                }
+                entry<Route.Languages>(metadata = navigationTransition()) { LanguagesView() }
 
                 entry<Route.Appearance>(metadata = navigationTransition()) {
                     AppearanceView(onNavigate = { route -> navBackStack.add(element = route) })
                 }
 
-                entry<Route.Theme>(metadata = navigationTransition()) {
-                    ThemeView()
-                }
+                entry<Route.Theme>(metadata = navigationTransition()) { ThemeView() }
 
-                entry<Route.MaterialYou>(metadata = navigationTransition()) {
-                    MaterialYouView()
-                }
+                entry<Route.MaterialYou>(metadata = navigationTransition()) { MaterialYouView() }
 
-                entry<Route.About>(metadata = navigationTransition()) {
-                    AboutView()
-                }
+                entry<Route.About>(metadata = navigationTransition()) { AboutView() }
             },
     )
 }

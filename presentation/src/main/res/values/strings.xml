@@ -2,14 +2,11 @@
 <resources>
     <string name="updated_at">Edited at</string>
     <string name="calendar_projection_estimate">Estimate</string>
-    <string name="home_feed">Coming up</string>
-    <string name="home_feed_empty">No scheduled tasks or important dates</string>
     <string name="home_summary">Overview</string>
     <string name="relationship_paired">Sharing life together</string>
     <string name="task_assigned">Assigned</string>
     <string name="period_estimate_active">Estimated window is active</string>
     <string name="period_reliability_unknown">Reliability unavailable</string>
-    <string name="important_date_not_found">This important date is no longer available.</string>
     <plurals name="period_recorded_ranges">
         <item quantity="one">%1$d recorded period</item>
         <item quantity="other">%1$d recorded periods</item>
@@ -150,7 +147,9 @@
 
     <string name="calendar_type_note">Note</string>
     <string name="calendar_type_period">Period</string>
-    <string name="calendar_type_ovulation">Ovulation</string>
+    <string name="calendar_type_event">Event</string>
+    <string name="calendar_title_limit">Use 1,000 characters or fewer for the title.</string>
+    <string name="calendar_notes_limit">Use 1,000 characters or fewer for the notes.</string>
 
     <string name="period_tracker">Period tracker</string>
     <string name="period_tracker_desc">Cycle details</string>
@@ -215,7 +214,6 @@
     <string name="home_good_night">Good night</string>
     <string name="clear_date">Clear date</string>
     <string name="date_not_set">No date set</string>
-    <string name="important_date">Important date</string>
     <string name="relationship_start_date">Relationship start date</string>
     <string name="relationship_date_missing">Set your relationship date to celebrate your time together.</string>
     <string name="relationship_set_date">Set relationship date</string>
